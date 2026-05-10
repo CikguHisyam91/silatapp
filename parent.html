@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>SilatApp — Portal Ibu Bapa</title>
+<meta name="theme-color" content="#085041">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f4f2;color:#1a1a1a;font-size:15px}
+button{cursor:pointer;border:none;background:none;font-family:inherit;font-size:inherit}
+
+/* ── Login Screen ── */
+#skrin-login{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:linear-gradient(160deg,#085041 0%,#1D9E75 100%)}
+.login-logo{width:72px;height:72px;background:rgba(255,255,255,.2);border-radius:20px;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.login-logo i{font-size:36px;color:#fff}
+.login-tajuk{color:#fff;font-size:22px;font-weight:700;margin-bottom:4px;text-align:center}
+.login-sub{color:rgba(255,255,255,.75);font-size:14px;margin-bottom:32px;text-align:center}
+.login-kad{background:#fff;border-radius:20px;padding:24px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,.15)}
+.login-lbl{font-size:13px;font-weight:600;color:#555;margin-bottom:6px;display:block}
+.login-inp{width:100%;padding:13px 14px;border:1.5px solid #e0e0e0;border-radius:10px;font-size:16px;outline:none;transition:.2s;letter-spacing:1px}
+.login-inp:focus{border-color:#1D9E75;box-shadow:0 0 0 3px rgba(29,158,117,.12)}
+.login-btn{width:100%;padding:14px;background:#1D9E75;color:#fff;border-radius:10px;font-size:15px;font-weight:700;margin-top:16px;transition:.15s;display:flex;align-items:center;justify-content:center;gap:8px}
+.login-btn:active{transform:scale(.97)}
+.login-btn:disabled{background:#9FE1CB;cursor:not-allowed}
+.login-hint{font-size:12px;color:#999;margin-top:10px;text-align:center}
+.login-err{background:#FCEBEB;color:#A32D2D;padding:10px 12px;border-radius:8px;font-size:13px;margin-top:12px;display:none;text-align:center}
+
+/* ── Portal Utama ── */
+#portal{display:none;min-height:100vh;background:#f0f4f2}
+.portal-header{background:#085041;color:#fff;padding:16px 16px 0;position:sticky;top:0;z-index:100}
+.portal-nama{font-size:11px;opacity:.7;margin-bottom:2px}
+.portal-tajuk{font-size:17px;font-weight:700}
+.portal-nav{display:flex;gap:0;margin-top:12px}
+.ptab{flex:1;padding:10px;text-align:center;font-size:12px;font-weight:600;color:rgba(255,255,255,.6);border-bottom:2px solid transparent;cursor:pointer;transition:.2s}
+.ptab.aktif{color:#fff;border-bottom-color:#9FE1CB}
+.portal-main{padding:16px}
+
+/* ── Profil Header ── */
+.profil-box{background:#fff;border-radius:16px;padding:20px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.profil-atas{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.profil-avatar{width:56px;height:56px;border-radius:50%;background:#E1F5EE;color:#085041;font-size:22px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.profil-nm{font-size:16px;font-weight:700;margin-bottom:2px}
+.profil-id{font-size:12px;color:#888}
+.bengkung-badge{display:inline-block;background:#085041;color:#fff;padding:5px 12px;border-radius:99px;font-size:12px;font-weight:600;margin-top:4px}
+
+/* ── Stats Grid ── */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat-box{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.stat-box.lebar{grid-column:1/-1}
+.stat-ikon{font-size:20px;margin-bottom:6px}
+.stat-val{font-size:22px;font-weight:700;line-height:1;margin-bottom:2px}
+.stat-lbl{font-size:11px;color:#888;font-weight:500}
+.stat-sub{font-size:11px;color:#555;margin-top:4px;padding-top:4px;border-top:1px solid #f0f0f0}
+.tiada{color:#ccc;font-size:20px;font-weight:400}
+
+/* ── BMI Bar ── */
+.bmi-bar{height:8px;border-radius:99px;background:#f0f0f0;margin:8px 0;overflow:hidden;position:relative}
+.bmi-fill{height:100%;border-radius:99px;transition:.5s}
+.bmi-kurus{background:#3B8BD4}
+.bmi-normal{background:#1D9E75}
+.bmi-lebih{background:#BA7517}
+.bmi-obes{background:#A32D2D}
+
+/* ── Kehadiran ── */
+.hadir-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f5f5f5}
+.hadir-item:last-child{border-bottom:none}
+.hadir-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.hadir-dot.h{background:#1D9E75}
+.hadir-dot.t{background:#e0e0e0}
+.hadir-tgh{flex:1}
+.hadir-tarikh{font-size:13px;font-weight:500}
+.hadir-masa{font-size:11px;color:#888}
+.hadir-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px}
+.hadir-badge.h{background:#E1F5EE;color:#085041}
+.hadir-badge.t{background:#f0f0f0;color:#888}
+
+/* ── Keluar ── */
+.btn-keluar{display:flex;align-items:center;gap:8px;padding:12px 16px;background:#fff;border-radius:12px;color:#A32D2D;font-weight:600;font-size:14px;margin-top:16px;width:100%;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+
+/* Toast */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:#1a1a1a;color:#fff;padding:10px 18px;border-radius:99px;font-size:13px;z-index:999;opacity:0;transition:.3s;white-space:nowrap}
+#toast.nampak{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Loading */
+.muat{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;gap:12px;color:#999}
+.muat i{font-size:28px;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.kosong{text-align:center;padding:32px;color:#bbb;font-size:14px}
+</style>
+</head>
+<body>
+
+<!-- Skrin Login -->
+<div id="skrin-login">
+  <div class="login-logo"><i class="ti ti-shield-star"></i></div>
+  <div class="login-tajuk">Portal Ibu Bapa</div>
+  <div class="login-sub">Sri Gayong Panglima Ulung</div>
+  <div class="login-kad">
+    <label class="login-lbl">No. Kad Pengenalan Anak</label>
+    <input class="login-inp" id="inp-kp" type="text" inputmode="numeric" maxlength="12" placeholder="cth: 150512080141" autocomplete="off">
+    <div class="login-hint">Masukkan 12 digit No. KP anak tanpa sempang</div>
+    <div class="login-err" id="login-err">No. KP tidak dijumpai. Sila semak semula.</div>
+    <button class="login-btn" id="btn-masuk" onclick="loginIbuBapa()">
+      <i class="ti ti-login"></i> Masuk
+    </button>
+    <div style="text-align:center;margin-top:16px">
+      <a href="index.html" style="font-size:12px;color:#1D9E75;text-decoration:none"><i class="ti ti-arrow-left"></i> Kembali ke Admin</a>
+    </div>
+  </div>
+</div>
+
+<!-- Portal Utama -->
+<div id="portal">
+  <div class="portal-header">
+    <div class="portal-nama">Portal Ibu Bapa</div>
+    <div class="portal-tajuk" id="portal-nama-anak">—</div>
+    <div class="portal-nav">
+      <div class="ptab aktif" onclick="tukartab('profil',this)">Profil</div>
+      <div class="ptab" onclick="tukartab('kehadiran',this)">Kehadiran</div>
+    </div>
+  </div>
+  <div class="portal-main" id="portal-main">
+    <div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan...</span></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbwa_ufSBoY9VsNt2K-vFdmpcIFFgfigAjpyNVI0fxl10TRsn8dFdUQVPlldr6NNPAEmOg/exec';
+let dataAnak = null, dataKehadiran = [], tabAktif = 'profil';
+
+// ── JSONP helper ─────────────────────────────────────────────
+function api(tindakan, params = {}) {
+  return new Promise((resolve, reject) => {
+    const cb  = 'cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+    const url = new URL(API_URL);
+    url.searchParams.set('tindakan', tindakan);
+    url.searchParams.set('callback', cb);
+    Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, String(v)));
+    const t = setTimeout(() => { delete window[cb]; document.getElementById(cb)?.remove(); reject(new Error('Masa tamat')); }, 15000);
+    window[cb] = (json) => { clearTimeout(t); delete window[cb]; document.getElementById(cb)?.remove(); json.ok ? resolve(json.data) : reject(new Error(json.error)); };
+    const s = document.createElement('script');
+    s.id = cb; s.src = url.toString();
+    s.onerror = () => { clearTimeout(t); delete window[cb]; s.remove(); reject(new Error('Gagal sambung')); };
+    document.head.appendChild(s);
+  });
+}
+
+// ── Kiraan ───────────────────────────────────────────────────
+function kiraUsia(tarikhLahir, noKp) {
+  let tLahir = null;
+  if (tarikhLahir && tarikhLahir.length >= 6) {
+    tLahir = new Date(tarikhLahir);
+  } else if (noKp && noKp.length >= 6) {
+    const yy = parseInt(noKp.substring(0,2));
+    const mm = noKp.substring(2,4);
+    const dd = noKp.substring(4,6);
+    const tahun = yy <= 30 ? 2000 + yy : 1900 + yy;
+    tLahir = new Date(tahun + '-' + mm + '-' + dd);
+  }
+  if (!tLahir || isNaN(tLahir.getTime())) return null;
+  const skrg = new Date();
+  let usia = skrg.getFullYear() - tLahir.getFullYear();
+  if (skrg.getMonth() < tLahir.getMonth() || (skrg.getMonth() === tLahir.getMonth() && skrg.getDate() < tLahir.getDate())) usia--;
+  return usia;
+}
+
+function kiraBMI(berat, tinggi) {
+  if (!berat || !tinggi || berat <= 0 || tinggi <= 0) return null;
+  const t = tinggi / 100;
+  return Math.round((berat / (t * t)) * 10) / 10;
+}
+
+function statusBMI(bmi) {
+  if (bmi < 18.5) return { label:'Kurus', kelas:'bmi-kurus', pct: Math.min(100, bmi/30*100) };
+  if (bmi < 23)   return { label:'Normal', kelas:'bmi-normal', pct: Math.min(100, bmi/30*100) };
+  if (bmi < 27.5) return { label:'Lebih Berat', kelas:'bmi-lebih', pct: Math.min(100, bmi/30*100) };
+  return { label:'Obes', kelas:'bmi-obes', pct: Math.min(100, bmi/30*100) };
+}
+
+function kategoriUsia(usia) {
+  if (usia <= 6)  return 'PRA TUNAS (5-6 TAHUN)';
+  if (usia <= 8)  return 'TUNAS (7-8 TAHUN)';
+  if (usia <= 10) return 'PRA DINI (9-10 TAHUN)';
+  if (usia <= 12) return 'DINI (11-12 TAHUN)';
+  if (usia <= 14) return 'PRA REMAJA (13-14 TAHUN)';
+  if (usia <= 16) return 'REMAJA (15-16 TAHUN)';
+  if (usia <= 20) return 'SUKMA (16-20 TAHUN)';
+  if (usia <= 35) return 'TERBUKA (21-35 TAHUN)';
+  if (usia <= 45) return 'MASTER 2 (35-45 TAHUN)';
+  return 'MASTER 1 (45 TAHUN KE ATAS)';
+}
+
+function kelasBeratFromRujukan(rujukan, katUsia, berat) {
+  if (!berat || berat <= 0) return null;
+  const senarai = rujukan.filter(r => r.KATEGORI_USIA === katUsia);
+  for (const r of senarai) {
+    const min = parseFloat(r['BERAT_MIN_(KG)'] || r.BERAT_MIN || 0);
+    const max = parseFloat(r['BERAT_MAX_(KG)'] || r.BERAT_MAX || 999);
+    if (berat >= min && berat < max) return r.KELAS;
+  }
+  return 'BEBAS';
+}
+
+// ── Login ─────────────────────────────────────────────────────
+async function loginIbuBapa() {
+  const noKp = document.getElementById('inp-kp').value.trim();
+  const err  = document.getElementById('login-err');
+  const btn  = document.getElementById('btn-masuk');
+  err.style.display = 'none';
+
+  if (!noKp || noKp.length < 6) {
+    err.textContent = 'Sila masukkan No. KP yang sah (12 digit).';
+    err.style.display = 'block'; return;
+  }
+
+  btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Mencari...';
+
+  try {
+    const [ahli, rujukan] = await Promise.all([
+      api('profil_ahli', { no_kp: noKp }),
+      api('silibus_rujukan')
+    ]);
+    dataAnak = { ...ahli, rujukan };
+    dataKehadiran = await api('kehadiran', { no_kp: noKp });
+    dokPortal();
+  } catch (e) {
+    err.textContent = 'No. KP tidak dijumpai. Sila semak semula.';
+    err.style.display = 'block';
+  } finally {
+    btn.disabled = false; btn.innerHTML = '<i class="ti ti-login"></i> Masuk';
+  }
+}
+
+// ── Papar Portal ──────────────────────────────────────────────
+function dokPortal() {
+  document.getElementById('skrin-login').style.display = 'none';
+  document.getElementById('portal').style.display = 'block';
+  document.getElementById('portal-nama-anak').textContent = (dataAnak.NAMA_PENUH||'').split(' ').slice(0,2).join(' ');
+  renderTab('profil');
+}
+
+function tukartab(tab, el) {
+  tabAktif = tab;
+  document.querySelectorAll('.ptab').forEach(b => b.classList.remove('aktif'));
+  el.classList.add('aktif');
+  renderTab(tab);
+}
+
+function renderTab(tab) {
+  if (tab === 'profil') renderProfil();
+  else renderKehadiranAnak();
+}
+
+// ── Render Profil ─────────────────────────────────────────────
+function renderProfil() {
+  const a   = dataAnak;
+  const usia = kiraUsia(a.TARIKH_LAHIR, a.NO_KP);
+  const berat = parseFloat(a.BERAT_KG) || 0;
+  const tinggi= parseFloat(a.TINGGI_CM) || 0;
+  const bmi   = kiraBMI(berat, tinggi);
+  const bmiInfo = bmi ? statusBMI(bmi) : null;
+  const katUs = usia ? kategoriUsia(usia) : null;
+  const kelas  = (katUs && berat && a.rujukan) ? kelasBeratFromRujukan(a.rujukan, katUs, berat) : null;
+
+  const tiada = '<span class="tiada">—</span><div style="font-size:11px;color:#bbb;margin-top:2px">Tiada maklumat</div>';
+
+  document.getElementById('portal-main').innerHTML = `
+    <div class="profil-box">
+      <div class="profil-atas">
+        <div class="profil-avatar">${(a.NAMA_PENUH||'?')[0]}</div>
+        <div>
+          <div class="profil-nm">${a.NAMA_PENUH||'—'}</div>
+          <div class="profil-id">${a.ID_AHLI||''} · ${a.NO_KP||''}</div>
+        </div>
+      </div>
+      <div class="bengkung-badge"><i class="ti ti-award" style="font-size:12px"></i> ${a.BENGKUNG_SEMASA||'Tiada maklumat'}</div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-ikon" style="color:#534AB7"><i class="ti ti-calendar"></i></div>
+        <div class="stat-val">${usia !== null ? usia : '<span class="tiada">—</span>'}</div>
+        <div class="stat-lbl">Usia (tahun ${new Date().getFullYear()})</div>
+        ${katUs ? `<div class="stat-sub">${katUs}</div>` : ''}
+      </div>
+      <div class="stat-box">
+        <div class="stat-ikon" style="color:#1D9E75"><i class="ti ti-gender-${(a.JANTINA||'').toLowerCase()==='perempuan'?'female':'male'}"></i></div>
+        <div class="stat-val" style="font-size:16px;margin-top:4px">${a.JANTINA||'—'}</div>
+        <div class="stat-lbl">Jantina</div>
+        <div class="stat-sub">${a.KATEGORI||'—'}</div>
+      </div>
+
+      <div class="stat-box">
+        <div class="stat-ikon" style="color:#BA7517"><i class="ti ti-weight"></i></div>
+        <div class="stat-val">${berat > 0 ? berat+' <span style="font-size:14px;font-weight:400">kg</span>' : tiada}</div>
+        <div class="stat-lbl">Berat Badan</div>
+        ${kelas ? `<div class="stat-sub">Kelas <strong>${kelas}</strong> — ${katUs}</div>` : ''}
+      </div>
+      <div class="stat-box">
+        <div class="stat-ikon" style="color:#993556"><i class="ti ti-ruler"></i></div>
+        <div class="stat-val">${tinggi > 0 ? tinggi+' <span style="font-size:14px;font-weight:400">cm</span>' : tiada}</div>
+        <div class="stat-lbl">Tinggi Badan</div>
+      </div>
+
+      <div class="stat-box lebar">
+        <div class="stat-ikon" style="color:${bmiInfo?'#1D9E75':'#ccc'}"><i class="ti ti-heart-rate-monitor"></i></div>
+        ${bmiInfo ? `
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <div class="stat-val">${bmi}</div>
+            <div style="font-size:13px;font-weight:600;color:${bmiInfo.kelas.includes('normal')?'#1D9E75':bmiInfo.kelas.includes('kurus')?'#3B8BD4':bmiInfo.kelas.includes('lebih')?'#BA7517':'#A32D2D'}">${bmiInfo.label}</div>
+          </div>
+          <div class="bmi-bar"><div class="bmi-fill ${bmiInfo.kelas}" style="width:${bmiInfo.pct}%"></div></div>
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:#aaa">
+            <span>Kurus (&lt;18.5)</span><span>Normal</span><span>Lebih Berat</span><span>Obes</span>
+          </div>
+        ` : `<div class="stat-val tiada">—</div>`}
+        <div class="stat-lbl" style="margin-top:4px">Indeks Jisim Badan (BMI)</div>
+      </div>
+    </div>
+
+    <button class="btn-keluar" onclick="keluar()">
+      <i class="ti ti-logout"></i> Log Keluar
+    </button>
+  `;
+}
+
+// ── Render Kehadiran ──────────────────────────────────────────
+function renderKehadiranAnak() {
+  const main = document.getElementById('portal-main');
+  if (!dataKehadiran || !dataKehadiran.length) {
+    main.innerHTML = '<div class="kosong"><i class="ti ti-calendar-off" style="font-size:32px;display:block;margin-bottom:8px"></i>Tiada rekod kehadiran</div>';
+    return;
+  }
+  const senarai = [...dataKehadiran].reverse().slice(0, 30);
+  const hadir   = dataKehadiran.filter(r => r.STATUS_KEHADIRAN === 'HADIR').length;
+  const pct     = Math.round(hadir / dataKehadiran.length * 100);
+
+  main.innerHTML = `
+    <div class="profil-box" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div><div style="font-size:22px;font-weight:700;color:#1D9E75">${pct}%</div><div style="font-size:12px;color:#888">Kadar Kehadiran</div></div>
+        <div style="text-align:right"><div style="font-size:18px;font-weight:700">${hadir}/${dataKehadiran.length}</div><div style="font-size:12px;color:#888">Sesi hadir</div></div>
+      </div>
+      <div style="background:#f0f0f0;border-radius:99px;height:8px;overflow:hidden">
+        <div style="background:#1D9E75;height:100%;width:${pct}%;transition:.5s"></div>
+      </div>
+    </div>
+    <div class="profil-box">
+      <div style="font-size:13px;font-weight:600;color:#888;margin-bottom:8px">REKOD TERKINI</div>
+      ${senarai.map(r => {
+        const h = r.STATUS_KEHADIRAN === 'HADIR';
+        return `<div class="hadir-item">
+          <div class="hadir-dot ${h?'h':'t'}"></div>
+          <div class="hadir-tgh">
+            <div class="hadir-tarikh">${r.TARIKH||'—'}</div>
+            <div class="hadir-masa">${r.MASA||''}</div>
+          </div>
+          <span class="hadir-badge ${h?'h':'t'}">${r.STATUS_KEHADIRAN||'—'}</span>
+        </div>`;
+      }).join('')}
+    </div>
+    <button class="btn-keluar" onclick="keluar()"><i class="ti ti-logout"></i> Log Keluar</button>
+  `;
+}
+
+function keluar() {
+  dataAnak = null; dataKehadiran = [];
+  document.getElementById('portal').style.display = 'none';
+  document.getElementById('skrin-login').style.display = 'flex';
+  document.getElementById('inp-kp').value = '';
+  document.getElementById('login-err').style.display = 'none';
+}
+
+// Enter key
+document.getElementById('inp-kp').addEventListener('keydown', e => { if (e.key === 'Enter') loginIbuBapa(); });
+</script>
+</body>
+</html>
