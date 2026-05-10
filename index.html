@@ -379,6 +379,22 @@ let halamanLepas = null;
 let dataAhliCache = null;
 let statusHadir = {};
 
+// ── Format tarikh ─────────────────────────────────────────────
+function formatTarikh(val) {
+  if (!val || val === 'undefined' || val === '') return '—';
+  const d = new Date(val);
+  if (!isNaN(d.getTime())) {
+    return d.getDate().toString().padStart(2,'0') + '/' +
+           (d.getMonth()+1).toString().padStart(2,'0') + '/' +
+           d.getFullYear();
+  }
+  if (/^\d{4}-\d{2}-\d{2}/.test(val)) {
+    const p = val.substring(0,10).split('-');
+    return p[2]+'/'+p[1]+'/'+p[0];
+  }
+  return String(val);
+}
+
 // ── Pembantu API (JSONP — fix CORS) ──────────────────────────
 function api(tindakan, params = {}) {
   return new Promise((resolve, reject) => {
@@ -654,11 +670,11 @@ async function renderProfilAhli() {
       <div class="kad">
         <div class="seksyen-tajuk" style="margin-top:0">Maklumat Peribadi</div>
         <div class="maklumat-baris"><i class="ti ti-user"></i><div><div class="lbl">Jantina</div><div class="val">${a.JANTINA||'—'}</div></div></div>
-        <div class="maklumat-baris"><i class="ti ti-calendar"></i><div><div class="lbl">Tarikh Lahir</div><div class="val">${a.TARIKH_LAHIR||'—'}</div></div></div>
+        <div class="maklumat-baris"><i class="ti ti-calendar"></i><div><div class="lbl">Tarikh Lahir</div><div class="val">${formatTarikh(a.TARIKH_LAHIR)}</div></div></div>
         <div class="maklumat-baris"><i class="ti ti-map-pin"></i><div><div class="lbl">Alamat</div><div class="val">${a.ALAMAT||'—'}</div></div></div>
         <div class="maklumat-baris"><i class="ti ti-users"></i><div><div class="lbl">Waris / Penjaga</div><div class="val">${a.NAMA_WARIS||'—'}</div></div></div>
         <div class="maklumat-baris"><i class="ti ti-phone"></i><div><div class="lbl">No. Tel</div><div class="val">${a.NO_TEL_WARIS||'—'}</div></div></div>
-        <div class="maklumat-baris"><i class="ti ti-calendar-check"></i><div><div class="lbl">Tarikh Daftar</div><div class="val">${a.TARIKH_DAFTAR||'—'}</div></div></div>
+        <div class="maklumat-baris"><i class="ti ti-calendar-check"></i><div><div class="lbl">Tarikh Daftar</div><div class="val">${formatTarikh(a.TARIKH_DAFTAR)}</div></div></div>
       </div>
 
       <div class="kad">
