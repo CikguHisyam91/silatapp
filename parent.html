@@ -150,6 +150,24 @@ function api(tindakan, params = {}) {
   });
 }
 
+
+// ── Format tarikh ─────────────────────────────────────────────
+function formatTarikh(val) {
+  if (!val || val === 'undefined' || val === '') return '—';
+  const d = new Date(val);
+  if (!isNaN(d.getTime())) {
+    return d.getDate().toString().padStart(2,'0') + '/' +
+           (d.getMonth()+1).toString().padStart(2,'0') + '/' +
+           d.getFullYear();
+  }
+  // Cuba format 2017-01-22
+  if (/^\d{4}-\d{2}-\d{2}/.test(val)) {
+    const parts = val.substring(0,10).split('-');
+    return parts[2]+'/'+parts[1]+'/'+parts[0];
+  }
+  return String(val);
+}
+
 // ── Kiraan ───────────────────────────────────────────────────
 function kiraUsia(tarikhLahir, noKp) {
   let tLahir = null;
@@ -221,16 +239,22 @@ async function loginIbuBapa() {
   btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Mencari...';
 
   try {
-    const [ahli, rujukan] = await Promise.all([
-      api('profil_ahli', { no_kp: noKp }),
-      api('silibus_rujukan')
-    ]);
+    // Login guna profil_ahli sahaja
+    const ahli = await api('profil_ahli', { no_kp: noKp });
+
+    // Rujukan adalah optional — jangan fail kalau endpoint belum ditambah
+    let rujukan = [];
+    try { rujukan = await api('silibus_rujukan'); } catch(e) {}
+
+    // Kehadiran juga optional
+    try { dataKehadiran = await api('kehadiran', { no_kp: noKp }); } catch(e) { dataKehadiran = []; }
+
     dataAnak = { ...ahli, rujukan };
-    dataKehadiran = await api('kehadiran', { no_kp: noKp });
     dokPortal();
   } catch (e) {
-    err.textContent = 'No. KP tidak dijumpai. Sila semak semula.';
+    err.textContent = 'No. KP tidak dijumpai dalam sistem. Sila hubungi jurulatih.';
     err.style.display = 'block';
+    console.error('Login error:', e.message);
   } finally {
     btn.disabled = false; btn.innerHTML = '<i class="ti ti-login"></i> Masuk';
   }
