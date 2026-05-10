@@ -511,6 +511,7 @@ function renderHalaman(halaman) {
     case 'yuran'       : renderYuran();         break;
     case 'lagi'        : renderLagi();          break;
     case 'sejarah_gred': renderSejarahGred();   break;
+      case 'profil_pesilat': renderProfilPesilat(); break;
     case 'silibus'     : renderSilibus();        break;
     default            : navigasi('dashboard');
   }
@@ -861,7 +862,12 @@ function renderSenaraiYuran() {
 function renderLagi() {
   const main = document.getElementById('main');
   main.innerHTML = `
-    <div class="seksyen-tajuk">Pengurusan</div>
+    <div class="seksyen-tajuk">Rekod & Laporan</div>
+    <div class="senarai-item" onclick="navigasi('profil_pesilat',true)">
+      <div class="avatar" style="background:var(--pri-l);color:var(--pri-d)"><i class="ti ti-table"></i></div>
+      <div class="item-info"><div class="item-nama">Profil Pesilat</div><div class="item-sub">Senarai lengkap · BMI · Kategori berat</div></div>
+      <i class="ti ti-chevron-right" style="color:var(--hint)"></i>
+    </div>
     <div class="senarai-item" onclick="navigasi('sejarah_gred',true)">
       <div class="avatar amb"><i class="ti ti-award"></i></div>
       <div class="item-info"><div class="item-nama">Sejarah Gred</div><div class="item-sub">Rekod kenaikan bengkung</div></div>
@@ -873,16 +879,155 @@ function renderLagi() {
       <i class="ti ti-chevron-right" style="color:var(--hint)"></i>
     </div>
 
-    <div class="seksyen-tajuk">Lain-lain</div>
+    <div class="seksyen-tajuk">Tambah</div>
     <div class="senarai-item" onclick="bukaModal('modal-daftar')">
       <div class="avatar pri" style="background:var(--pri-l);color:var(--pri-d)"><i class="ti ti-user-plus"></i></div>
       <div class="item-info"><div class="item-nama">Daftar Ahli Baharu</div><div class="item-sub">Tambah pesilat baru</div></div>
       <i class="ti ti-chevron-right" style="color:var(--hint)"></i>
     </div>
+
+    <div class="seksyen-tajuk">Portal</div>
+    <div class="senarai-item" onclick="window.open('parent.html','_blank')">
+      <div class="avatar" style="background:var(--amb-l);color:var(--amb)"><i class="ti ti-users"></i></div>
+      <div class="item-info"><div class="item-nama">Portal Ibu Bapa</div><div class="item-sub">Pautan untuk ibu bapa · Login guna No. KP anak</div></div>
+      <i class="ti ti-external-link" style="color:var(--hint)"></i>
+    </div>
+
     <div class="kad" style="margin-top:20px;background:var(--pri-l)">
-      <div style="font-size:13px;font-weight:600;color:var(--pri-d);margin-bottom:4px">SilatApp v1.0</div>
+      <div style="font-size:13px;font-weight:600;color:var(--pri-d);margin-bottom:4px">SilatApp v1.1</div>
       <div style="font-size:12px;color:var(--muted)">Gelanggang Sri Gayong Panglima Ulung<br>Dikuasakan oleh Google Sheets + Apps Script</div>
     </div>
+  `;
+}
+
+// ── HALAMAN: Profil Pesilat (Senarai Lengkap + BMI) ──────────
+let dataPesilat = null;
+let carianPesilat = '';
+
+async function renderProfilPesilat() {
+  const main = document.getElementById('main');
+  main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan data pesilat...</span></div>';
+  try {
+    if (!dataAhliCache) dataAhliCache = await api('senarai_ahli', {status:'AKTIF'});
+    dataPesilat = dataAhliCache;
+
+    main.innerHTML = `
+      <div class="kotak-carian" style="margin-bottom:10px">
+        <i class="ti ti-search"></i>
+        <input type="search" id="carian-pesilat" placeholder="Cari nama atau No. KP..." oninput="tapisPesilat(this.value)" autocomplete="off">
+      </div>
+      <div style="margin-bottom:10px">
+        <select class="form-input" id="pilih-pesilat" onchange="pilihDariDropdown(this.value)" style="font-size:13px;padding:9px 12px">
+          <option value="">— Pilih nama dari senarai —</option>
+          ${dataAhliCache.map(a=>`<option value="${a.no_kp}">${a.nama}</option>`).join('')}
+        </select>
+      </div>
+      <div id="jadual-pesilat"></div>
+    `;
+    paparJadualPesilat(dataPesilat);
+  } catch(e) {
+    main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p><button class="btn btn-outline" onclick="muatSemula()">Cuba Semula</button></div>`;
+  }
+}
+
+function pilihDariDropdown(noKp) {
+  if (!noKp) { paparJadualPesilat(dataPesilat); return; }
+  document.getElementById('carian-pesilat').value = '';
+  const hasil = dataPesilat.filter(a => a.no_kp === noKp);
+  paparJadualPesilat(hasil);
+}
+
+let timerCariPesilat;
+function tapisPesilat(q) {
+  clearTimeout(timerCariPesilat);
+  carianPesilat = q;
+  document.getElementById('pilih-pesilat').value = '';
+  timerCariPesilat = setTimeout(() => {
+    if (!dataPesilat) return;
+    const hasil = q ? dataPesilat.filter(a =>
+      a.nama.toLowerCase().includes(q.toLowerCase()) || a.no_kp.includes(q)
+    ) : dataPesilat;
+    paparJadualPesilat(hasil);
+  }, 250);
+}
+
+function kiraUsiaDariKP(tarikhLahir, noKp) {
+  let tLahir = null;
+  if (tarikhLahir && tarikhLahir.length >= 6) { tLahir = new Date(tarikhLahir); }
+  else if (noKp && noKp.length >= 6) {
+    const yy=parseInt(noKp.substring(0,2)),mm=noKp.substring(2,4),dd=noKp.substring(4,6);
+    tLahir = new Date((yy<=30?2000+yy:1900+yy)+'-'+mm+'-'+dd);
+  }
+  if (!tLahir || isNaN(tLahir.getTime())) return null;
+  const skrg=new Date(); let u=skrg.getFullYear()-tLahir.getFullYear();
+  if (skrg.getMonth()<tLahir.getMonth()||(skrg.getMonth()===tLahir.getMonth()&&skrg.getDate()<tLahir.getDate())) u--;
+  return u;
+}
+
+function paparJadualPesilat(senarai) {
+  const el = document.getElementById('jadual-pesilat');
+  if (!el) return;
+  if (!senarai || !senarai.length) {
+    el.innerHTML = '<div class="kosong"><i class="ti ti-user-off"></i><p>Tiada pesilat dijumpai</p></div>';
+    return;
+  }
+
+  const warnaBMI = bmi => {
+    if (!bmi) return '#ccc';
+    if (bmi < 18.5) return '#3B8BD4';
+    if (bmi < 23)   return '#1D9E75';
+    if (bmi < 27.5) return '#BA7517';
+    return '#A32D2D';
+  };
+  const labelBMI = bmi => {
+    if (!bmi) return '—';
+    if (bmi < 18.5) return 'Kurus';
+    if (bmi < 23)   return 'Normal';
+    if (bmi < 27.5) return 'Lebih';
+    return 'Obes';
+  };
+
+  el.innerHTML = `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${senarai.length} pesilat dijumpai</div>
+    ${senarai.map(a => {
+      const usia   = kiraUsiaDariKP(a.tarikh_lahir, a.no_kp);
+      const berat  = parseFloat(a.berat) || 0;
+      const tinggi = parseFloat(a.tinggi) || 0;
+      const bmi    = (berat>0&&tinggi>0) ? Math.round(berat/Math.pow(tinggi/100,2)*10)/10 : null;
+      const warna  = a.kategori?.includes('RENDAH')?'var(--pri)':a.kategori?.includes('MENENGAH')?'var(--pur)':'var(--amb)';
+
+      return `
+      <div class="kad" style="margin-bottom:10px;padding:14px;cursor:pointer" onclick="bukaProfilAhli('${a.no_kp}')">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div class="avatar" style="background:${warna}20;color:${warna};flex-shrink:0">${(a.nama||'?')[0]}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nama}</div>
+            <div style="font-size:11px;color:var(--muted)">${a.id_ahli} · ${a.no_kp}</div>
+          </div>
+          <i class="ti ti-chevron-right" style="color:var(--hint);flex-shrink:0"></i>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          <div style="background:var(--bg);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:16px;font-weight:700;color:${warna}">${usia !== null ? usia : '—'}</div>
+            <div style="font-size:10px;color:var(--muted)">USIA</div>
+          </div>
+          <div style="background:var(--bg);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:16px;font-weight:700">${berat > 0 ? berat+'kg' : '—'}</div>
+            <div style="font-size:10px;color:var(--muted)">BERAT</div>
+          </div>
+          <div style="background:var(--bg);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:16px;font-weight:700">${tinggi > 0 ? tinggi+'cm' : '—'}</div>
+            <div style="font-size:10px;color:var(--muted)">TINGGI</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+          <span class="badge hijau" style="font-size:10px">${(a.bengkung||'—').replace('BENGKUNG ','')}</span>
+          ${bmi ? `<span class="badge" style="font-size:10px;background:${warnaBMI(bmi)}20;color:${warnaBMI(bmi)}">BMI ${bmi} · ${labelBMI(bmi)}</span>` : ''}
+        </div>
+      </div>`;
+    }).join('')}
   `;
 }
 
