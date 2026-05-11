@@ -479,7 +479,6 @@ const tahunSkrg  = new Date().getFullYear();
 
 let halamanSkrg = 'dashboard';
 
-function getMain(){return document.getElementById('page-content')||document.getElementById('main')}
 
 let halamanLepas = null;
 let dataAhliCache = null;
@@ -597,67 +596,80 @@ if (localStorage.getItem('silatapp-dark') === '1') {
   });
 }
 
-// ── Navigation ───────────────────────────────────────────────
-function navigasi(halaman, simpanLepas = false) {
-  if (simpanLepas) halamanLepas = halamanSkrg;
+// ── Navigation & Page System ─────────────────────────────────
+function bukaPage(halaman, tajuk) {
   halamanSkrg = halaman;
+  const pc  = document.getElementById('page-container');
+  const pt  = document.getElementById('page-header-title');
+  const fab = document.getElementById('fab-utama');
+  if (pc) pc.classList.add('buka');
+  if (pt) pt.textContent = tajuk || halaman;
+  if (fab) fab.style.display = 'none';
+  const grid = document.getElementById('dashboard-grid');
+  if (grid) grid.style.display = 'none';
+  renderHalamanPage(halaman);
+}
 
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('aktif'));
-  const navId = 'nav-' + (halaman === 'profil-ahli' || halaman === 'lagi' ? halaman : halaman);
-  const navEl = document.getElementById('nav-' + halaman);
-  if (navEl) navEl.classList.add('aktif');
+function tutupPage() {
+  halamanSkrg = 'dashboard';
+  const pc = document.getElementById('page-container');
+  if (pc) { pc.classList.remove('buka'); }
+  const el = document.getElementById('page-content');
+  if (el) el.innerHTML = '';
+  const grid = document.getElementById('dashboard-grid');
+  if (grid) grid.style.display = 'grid';
+  loadDashboardStats();
+}
 
-  const btnKembali = document.getElementById('btn-kembali');
-  btnKembali.style.display = halamanLepas ? 'flex' : 'none';
-
+function navigasi(halaman, simpanLepas = false) {
+  if (halaman === 'dashboard') { tutupPage(); return; }
   const tajukPeta = {
-    dashboard   : 'SilatApp',
-    ahli        : 'Data Ahli',
-    kehadiran   : 'Rekod Kehadiran',
-    yuran       : 'Pengurusan Yuran',
-    lagi        : 'Lagi',
-    'profil-ahli': 'Profil Ahli',
-    sejarah_gred: 'Sejarah Gred',
-    silibus     : 'Silibus Pelajaran',
+    ahli         : '🥷 Pesilat',
+    kehadiran    : '⚔️ Kehadiran',
+    yuran        : '💎 Yuran',
+    'profil-ahli': '👤 Profil Ahli',
+    sejarah_gred : '🏅 Sejarah Gred',
+    silibus      : '📖 Silibus',
+    profil_pesilat: '📊 Profil Pesilat',
+    lagi         : '⚙️ Tetapan',
+    tetapan      : '⚙️ Tetapan',
   };
-  document.getElementById('tajuk-hdr').textContent = tajukPeta[halaman] || 'SilatApp';
-
-  const fabEl = document.getElementById('fab-utama');
-  if (fabEl) fabEl.remove();
-
-  renderHalaman(halaman);
+  bukaPage(halaman, tajukPeta[halaman] || halaman);
 }
 
-function kembali() {
-  if (halamanLepas) {
-    const lps = halamanLepas;
-    halamanLepas = null;
-    navigasi(lps);
-  }
+function kembali() { tutupPage(); }
+
+function muatSemula() {
+  dataAhliCache = null;
+  dataPesilat   = null;
+  if (halamanSkrg === 'dashboard') { loadDashboardStats(); return; }
+  renderHalamanPage(halamanSkrg);
 }
 
-// muatSemula handled above
+function getMain() {
+  return document.getElementById('page-content') || document.getElementById('main');
+}
 
-// ── Render Router ────────────────────────────────────────────
-function renderHalaman(halaman) {
+// ── Render Router ─────────────────────────────────────────────
+function renderHalamanPage(halaman) {
   const main = getMain();
+  if (!main) return;
   main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan...</span></div>';
-  window.scrollTo(0, 0);
-
   switch (halaman) {
-    case 'dashboard'   : renderDashboard();     break;
-    case 'ahli'        : renderSenaraiAhli();   break;
-    case 'profil-ahli' : renderProfilAhli();    break;
-    case 'kehadiran'   : renderKehadiran();     break;
-    case 'yuran'       : renderYuran();         break;
-    case 'lagi'        : renderLagi();          break;
-    case 'sejarah_gred': renderSejarahGred();   break;
-      case 'profil_pesilat': renderProfilPesilat(); break;
-    case 'tetapan'       : renderTetapan(); break;
-    case 'silibus'     : renderSilibus();        break;
-    default            : loadDashboardStats();
-(function(){ const t=localStorage.getItem('silatapp-theme'); if(t==='dark'){document.body.setAttribute('data-theme','dark');const i=document.getElementById('ikon-darkmode');if(i)i.className='ti ti-sun';} })();
+    case 'ahli'          : renderSenaraiAhli();    break;
+    case 'profil-ahli'   : renderProfilAhli();     break;
+    case 'kehadiran'     : renderKehadiran();      break;
+    case 'yuran'         : renderYuran();          break;
+    case 'lagi'          : renderTetapan();        break;
+    case 'tetapan'       : renderTetapan();        break;
+    case 'sejarah_gred'  : renderSejarahGred();    break;
+    case 'silibus'       : renderSilibus();        break;
+    case 'profil_pesilat': renderProfilPesilat();  break;
+    default              : tutupPage();
   }
+}
+
+function renderHalaman(halaman) { renderHalamanPage(halaman); }
 }
 
 // ── HALAMAN: Dashboard ───────────────────────────────────────
