@@ -1585,6 +1585,683 @@ async function renderSejarahGred() {
 }
 
 // ── HALAMAN: Silibus ─────────────────────────────────────────
+// ── HALAMAN: Silibus (Admin) ─────────────────────────────────
+let modSilibus  = 'lihat';
+let dataSilibus = [];
+
+const SENARAI_BENGKUNG_SILIBUS = [
+  'BENGKUNG HITAM','BENGKUNG PUTIH','BENGKUNG BIRU',
+  'BENGKUNG HIJAU','BENGKUNG KUNING','BENGKUNG MERAH','SEMUA'
+];
+
+const SENARAI_KAT_SILIBUS = [
+  'WIRID 700','BENGKUNG HITAM','BENGKUNG PUTIH','BENGKUNG BIRU',
+  'BENGKUNG HIJAU','BENGKUNG KUNING','BENGKUNG MERAH',
+  'TARI TERATAI','PECAHAN IBU GAYONG','SENAMAN KEKUDA','IBU GAYONG','LAIN-LAIN'
+];
+
+async function renderSilibus() {
+  const main = getMain();
+  main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan...</span></div>';
+  try {
+    dataSilibus = await api('silibus');
+    paparSilibus();
+  } catch(e) {
+    main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p></div>`;
+  }
+}
+
+function paparSilibus() {
+  const main = getMain();
+  const isEdit = modSilibus === 'edit';
+  const kump   = {};
+  dataSilibus.forEach(s => {
+    const k = s.KATEGORI || 'LAIN-LAIN';
+    if (!kump[k]) kump[k] = [];
+    kump[k].push(s);
+  });
+
+  main.innerHTML = `
+    <!-- Header & butang edit -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-size:13px;color:var(--muted)">${dataSilibus.length} item</div>
+      <div style="display:flex;gap:8px">
+        ${isEdit?`<button class="btn btn-pri" style="padding:7px 12px;font-size:12px" onclick="bukaFormTambahSilibus()"><i class="ti ti-plus"></i> Tambah</button>`:''}
+        <button class="btn ${isEdit?'btn-red':'btn-outline'}" style="padding:7px 12px;font-size:12px" onclick="togModSilibus()">
+          <i class="ti ti-${isEdit?'check':'pencil'}"></i> ${isEdit?'Selesai':'Edit'}
+        </button>
+      </div>
+    </div>
+
+    <!-- Senarai video mengikut kategori -->
+    ${Object.entries(kump).map(([kat, items]) => `
+      <div class="seksyen-tajuk">${kat}</div>
+      ${items.map(s => {
+        const m    = (s.LINK||'').match(/\/d\/([^\/\?&]+)/);
+        const fid  = m ? m[1] : '';
+        const thumb = fid ? 'https://lh3.googleusercontent.com/d/'+fid+'=w200' : '';
+        return `
+        <div class="senarai-item" style="align-items:flex-start;cursor:${isEdit?'default':'pointer'}" ${!isEdit&&s.LINK?`onclick="mainVidAdmin('${s.ID}','${s.LINK}')"`:''}>
+          <!-- Thumbnail kecil -->
+          <div style="width:56px;height:40px;border-radius:8px;overflow:hidden;background:linear-gradient(135deg,#085041,#1D9E75);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;color:rgba(255,255,255,.8)">
+            ${thumb?`<img src="${thumb}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`:``}
+            ${!thumb?'▶':''}
+          </div>
+          <div class="item-info" style="min-width:0">
+            <div class="item-nama">${s.TAJUK||'—'}</div>
+            <div class="item-sub" style="white-space:normal;display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">
+              ${s.LINK?'<span style="font-size:10px;color:var(--c3)">✓ Ada link</span>':'<span style="font-size:10px;color:var(--muted)">Tiada link</span>'}
+              ${s.BENGKUNG_TAG?s.BENGKUNG_TAG.split(',').map(b=>`<span style="font-size:9px;background:rgba(255,215,0,.2);color:var(--c2);padding:1px 6px;border-radius:4px">${b.trim()}</span>`).join(''):''}
+            </div>
+          </div>
+          ${isEdit?`
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button onclick="bukaEditSilibus('${s.ID}')" style="background:rgba(41,121,255,.2);border:1px solid rgba(41,121,255,.4);color:var(--c4);border-radius:8px;padding:5px 8px;font-size:11px;cursor:pointer">✏️</button>
+            <button onclick="padamSilabus('${s.ID}')" style="background:rgba(255,23,68,.2);border:1px solid rgba(255,23,68,.4);color:var(--c6);border-radius:8px;padding:5px 8px;font-size:11px;cursor:pointer">🗑️</button>
+          </div>`:`<i class="ti ti-player-play" style="color:var(--c3);flex-shrink:0"></i>`}
+        </div>
+        <!-- Player inline -->
+        <div id="vplayer-${s.ID}" style="display:none;aspect-ratio:16/9;border-radius:10px;overflow:hidden;margin:-6px 0 8px">
+          <iframe id="vframe-${s.ID}" src="" style="width:100%;height:100%;border:none" allowfullscreen></iframe>
+        </div>`;
+      }).join('')}
+    `).join('')}
+  `;
+}
+
+function togModSilibus() {
+  modSilibus = modSilibus==='lihat'?'edit':'lihat';
+  paparSilibus();
+}
+
+function mainVidAdmin(id, link) {
+  const player = document.getElementById('vplayer-'+id);
+  const frame  = document.getElementById('vframe-'+id);
+  if (!player||!frame) return;
+  const buka = player.style.display==='none'||!player.style.display;
+  const m    = (link||'').match(/\/d\/([^\/\?&]+)/);
+  const fid  = m?m[1]:'';
+  const url  = fid?'https://drive.google.com/file/d/'+fid+'/preview':link;
+  if (buka) { player.style.display='block'; frame.src=url; player.scrollIntoView({behavior:'smooth',block:'nearest'}); }
+  else       { player.style.display='none';  frame.src=''; }
+}
+
+function bukaFormTambahSilibus() {
+  bukaFormSilibus(null);
+}
+
+function bukaEditSilibus(id) {
+  const item = dataSilibus.find(s=>s.ID===id||s.ID===parseInt(id));
+  bukaFormSilibus(item);
+}
+
+function bukaFormSilibus(item) {
+  const isEdit = !!item;
+  const modal  = document.createElement('div');
+  modal.className = 'modal-bg buka';
+  modal.id = 'modal-silibus-form';
+  modal.innerHTML = `
+    <div class="modal" style="max-height:90vh">
+      <div class="modal-tajuk">
+        ${isEdit?'✏️ Edit Video':'➕ Tambah Video Baru'}
+        <div class="modal-tutup" onclick="document.getElementById('modal-silibus-form').remove()"><i class="ti ti-x"></i></div>
+      </div>
+
+      <div class="form-kump">
+        <label class="form-label">Tajuk Video *</label>
+        <input class="form-input" id="sv-tajuk" placeholder="cth: Tari Teratai 1-10" value="${item?.TAJUK||''}">
+      </div>
+
+      <div class="form-kump">
+        <label class="form-label">Link Google Drive *</label>
+        <input class="form-input" id="sv-link" type="url" placeholder="https://drive.google.com/file/d/..." value="${item?.LINK||''}">
+        <div class="form-hint">Pastikan fail ditetapkan "Anyone with the link can view"</div>
+      </div>
+
+      <div class="form-kump">
+        <label class="form-label">Kategori</label>
+        <select class="form-input" id="sv-kat">
+          ${SENARAI_KAT_SILIBUS.map(k=>`<option ${(item?.KATEGORI||'')==k?'selected':''}>${k}</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="form-kump">
+        <label class="form-label">Tag Bengkung (boleh pilih lebih satu)</label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
+          ${SENARAI_BENGKUNG_SILIBUS.map(b => {
+            const tagged = (item?.BENGKUNG_TAG||'').split(',').map(x=>x.trim()).includes(b);
+            return `<label style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px">
+              <input type="checkbox" class="cb-bengkung" value="${b}" ${tagged?'checked':''}> ${b}
+            </label>`;
+          }).join('')}
+        </div>
+        <div class="form-hint">Biarkan kosong jika sesuai untuk semua peringkat</div>
+      </div>
+
+      <button class="btn btn-pri btn-blok" onclick="simpanFormSilibus('${item?.ID||''}')">
+        <i class="ti ti-device-floppy"></i> ${isEdit?'Kemaskini':'Tambah'} Video
+      </button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function simpanFormSilibus(id) {
+  const tajuk = document.getElementById('sv-tajuk')?.value?.trim();
+  const link  = document.getElementById('sv-link')?.value?.trim();
+  const kat   = document.getElementById('sv-kat')?.value;
+  const tags  = Array.from(document.querySelectorAll('.cb-bengkung:checked')).map(c=>c.value).join(',');
+
+  if (!tajuk) { tunjukToast('Sila isi tajuk!','ralat'); return; }
+
+  try {
+    if (id) {
+      // Edit
+      await apiPost({ tindakan:'kemaskini_silibus', id, tajuk, link: link||'', bengkung_tag: tags });
+    } else {
+      // Tambah baru
+      await apiPost({ tindakan:'tambah_silibus', tajuk, link: link||'', kategori: kat, bengkung_tag: tags });
+    }
+    document.getElementById('modal-silibus-form')?.remove();
+    tunjukToast('✅ Video berjaya '+(id?'dikemaskini':'ditambah')+'!','ok');
+    dataSilibus = await api('silibus');
+    paparSilibus();
+  } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
+}
+
+async function padamSilabus(id) {
+  if (!confirm('Padam video ini dari senarai silibus?')) return;
+  try {
+    await apiPost({ tindakan:'padam_silibus', id });
+    tunjukToast('Video dipadamkan','ok');
+    dataSilibus = await api('silibus');
+    paparSilibus();
+  } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
+}
+
+// ── HALAMAN: Lagi ────────────────────────────────────────────
+function renderLagi() {
+  const main = getMain();
+  main.innerHTML = `
+    <div class="seksyen-tajuk">Portal</div>
+    <div class="senarai-item" onclick="window.open('parent.html','_blank')">
+      <div class="avatar" style="background:rgba(255,107,53,.2);font-size:22px">👨‍👩‍👧</div>
+      <div class="item-info"><div class="item-nama">Portal Ibu Bapa</div><div class="item-sub">Login guna No. KP anak</div></div>
+      <i class="ti ti-external-link" style="color:var(--muted)"></i>
+    </div>
+    <div class="senarai-item" onclick="bukaModal('modal-daftar')">
+      <div class="avatar" style="background:rgba(0,200,83,.2);font-size:22px">➕</div>
+      <div class="item-info"><div class="item-nama">Daftar Ahli Baharu</div><div class="item-sub">Tambah pesilat baru ke sistem</div></div>
+      <i class="ti ti-chevron-right" style="color:var(--muted)"></i>
+    </div>
+    <div class="kad" style="margin-top:20px;text-align:center">
+      <div style="font-family:var(--font-h);font-size:16px;color:#FFD700;margin-bottom:4px">⚔️ SilatApp v1.1</div>
+      <div style="font-size:12px;color:var(--muted)">Gelanggang Sri Gayong Panglima Ulung<br>Google Sheets + Apps Script</div>
+    </div>
+  `;
+}
+
+// ── HALAMAN: Profil Pesilat (Senarai Lengkap + BMI) ──────────
+let dataPesilat = null;
+let carianPesilat = '';
+
+async function renderProfilPesilat() {
+  const main = getMain();
+  main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan data pesilat...</span></div>';
+  try {
+    if (!dataAhliCache) dataAhliCache = await api('senarai_ahli', {status:'AKTIF'});
+    dataPesilat = dataAhliCache;
+
+    main.innerHTML = `
+      <div class="kotak-carian" style="margin-bottom:10px">
+        <i class="ti ti-search"></i>
+        <input type="search" id="carian-pesilat" placeholder="Cari nama atau No. KP..." oninput="tapisPesilat(this.value)" autocomplete="off">
+      </div>
+      <div style="margin-bottom:10px">
+        <select class="form-input" id="pilih-pesilat" onchange="pilihDariDropdown(this.value)" style="font-size:13px;padding:9px 12px">
+          <option value="">— Pilih nama dari senarai —</option>
+          ${dataAhliCache.map(a=>`<option value="${a.no_kp}">${a.nama}</option>`).join('')}
+        </select>
+      </div>
+      <div id="jadual-pesilat"></div>
+    `;
+    paparJadualPesilat(dataPesilat);
+  } catch(e) {
+    main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p><button class="btn btn-outline" onclick="muatSemula()">Cuba Semula</button></div>`;
+  }
+}
+
+function pilihDariDropdown(noKp) {
+  if (!noKp) { paparJadualPesilat(dataPesilat); return; }
+  document.getElementById('carian-pesilat').value = '';
+  const hasil = dataPesilat.filter(a => a.no_kp === noKp);
+  paparJadualPesilat(hasil);
+}
+
+let timerCariPesilat;
+function tapisPesilat(q) {
+  clearTimeout(timerCariPesilat);
+  carianPesilat = q;
+  document.getElementById('pilih-pesilat').value = '';
+  timerCariPesilat = setTimeout(() => {
+    if (!dataPesilat) return;
+    const hasil = q ? dataPesilat.filter(a =>
+      a.nama.toLowerCase().includes(q.toLowerCase()) || a.no_kp.includes(q)
+    ) : dataPesilat;
+    paparJadualPesilat(hasil);
+  }, 250);
+}
+
+function kiraUsiaDariKP(tarikhLahir, noKp) {
+  let tLahir = null;
+  if (tarikhLahir && tarikhLahir.length >= 6) { tLahir = new Date(tarikhLahir); }
+  else if (noKp && noKp.length >= 6) {
+    const yy=parseInt(noKp.substring(0,2)),mm=noKp.substring(2,4),dd=noKp.substring(4,6);
+    tLahir = new Date((yy<=30?2000+yy:1900+yy)+'-'+mm+'-'+dd);
+  }
+  if (!tLahir || isNaN(tLahir.getTime())) return null;
+  const skrg=new Date(); let u=skrg.getFullYear()-tLahir.getFullYear();
+  if (skrg.getMonth()<tLahir.getMonth()||(skrg.getMonth()===tLahir.getMonth()&&skrg.getDate()<tLahir.getDate())) u--;
+  return u;
+}
+
+function paparJadualPesilat(senarai) {
+  const el = document.getElementById('jadual-pesilat');
+  if (!el) return;
+  if (!senarai || !senarai.length) {
+    el.innerHTML = '<div class="kosong"><i class="ti ti-user-off"></i><p>Tiada pesilat dijumpai</p></div>';
+    return;
+  }
+
+  const warnaBMI = bmi => {
+    if (!bmi) return '#ccc';
+    if (bmi < 18.5) return '#3B8BD4';
+    if (bmi < 23)   return '#1D9E75';
+    if (bmi < 27.5) return '#BA7517';
+    return '#A32D2D';
+  };
+  const labelBMI = bmi => {
+    if (!bmi) return '—';
+    if (bmi < 18.5) return 'Kurus';
+    if (bmi < 23)   return 'Normal';
+    if (bmi < 27.5) return 'Lebih';
+    return 'Obes';
+  };
+
+  el.innerHTML = `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${senarai.length} pesilat dijumpai</div>
+    ${senarai.map(a => {
+      const usia   = kiraUsiaDariKP(a.tarikh_lahir, a.no_kp);
+      const berat  = parseFloat(a.berat) || 0;
+      const tinggi = parseFloat(a.tinggi) || 0;
+      const bmi    = (berat>0&&tinggi>0) ? Math.round(berat/Math.pow(tinggi/100,2)*10)/10 : null;
+      const warna  = a.kategori?.includes('RENDAH')?'var(--pri)':a.kategori?.includes('MENENGAH')?'var(--pur)':'var(--amb)';
+
+      return `
+      <div class="kad" style="margin-bottom:10px;padding:14px;cursor:pointer" onclick="bukaProfilAhli('${a.no_kp}')">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div class="avatar" style="background:${warna}25;color:${warna};flex-shrink:0;border:none">${(a.nama||'?')[0]}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nama}</div>
+            <div style="font-size:11px;color:var(--muted)">${a.id_ahli} · ${a.no_kp}</div>
+          </div>
+          <i class="ti ti-chevron-right" style="color:var(--hint);flex-shrink:0"></i>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+          <div style="background:var(--bg);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:16px;font-weight:700;color:${warna}">${usia !== null ? usia : '—'}</div>
+            <div style="font-size:10px;color:var(--muted)">USIA</div>
+          </div>
+          <div style="background:var(--bg);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:16px;font-weight:700">${berat > 0 ? berat+'kg' : '—'}</div>
+            <div style="font-size:10px;color:var(--muted)">BERAT</div>
+          </div>
+          <div style="background:var(--bg);border-radius:8px;padding:8px;text-align:center">
+            <div style="font-size:16px;font-weight:700">${tinggi > 0 ? tinggi+'cm' : '—'}</div>
+            <div style="font-size:10px;color:var(--muted)">TINGGI</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+          <span class="badge hijau" style="font-size:10px">${(a.bengkung||'—').replace('BENGKUNG ','')}</span>
+          ${bmi ? `<span class="badge" style="font-size:10px;background:${warnaBMI(bmi)}20;color:${warnaBMI(bmi)}">BMI ${bmi} · ${labelBMI(bmi)}</span>` : ''}
+        </div>
+      </div>`;
+    }).join('')}
+  `;
+}
+
+
+
+// ── HALAMAN: Kewangan ─────────────────────────────────────────
+let tahunKewangan = new Date().getFullYear();
+
+async function renderKewangan() {
+  const main = getMain();
+  try {
+    const d = await api('ringkasan_kewangan', { tahun: tahunKewangan });
+    const wBaki = d.baki >= 0 ? 'var(--c3)' : 'var(--c6)';
+    const TAHUN_LIST = [2024, 2025, 2026, 2027];
+
+    main.innerHTML = `
+      <!-- Pilih Tahun -->
+      <div class="kad" style="padding:12px 14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase">Tahun</div>
+          <div style="display:flex;gap:6px">
+            ${TAHUN_LIST.map(t=>`<button onclick="tukarTahunKewangan(${t})" class="btn ${t===tahunKewangan?'btn-pri':'btn-outline'}" style="padding:5px 12px;font-size:12px">${t}</button>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- Ringkasan -->
+      <div class="kad-row">
+        <div class="stat-kad g">
+          <div class="stat-num">RM${(d.jumlah_masuk||0).toFixed(0)}</div>
+          <div class="stat-lbl">📥 Jumlah Masuk</div>
+        </div>
+        <div class="stat-kad r">
+          <div class="stat-num">RM${(d.perbelanjaan||0).toFixed(0)}</div>
+          <div class="stat-lbl">📤 Perbelanjaan</div>
+        </div>
+      </div>
+      <div class="kad" style="text-align:center;margin-bottom:12px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">BAKI TERKINI ${d.tahun}</div>
+        <div style="font-size:36px;font-weight:700;color:${wBaki}">RM${(d.baki||0).toFixed(2)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">
+          Yuran: RM${(d.kutipan_yuran||0).toFixed(2)} + 
+          Lain-lain: RM${(d.pendapatan_lain||0).toFixed(2)}
+        </div>
+      </div>
+
+      <!-- Butang Tambah -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <button class="btn btn-pri" onclick="bukaModalKewangan('PENDAPATAN')">
+          <i class="ti ti-plus"></i> Tambah Masuk
+        </button>
+        <button class="btn btn-red" onclick="bukaModalKewangan('PERBELANJAAN')">
+          <i class="ti ti-minus"></i> Tambah Keluar
+        </button>
+      </div>
+
+      <!-- Graf Bar Mudah -->
+      <div class="kad" style="margin-bottom:12px">
+        <div class="seksyen-tajuk" style="margin-top:0">Aliran Mengikut Bulan ${d.tahun}</div>
+        ${(d.ikut_bulan||[]).map(b => {
+          const max = Math.max(...(d.ikut_bulan||[]).map(x=>Math.max(x.masuk,x.keluar)), 1);
+          const pMasuk = Math.round(b.masuk/max*100);
+          const pKeluar = Math.round(b.keluar/max*100);
+          if (!b.masuk && !b.keluar) return '';
+          return `
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px">
+              <span>${b.bulan}</span>
+              <span style="color:var(--c3)">+RM${b.masuk.toFixed(0)}</span>
+              <span style="color:var(--c6)">-RM${b.keluar.toFixed(0)}</span>
+            </div>
+            <div style="background:rgba(255,255,255,.08);border-radius:4px;height:8px;overflow:hidden;margin-bottom:2px">
+              <div style="background:var(--c3);height:100%;width:${pMasuk}%;border-radius:4px"></div>
+            </div>
+            <div style="background:rgba(255,255,255,.08);border-radius:4px;height:8px;overflow:hidden">
+              <div style="background:var(--c6);height:100%;width:${pKeluar}%;border-radius:4px"></div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <!-- Rekod Terkini -->
+      <div class="seksyen-tajuk">Rekod Terkini</div>
+      ${(d.terkini||[]).length ? d.terkini.map(r=>`
+        <div class="senarai-item" style="cursor:default">
+          <div class="avatar ${r.JENIS==='PENDAPATAN'?'g':'r'}" style="font-size:18px">${r.JENIS==='PENDAPATAN'?'📥':'📤'}</div>
+          <div class="item-info">
+            <div class="item-nama">${r.KETERANGAN||r.KATEGORI||'—'}</div>
+            <div class="item-sub">${r.TARIKH} · ${r.KATEGORI}</div>
+          </div>
+          <span class="badge ${r.JENIS==='PENDAPATAN'?'hijau':'merah'}">
+            ${r.JENIS==='PENDAPATAN'?'+':'-'}RM${parseFloat(r.JUMLAH||0).toFixed(2)}
+          </span>
+        </div>
+      `).join('') : '<div class="kosong"><i class="ti ti-receipt-off"></i><p>Tiada rekod lagi</p></div>'}
+    `;
+  } catch(e) {
+    main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p><button class="btn btn-outline" onclick="muatSemula()">Cuba Semula</button></div>`;
+  }
+}
+
+function tukarTahunKewangan(tahun) { tahunKewangan = tahun; renderKewangan(); }
+
+function bukaModalKewangan(jenis) {
+  const tajuk = jenis === 'PENDAPATAN' ? '📥 Tambah Pendapatan' : '📤 Tambah Perbelanjaan';
+  const warna = jenis === 'PENDAPATAN' ? '#00E676' : '#FF5177';
+  const katList = jenis === 'PENDAPATAN'
+    ? ['YURAN BULANAN','YURAN PENDAFTARAN','DERMA','LAIN-LAIN PENDAPATAN']
+    : ['PERALATAN LATIHAN','SEWA TEMPAT','PERTANDINGAN','PERJALANAN','BAYARAN GURU TAMU','LAIN-LAIN PERBELANJAAN'];
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg buka';
+  modal.id = 'modal-kewangan-temp';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-tajuk" style="color:${warna}">${tajuk}
+        <div class="modal-tutup" onclick="document.getElementById('modal-kewangan-temp').remove()"><i class="ti ti-x"></i></div>
+      </div>
+      <div class="form-kump">
+        <label class="form-label">Kategori</label>
+        <select class="form-input" id="kw-kategori">
+          ${katList.map(k=>`<option>${k}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-kump">
+        <label class="form-label">Jumlah (RM)</label>
+        <input class="form-input" id="kw-jumlah" type="number" min="0" step="0.01" placeholder="0.00" required>
+      </div>
+      <div class="form-kump">
+        <label class="form-label">Tarikh</label>
+        <input class="form-input" id="kw-tarikh" type="date" value="${new Date().toISOString().split('T')[0]}">
+      </div>
+      <div class="form-kump">
+        <label class="form-label">Keterangan</label>
+        <input class="form-input" id="kw-keterangan" type="text" placeholder="Hurai ringkas">
+      </div>
+      <button class="btn btn-blok" style="background:${warna};color:#fff;border:none;box-shadow:none" onclick="simpanKewangan('${jenis}')">
+        <i class="ti ti-device-floppy"></i> Simpan
+      </button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function simpanKewangan(jenis) {
+  const jumlah = document.getElementById('kw-jumlah')?.value;
+  if (!jumlah) { tunjukToast('Sila isi jumlah!','ralat'); return; }
+  try {
+    await apiPost({
+      tindakan: 'tambah_kewangan',
+      jenis, jumlah,
+      kategori   : document.getElementById('kw-kategori')?.value,
+      tarikh     : document.getElementById('kw-tarikh')?.value,
+      keterangan : document.getElementById('kw-keterangan')?.value,
+    });
+    document.getElementById('modal-kewangan-temp')?.remove();
+    tunjukToast('✅ Rekod kewangan disimpan!','ok');
+    renderKewangan();
+  } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
+}
+
+// ── HALAMAN: Latihan Kendiri ──────────────────────────────────
+async function renderLatihanKendiri() {
+  const main = getMain();
+  try {
+    const data = await api('latihan_kendiri');
+    const ahli = dataAhliCache || await api('senarai_ahli', {status:'AKTIF'});
+    if (!dataAhliCache) dataAhliCache = ahli;
+
+    main.innerHTML = `
+      <button class="btn btn-pri btn-blok" style="margin-bottom:12px" onclick="bukaModalLatihan()">
+        <i class="ti ti-plus"></i> Assign Latihan Baharu
+      </button>
+      ${!data.length ? '<div class="kosong"><i class="ti ti-run"></i><p>Tiada latihan kendiri aktif</p></div>' :
+        data.map(l => {
+          const pct = Math.min(100, Math.round((parseInt(l.TEMPOH_HARI)||0) > 0 ? 0 : 0));
+          return `
+          <div class="kad" style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:700;font-size:14px">${l.NAMA_TUGASAN}</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:2px">${l.NO_KP==='SEMUA'?'Semua Pesilat':l.NAMA_PESILAT}</div>
+                <div style="font-size:11px;color:var(--muted)">${l.TARIKH_MULA} → ${l.TARIKH_TAMAT} (${l.TEMPOH_HARI} hari)</div>
+              </div>
+              <button onclick="padamLatihanAdmin('${l.ID_LATIHAN}')" style="background:rgba(255,23,68,.2);border:1px solid rgba(255,23,68,.3);border-radius:8px;padding:4px 10px;color:var(--c6);font-size:12px;cursor:pointer">Padam</button>
+            </div>
+            ${l.PENERANGAN?`<div style="font-size:12px;color:var(--muted);margin-bottom:6px">${l.PENERANGAN}</div>`:''}
+            <div style="font-size:11px;color:var(--muted)">📅 ${l.STATUS}</div>
+          </div>`;
+        }).join('')}
+    `;
+  } catch(e) {
+    main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p><button class="btn btn-outline" onclick="muatSemula()">Cuba Semula</button></div>`;
+  }
+}
+
+function bukaModalLatihan() {
+  const ahli = dataAhliCache || [];
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg buka';
+  modal.id = 'modal-latihan-temp';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-tajuk">🏃 Assign Latihan Kendiri
+        <div class="modal-tutup" onclick="document.getElementById('modal-latihan-temp').remove()"><i class="ti ti-x"></i></div>
+      </div>
+      <div class="form-kump">
+        <label class="form-label">Assign Kepada</label>
+        <select class="form-input" id="lt-no-kp">
+          <option value="SEMUA">Semua Pesilat</option>
+          ${ahli.map(a=>`<option value="${a.no_kp}">${a.nama}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-kump">
+        <label class="form-label">Nama Tugasan</label>
+        <input class="form-input" id="lt-nama" type="text" placeholder="cth: Berlatih Ibu Gayong 5 minit">
+      </div>
+      <div class="form-kump">
+        <label class="form-label">Penerangan</label>
+        <textarea class="form-input" id="lt-penerangan" rows="2" placeholder="Butiran tugasan..."></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-kump">
+          <label class="form-label">Tempoh (Hari)</label>
+          <input class="form-input" id="lt-tempoh" type="number" value="30" min="1" max="365">
+        </div>
+        <div class="form-kump">
+          <label class="form-label">Tarikh Mula</label>
+          <input class="form-input" id="lt-mula" type="date" value="${new Date().toISOString().split('T')[0]}">
+        </div>
+      </div>
+      <button class="btn btn-pri btn-blok" onclick="simpanLatihan()">
+        <i class="ti ti-send"></i> Assign Latihan
+      </button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function simpanLatihan() {
+  const nama = document.getElementById('lt-nama')?.value?.trim();
+  if (!nama) { tunjukToast('Sila isi nama tugasan!','ralat'); return; }
+  try {
+    await apiPost({
+      tindakan     : 'tambah_latihan',
+      no_kp        : document.getElementById('lt-no-kp')?.value,
+      nama_tugasan : nama,
+      penerangan   : document.getElementById('lt-penerangan')?.value,
+      tempoh_hari  : document.getElementById('lt-tempoh')?.value,
+      tarikh_mula  : document.getElementById('lt-mula')?.value,
+    });
+    document.getElementById('modal-latihan-temp')?.remove();
+    tunjukToast('✅ Latihan berjaya di-assign!','ok');
+    renderLatihanKendiri();
+  } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
+}
+
+async function padamLatihanAdmin(id) {
+  if (!confirm('Padam tugasan latihan ini?')) return;
+  try {
+    await apiPost({ tindakan:'padam_latihan', id_latihan: id });
+    tunjukToast('Latihan dipadamkan','ok');
+    renderLatihanKendiri();
+  } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
+}
+
+// ── HALAMAN: Tetapan ─────────────────────────────────────────
+async function renderTetapan() {
+  const main = getMain();
+  try {
+    const t = await api('tetapan');
+    main.innerHTML = `
+      <div class="seksyen-tajuk">Maklumat Gelanggang</div>
+      <div class="kad" style="text-align:center;padding:20px">
+        ${t.LOGO_URL ? `<img src="${t.LOGO_URL}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;margin-bottom:10px;border:3px solid rgba(255,215,0,.5)">` : '<div style="font-size:48px;margin-bottom:10px">🛡️</div>'}
+        <div style="font-family:var(--font-h);font-size:18px;color:var(--gold);margin-bottom:4px">${t.NAMA_GELANGGANG||'Sri Gayong Panglima Ulung'}</div>
+        <div style="font-size:12px;color:var(--muted)">${t.ALAMAT_GELANGGANG||''}</div>
+      </div>
+      <div class="senarai-item" onclick="window.open('laporan.html','_blank')">
+        <div class="avatar" style="background:rgba(255,100,0,.2);font-size:22px">📋</div>
+        <div class="item-info"><div class="item-nama">Buat Laporan Pesilat</div><div class="item-sub">Penilaian bengkung + gambar + bakat</div></div>
+        <i class="ti ti-external-link" style="color:var(--muted)"></i>
+      </div>
+      <div class="senarai-item" onclick="window.open('parent.html','_blank')">
+        <div class="avatar" style="background:rgba(170,0,255,.2);font-size:22px">👨‍👩‍👧</div>
+        <div class="item-info"><div class="item-nama">Portal Ibu Bapa</div><div class="item-sub">Login guna No. KP anak</div></div>
+        <i class="ti ti-external-link" style="color:var(--muted)"></i>
+      </div>
+      <div class="seksyen-tajuk">Edit Tetapan</div>
+      <div class="kad" style="font-size:13px;color:var(--muted)">
+        Untuk edit nama gelanggang, logo, dan maklumat lain — buka Google Sheet dan pergi ke tab <strong style="color:var(--gold)">TETAPAN</strong>.
+      </div>
+      <div class="kad" style="margin-top:0">
+        <div style="font-family:var(--font-h);font-size:14px;color:var(--gold);margin-bottom:6px">⚔️ SilatApp v1.2</div>
+        <div style="font-size:12px;color:var(--muted)">Guru: ${t.NAMA_GURU||'Muhammad Hisyam'}<br>Tel: ${t.TELEFON_GURU||'—'}</div>
+      </div>
+    `;
+  } catch(e) {
+    main.innerHTML = `<div class="kosong"><i class="ti ti-settings"></i><p>Gagal muatkan tetapan</p><p style="font-size:12px">Pastikan sheet TETAPAN wujud</p></div>`;
+  }
+}
+
+// ── HALAMAN: Sejarah Gred ────────────────────────────────────
+async function renderSejarahGred() {
+  const main = getMain();
+  try {
+    const data = await api('sejarah_gred');
+    if (!data.length) {
+      main.innerHTML = '<div class="kosong"><i class="ti ti-award"></i><p>Tiada sejarah gred direkodkan lagi</p></div>';
+      return;
+    }
+    const ikutAhli = {};
+    data.slice().reverse().forEach(g => {
+      if (!ikutAhli[g.NO_KP]) ikutAhli[g.NO_KP] = { nama: g.NAMA_PESILAT, rekod: [] };
+      ikutAhli[g.NO_KP].rekod.push(g);
+    });
+    main.innerHTML = Object.entries(ikutAhli).map(([no_kp, {nama, rekod}]) => `
+      <div class="kad" style="margin-bottom:12px">
+        <div style="font-weight:700;margin-bottom:12px;font-size:14px">${nama}</div>
+        ${rekod.map((g, i, arr) => `
+          <div class="gred-item">
+            <div class="gred-garis"><div class="gred-dot"></div>${i < arr.length-1 ? '<div class="gred-line"></div>' : ''}</div>
+            <div class="gred-content">
+              <div class="gred-bengkung">${g.BENGKUNG_BARU}</div>
+              <div class="gred-tarikh">${g.TARIKH_NAIK_GRED||'—'}${g.CATATAN?' · '+g.CATATAN:''}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `).join('');
+  } catch (e) {
+    main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p></div>`;
+  }
+}
+
+// ── HALAMAN: Silibus ─────────────────────────────────────────
 let modSilibus = 'lihat'; // 'lihat' atau 'edit'
 let dataSilibus = [];
 
