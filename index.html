@@ -283,6 +283,14 @@ select.form-input{appearance:none}
         <span class="game-ikon">⚙️</span>
         <span class="game-lbl">TETAPAN</span>
       </div>
+      <div class="game-btn" style="background:linear-gradient(160deg,#26A69A,#00796B);box-shadow:0 6px 0 #004D40,0 10px 20px rgba(0,121,107,.3);border:2px solid rgba(255,255,255,.3);border-bottom-width:6px" onclick="bukaPage('kewangan','💰 Kewangan')">
+        <span class="game-ikon">💰</span>
+        <span class="game-lbl">KEWANGAN</span>
+      </div>
+      <div class="game-btn" style="background:linear-gradient(160deg,#F06292,#C2185B);box-shadow:0 6px 0 #880E4F,0 10px 20px rgba(194,24,91,.3);border:2px solid rgba(255,255,255,.3);border-bottom-width:6px" onclick="bukaPage('latihan','🏃 Latihan')">
+        <span class="game-ikon">🏃</span>
+        <span class="game-lbl">LATIHAN</span>
+      </div>
     </div>
 
     <!-- Dashboard stats (loaded async) -->
@@ -696,6 +704,8 @@ function renderHalamanPage(halaman) {
     case 'yuran'         : renderYuran();          break;
     case 'lagi'          : renderTetapan();        break;
     case 'tetapan'       : renderTetapan();        break;
+    case 'kewangan'      : renderKewangan();       break;
+    case 'latihan'       : renderLatihanKendiri(); break;
     case 'sejarah_gred'  : renderSejarahGred();    break;
     case 'silibus'       : renderSilibus();        break;
     case 'profil_pesilat': renderProfilPesilat();  break;
@@ -1244,6 +1254,266 @@ function paparJadualPesilat(senarai) {
   `;
 }
 
+
+
+// ── HALAMAN: Kewangan ─────────────────────────────────────────
+let tahunKewangan = new Date().getFullYear();
+
+async function renderKewangan() {
+  const main = getMain();
+  try {
+    const d = await api('ringkasan_kewangan', { tahun: tahunKewangan });
+    const wBaki = d.baki >= 0 ? 'var(--c3)' : 'var(--c6)';
+    const TAHUN_LIST = [2024, 2025, 2026, 2027];
+
+    main.innerHTML = `
+      <!-- Pilih Tahun -->
+      <div class="kad" style="padding:12px 14px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase">Tahun</div>
+          <div style="display:flex;gap:6px">
+            ${TAHUN_LIST.map(t=>`<button onclick="tukarTahunKewangan(${t})" class="btn ${t===tahunKewangan?'btn-pri':'btn-outline'}" style="padding:5px 12px;font-size:12px">${t}</button>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <!-- Ringkasan -->
+      <div class="kad-row">
+        <div class="stat-kad g">
+          <div class="stat-num">RM${(d.jumlah_masuk||0).toFixed(0)}</div>
+          <div class="stat-lbl">📥 Jumlah Masuk</div>
+        </div>
+        <div class="stat-kad r">
+          <div class="stat-num">RM${(d.perbelanjaan||0).toFixed(0)}</div>
+          <div class="stat-lbl">📤 Perbelanjaan</div>
+        </div>
+      </div>
+      <div class="kad" style="text-align:center;margin-bottom:12px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">BAKI TERKINI ${d.tahun}</div>
+        <div style="font-size:36px;font-weight:700;color:${wBaki}">RM${(d.baki||0).toFixed(2)}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">
+          Yuran: RM${(d.kutipan_yuran||0).toFixed(2)} + 
+          Lain-lain: RM${(d.pendapatan_lain||0).toFixed(2)}
+        </div>
+      </div>
+
+      <!-- Butang Tambah -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+        <button class="btn btn-pri" onclick="bukaModalKewangan('PENDAPATAN')">
+          <i class="ti ti-plus"></i> Tambah Masuk
+        </button>
+        <button class="btn btn-red" onclick="bukaModalKewangan('PERBELANJAAN')">
+          <i class="ti ti-minus"></i> Tambah Keluar
+        </button>
+      </div>
+
+      <!-- Graf Bar Mudah -->
+      <div class="kad" style="margin-bottom:12px">
+        <div class="seksyen-tajuk" style="margin-top:0">Aliran Mengikut Bulan ${d.tahun}</div>
+        ${(d.ikut_bulan||[]).map(b => {
+          const max = Math.max(...(d.ikut_bulan||[]).map(x=>Math.max(x.masuk,x.keluar)), 1);
+          const pMasuk = Math.round(b.masuk/max*100);
+          const pKeluar = Math.round(b.keluar/max*100);
+          if (!b.masuk && !b.keluar) return '';
+          return `
+          <div style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px">
+              <span>${b.bulan}</span>
+              <span style="color:var(--c3)">+RM${b.masuk.toFixed(0)}</span>
+              <span style="color:var(--c6)">-RM${b.keluar.toFixed(0)}</span>
+            </div>
+            <div style="background:rgba(255,255,255,.08);border-radius:4px;height:8px;overflow:hidden;margin-bottom:2px">
+              <div style="background:var(--c3);height:100%;width:${pMasuk}%;border-radius:4px"></div>
+            </div>
+            <div style="background:rgba(255,255,255,.08);border-radius:4px;height:8px;overflow:hidden">
+              <div style="background:var(--c6);height:100%;width:${pKeluar}%;border-radius:4px"></div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <!-- Rekod Terkini -->
+      <div class="seksyen-tajuk">Rekod Terkini</div>
+      ${(d.terkini||[]).length ? d.terkini.map(r=>`
+        <div class="senarai-item" style="cursor:default">
+          <div class="avatar ${r.JENIS==='PENDAPATAN'?'g':'r'}" style="font-size:18px">${r.JENIS==='PENDAPATAN'?'📥':'📤'}</div>
+          <div class="item-info">
+            <div class="item-nama">${r.KETERANGAN||r.KATEGORI||'—'}</div>
+            <div class="item-sub">${r.TARIKH} · ${r.KATEGORI}</div>
+          </div>
+          <span class="badge ${r.JENIS==='PENDAPATAN'?'hijau':'merah'}">
+            ${r.JENIS==='PENDAPATAN'?'+':'-'}RM${parseFloat(r.JUMLAH||0).toFixed(2)}
+          </span>
+        </div>
+      `).join('') : '<div class="kosong"><i class="ti ti-receipt-off"></i><p>Tiada rekod lagi</p></div>'}
+    `;
+  } catch(e) {
+    main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p><button class="btn btn-outline" onclick="muatSemula()">Cuba Semula</button></div>`;
+  }
+}
+
+function tukarTahunKewangan(tahun) { tahunKewangan = tahun; renderKewangan(); }
+
+function bukaModalKewangan(jenis) {
+  const tajuk = jenis === 'PENDAPATAN' ? '📥 Tambah Pendapatan' : '📤 Tambah Perbelanjaan';
+  const warna = jenis === 'PENDAPATAN' ? '#00E676' : '#FF5177';
+  const katList = jenis === 'PENDAPATAN'
+    ? ['YURAN BULANAN','YURAN PENDAFTARAN','DERMA','LAIN-LAIN PENDAPATAN']
+    : ['PERALATAN LATIHAN','SEWA TEMPAT','PERTANDINGAN','PERJALANAN','BAYARAN GURU TAMU','LAIN-LAIN PERBELANJAAN'];
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg buka';
+  modal.id = 'modal-kewangan-temp';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-tajuk" style="color:${warna}">${tajuk}
+        <div class="modal-tutup" onclick="document.getElementById('modal-kewangan-temp').remove()"><i class="ti ti-x"></i></div>
+      </div>
+      <div class="form-kump">
+        <label class="form-label">Kategori</label>
+        <select class="form-input" id="kw-kategori">
+          ${katList.map(k=>`<option>${k}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-kump">
+        <label class="form-label">Jumlah (RM)</label>
+        <input class="form-input" id="kw-jumlah" type="number" min="0" step="0.01" placeholder="0.00" required>
+      </div>
+      <div class="form-kump">
+        <label class="form-label">Tarikh</label>
+        <input class="form-input" id="kw-tarikh" type="date" value="${new Date().toISOString().split('T')[0]}">
+      </div>
+      <div class="form-kump">
+        <label class="form-label">Keterangan</label>
+        <input class="form-input" id="kw-keterangan" type="text" placeholder="Hurai ringkas">
+      </div>
+      <button class="btn btn-blok" style="background:${warna};color:#fff;border:none;box-shadow:none" onclick="simpanKewangan('${jenis}')">
+        <i class="ti ti-device-floppy"></i> Simpan
+      </button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function simpanKewangan(jenis) {
+  const jumlah = document.getElementById('kw-jumlah')?.value;
+  if (!jumlah) { tunjukToast('Sila isi jumlah!','ralat'); return; }
+  try {
+    await apiPost({
+      tindakan: 'tambah_kewangan',
+      jenis, jumlah,
+      kategori   : document.getElementById('kw-kategori')?.value,
+      tarikh     : document.getElementById('kw-tarikh')?.value,
+      keterangan : document.getElementById('kw-keterangan')?.value,
+    });
+    document.getElementById('modal-kewangan-temp')?.remove();
+    tunjukToast('✅ Rekod kewangan disimpan!','ok');
+    renderKewangan();
+  } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
+}
+
+// ── HALAMAN: Latihan Kendiri ──────────────────────────────────
+async function renderLatihanKendiri() {
+  const main = getMain();
+  try {
+    const data = await api('latihan_kendiri');
+    const ahli = dataAhliCache || await api('senarai_ahli', {status:'AKTIF'});
+    if (!dataAhliCache) dataAhliCache = ahli;
+
+    main.innerHTML = `
+      <button class="btn btn-pri btn-blok" style="margin-bottom:12px" onclick="bukaModalLatihan()">
+        <i class="ti ti-plus"></i> Assign Latihan Baharu
+      </button>
+      ${!data.length ? '<div class="kosong"><i class="ti ti-run"></i><p>Tiada latihan kendiri aktif</p></div>' :
+        data.map(l => {
+          const pct = Math.min(100, Math.round((parseInt(l.TEMPOH_HARI)||0) > 0 ? 0 : 0));
+          return `
+          <div class="kad" style="margin-bottom:10px">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:700;font-size:14px">${l.NAMA_TUGASAN}</div>
+                <div style="font-size:12px;color:var(--muted);margin-top:2px">${l.NO_KP==='SEMUA'?'Semua Pesilat':l.NAMA_PESILAT}</div>
+                <div style="font-size:11px;color:var(--muted)">${l.TARIKH_MULA} → ${l.TARIKH_TAMAT} (${l.TEMPOH_HARI} hari)</div>
+              </div>
+              <button onclick="padamLatihanAdmin('${l.ID_LATIHAN}')" style="background:rgba(255,23,68,.2);border:1px solid rgba(255,23,68,.3);border-radius:8px;padding:4px 10px;color:var(--c6);font-size:12px;cursor:pointer">Padam</button>
+            </div>
+            ${l.PENERANGAN?`<div style="font-size:12px;color:var(--muted);margin-bottom:6px">${l.PENERANGAN}</div>`:''}
+            <div style="font-size:11px;color:var(--muted)">📅 ${l.STATUS}</div>
+          </div>`;
+        }).join('')}
+    `;
+  } catch(e) {
+    main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p><button class="btn btn-outline" onclick="muatSemula()">Cuba Semula</button></div>`;
+  }
+}
+
+function bukaModalLatihan() {
+  const ahli = dataAhliCache || [];
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg buka';
+  modal.id = 'modal-latihan-temp';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-tajuk">🏃 Assign Latihan Kendiri
+        <div class="modal-tutup" onclick="document.getElementById('modal-latihan-temp').remove()"><i class="ti ti-x"></i></div>
+      </div>
+      <div class="form-kump">
+        <label class="form-label">Assign Kepada</label>
+        <select class="form-input" id="lt-no-kp">
+          <option value="SEMUA">Semua Pesilat</option>
+          ${ahli.map(a=>`<option value="${a.no_kp}">${a.nama}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-kump">
+        <label class="form-label">Nama Tugasan</label>
+        <input class="form-input" id="lt-nama" type="text" placeholder="cth: Berlatih Ibu Gayong 5 minit">
+      </div>
+      <div class="form-kump">
+        <label class="form-label">Penerangan</label>
+        <textarea class="form-input" id="lt-penerangan" rows="2" placeholder="Butiran tugasan..."></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-kump">
+          <label class="form-label">Tempoh (Hari)</label>
+          <input class="form-input" id="lt-tempoh" type="number" value="30" min="1" max="365">
+        </div>
+        <div class="form-kump">
+          <label class="form-label">Tarikh Mula</label>
+          <input class="form-input" id="lt-mula" type="date" value="${new Date().toISOString().split('T')[0]}">
+        </div>
+      </div>
+      <button class="btn btn-pri btn-blok" onclick="simpanLatihan()">
+        <i class="ti ti-send"></i> Assign Latihan
+      </button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+async function simpanLatihan() {
+  const nama = document.getElementById('lt-nama')?.value?.trim();
+  if (!nama) { tunjukToast('Sila isi nama tugasan!','ralat'); return; }
+  try {
+    await apiPost({
+      tindakan     : 'tambah_latihan',
+      no_kp        : document.getElementById('lt-no-kp')?.value,
+      nama_tugasan : nama,
+      penerangan   : document.getElementById('lt-penerangan')?.value,
+      tempoh_hari  : document.getElementById('lt-tempoh')?.value,
+      tarikh_mula  : document.getElementById('lt-mula')?.value,
+    });
+    document.getElementById('modal-latihan-temp')?.remove();
+    tunjukToast('✅ Latihan berjaya di-assign!','ok');
+    renderLatihanKendiri();
+  } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
+}
+
+async function padamLatihanAdmin(id) {
+  if (!confirm('Padam tugasan latihan ini?')) return;
+  try {
+    await apiPost({ tindakan:'padam_latihan', id_latihan: id });
+    tunjukToast('Latihan dipadamkan','ok');
+    renderLatihanKendiri();
+  } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
+}
 
 // ── HALAMAN: Tetapan ─────────────────────────────────────────
 async function renderTetapan() {
