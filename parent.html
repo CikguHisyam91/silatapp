@@ -121,6 +121,7 @@ button{cursor:pointer;border:none;background:none;font-family:inherit;font-size:
       <div class="ptab aktif" onclick="tukartab('profil',this)">Profil</div>
       <div class="ptab" onclick="tukartab('kehadiran',this)">Kehadiran</div>
       <div class="ptab" onclick="tukartab('laporan',this)">📋 Laporan</div>
+      <div class="ptab" onclick="tukartab('silibus',this)">📖 Silibus</div>
     </div>
   </div>
   <div class="portal-main" id="portal-main">
@@ -295,6 +296,7 @@ function renderTab(tab) {
   if (tab === 'profil') renderProfil();
   else if (tab === 'kehadiran') renderKehadiranAnak();
   else if (tab === 'laporan') renderLaporanAnak();
+  else if (tab === 'silibus') renderSilabusAnak();
 }
 
 // ── Render Profil ─────────────────────────────────────────────
@@ -313,12 +315,12 @@ function renderProfil() {
   document.getElementById('portal-main').innerHTML = `
     <div class="profil-box">
       <div class="profil-atas">
-        <div class="foto-wrapper" onclick="document.getElementById('inp-foto-parent').click()">
+        <div class="foto-wrapper" onclick="document.getElementById('inp-foto-parent').click()" title="Klik untuk tukar gambar">
           ${a.FOTO_BASE64 && a.FOTO_BASE64.length > 10
-            ? `<img src="${a.FOTO_BASE64}" alt="Gambar">`
-            : `<div class="foto-avatar">${(a.NAMA_PENUH||'?')[0]}</div>`
+            ? `<img class="foto-bulat" src="${a.FOTO_BASE64}" alt="${a.NAMA_PENUH}">`
+            : `<div class="foto-avatar-besar">${(a.NAMA_PENUH||'?')[0]}</div>`
           }
-          <div class="foto-edit-btn">📷</div>
+          <div class="foto-edit-badge">📷</div>
         </div>
         <input type="file" id="inp-foto-parent" accept="image/*" capture="environment" style="display:none" onchange="uploadGambarAnak(this)">
         <div>
@@ -468,49 +470,97 @@ async function renderLaporanAnak() {
   try {
     const senarai = await api('senarai_laporan', { no_kp: dataAnak.NO_KP });
 
+    // Kira maklumat fizikal dari dataAnak
+    const a        = dataAnak;
+    const usia     = kiraUsia(a.TARIKH_LAHIR, a.NO_KP);
+    const berat    = parseFloat(a.BERAT_KG)  || 0;
+    const tinggi   = parseFloat(a.TINGGI_CM) || 0;
+    const bmi      = kiraBMI(berat, tinggi);
+    const bmiInfo  = bmi ? statusBMI(bmi) : null;
+    const katUs    = usia ? kategoriUsia(usia) : null;
+    const rujukan  = a.rujukan || [];
+    const kelas    = (katUs && berat && rujukan.length) ? kelasBeratFromRujukan(rujukan, katUs, berat) : null;
+
+    // Warna BMI
+    const wBMI = b => !b?'#ccc':b<18.5?'#2979FF':b<23?'#00C853':b<27.5?'#FF6D00':'#FF1744';
+    const lBMI = b => !b?'—':b<18.5?'Kurus':b<23?'Normal':b<27.5?'Lebih Berat':'Obes';
+
+    // Panel fizkal (tunjuk sekali di atas, bukan dalam tiap laporan)
+    const panelFizikal = `
+      <div style="background:#fff;border-radius:var(--rad);padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)">
+        <div style="font-size:11px;font-weight:700;color:#1D9E75;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">📊 Maklumat Fizikal Semasa</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+          <div style="text-align:center;background:#f8f9ff;border-radius:8px;padding:10px 4px">
+            <div style="font-size:18px;font-weight:700;color:#085041">${berat>0?berat:'—'}</div>
+            <div style="font-size:9px;color:#888;margin-top:1px">KG</div>
+            <div style="font-size:9px;color:#aaa">Berat</div>
+          </div>
+          <div style="text-align:center;background:#f8f9ff;border-radius:8px;padding:10px 4px">
+            <div style="font-size:18px;font-weight:700;color:#085041">${tinggi>0?tinggi:'—'}</div>
+            <div style="font-size:9px;color:#888;margin-top:1px">CM</div>
+            <div style="font-size:9px;color:#aaa">Tinggi</div>
+          </div>
+          <div style="text-align:center;background:#f8f9ff;border-radius:8px;padding:10px 4px">
+            <div style="font-size:18px;font-weight:700;color:${wBMI(bmi)}">${bmi||'—'}</div>
+            <div style="font-size:9px;color:${wBMI(bmi)};margin-top:1px">${lBMI(bmi)}</div>
+            <div style="font-size:9px;color:#aaa">BMI</div>
+          </div>
+          <div style="text-align:center;background:#f8f9ff;border-radius:8px;padding:10px 4px">
+            <div style="font-size:16px;font-weight:700;color:#085041">${kelas||'—'}</div>
+            <div style="font-size:9px;color:#888;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${katUs?katUs.split('(')[0].trim():'Tiada data'}</div>
+            <div style="font-size:9px;color:#aaa">Kelas</div>
+          </div>
+        </div>
+        ${(!berat || !tinggi) ? '<div style="font-size:11px;color:#aaa;margin-top:8px;text-align:center">Berat/tinggi belum diisi. Sila hubungi jurulatih.</div>' : ''}
+      </div>`;
+
     if (!senarai || !senarai.length) {
       main.innerHTML = `
-        <div style="text-align:center;padding:40px 20px;color:#aaa">
-          <div style="font-size:40px;margin-bottom:10px">📋</div>
-          <div style="font-size:14px;font-weight:600">Tiada laporan lagi</div>
-          <div style="font-size:12px;margin-top:6px">Laporan akan diisi oleh jurulatih</div>
+        ${panelFizikal}
+        <div style="text-align:center;padding:30px 20px;color:#aaa">
+          <div style="font-size:36px;margin-bottom:8px">📋</div>
+          <div style="font-size:14px;font-weight:600;color:#666">Tiada laporan lagi</div>
+          <div style="font-size:12px;margin-top:4px">Laporan akan diisi oleh jurulatih</div>
         </div>
         <button class="btn-keluar" onclick="keluar()"><i class="ti ti-logout"></i> Log Keluar</button>
       `;
       return;
     }
 
-    const warnaSkor = pct => pct >= 80 ? '#00C853' : pct >= 60 ? '#FF6D00' : '#FF1744';
-    const labelStatus = s => s === 'CEMERLANG' ? '🌟' : s === 'SEDERHANA' ? '🙂' : s === 'LEMAH' ? '😟' : '—';
-    const warnaStatus = s => s === 'CEMERLANG' ? '#00C853' : s === 'SEDERHANA' ? '#FF6D00' : '#FF1744';
-    const labelBakat = b => b === 'SILAT SENI' ? '🌸 Silat Seni' : b === 'OLAHRAGA' ? '⚡ Olahraga' : b === 'KEDUA-DUANYA' ? '🏆 Kedua-dua' : '❓ Belum Pasti';
-    const warnaBakat = b => b === 'SILAT SENI' ? '#9C27B0' : b === 'OLAHRAGA' ? '#2979FF' : b === 'KEDUA-DUANYA' ? '#00C853' : '#888';
+    const warnaSkor = pct => pct>=80?'#00C853':pct>=60?'#FF6D00':'#FF1744';
+    const labelBakat = b => b==='SILAT SENI'?'🌸 Silat Seni':b==='OLAHRAGA'?'⚡ Olahraga':b==='KEDUA-DUANYA'?'🏆 Kedua-dua':'❓ Belum Pasti';
+    const warnaBakat = b => b==='SILAT SENI'?'#9C27B0':b==='OLAHRAGA'?'#2979FF':b==='KEDUA-DUANYA'?'#00C853':'#888';
+    const labelStatus = s => s==='CEMERLANG'?'🌟 Cemerlang':s==='SEDERHANA'?'🙂 Sederhana':s==='LEMAH'?'😟 Lemah':'—';
+    const warnaStatus = s => s==='CEMERLANG'?'#00C853':s==='SEDERHANA'?'#FF6D00':'#FF1744';
 
     main.innerHTML = `
-      <div style="font-size:13px;color:#888;margin-bottom:12px">${senarai.length} laporan dijumpai</div>
+      ${panelFizikal}
+      <div style="font-size:12px;color:#888;margin-bottom:10px">${senarai.length} laporan dijumpai</div>
       ${[...senarai].reverse().map(l => {
-        const pct = parseFloat(l.PERATUS) || 0;
+        const pct = parseFloat(l.PERATUS)||0;
         return `
         <div class="laporan-kad">
           <div class="laporan-head">
-            <div>
-              <div class="laporan-tajuk">${l.BENGKUNG_SEMASA || '—'}</div>
-              <div class="laporan-tarikh">📅 ${l.TARIKH_LAPORAN || '—'}</div>
-              ${l.BAKAT ? `<div style="margin-top:6px"><span class="bakat-tag" style="background:${warnaBakat(l.BAKAT)}20;color:${warnaBakat(l.BAKAT)}">${labelBakat(l.BAKAT)}</span></div>` : ''}
+            <div style="flex:1;min-width:0">
+              <div class="laporan-tajuk">${l.BENGKUNG_SEMASA||'—'}</div>
+              <div class="laporan-tarikh">📅 ${l.TARIKH_LAPORAN||'—'}</div>
+              ${l.BAKAT?`<div style="margin-top:6px"><span class="bakat-tag" style="background:${warnaBakat(l.BAKAT)}15;color:${warnaBakat(l.BAKAT)}">${labelBakat(l.BAKAT)}</span></div>`:''}
             </div>
             <div class="skor-bulat" style="background:${warnaSkor(pct)}">
               <div>${Math.round(pct)}%</div>
-              <div style="font-size:9px;font-weight:600;opacity:.9">${l.JUMLAH_MARKAH}/${l.MARKAH_MAX}</div>
+              <div style="font-size:9px;opacity:.9">${l.JUMLAH_MARKAH}/${l.MARKAH_MAX}</div>
             </div>
           </div>
-
-          ${l.CATATAN_GURU ? `
-            <div style="background:#f8f9ff;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:13px;color:#333;border-left:3px solid #1D9E75">
-              <div style="font-size:10px;font-weight:700;color:#888;margin-bottom:3px">CATATAN GURU</div>
+          ${l.CATATAN_GURU?`
+            <div style="background:#f8fff8;border-radius:8px;padding:10px 12px;margin:10px 0;font-size:13px;color:#333;border-left:3px solid #1D9E75">
+              <div style="font-size:10px;font-weight:700;color:#1D9E75;margin-bottom:3px">CATATAN GURU</div>
               ${l.CATATAN_GURU}
-            </div>` : ''}
-
-          ${l.ID_LAPORAN ? `<div id="detail-${l.ID_LAPORAN}"><button onclick="muatDetailLaporan('${l.ID_LAPORAN}')" style="font-size:12px;color:#1D9E75;background:none;border:1px solid #1D9E75;border-radius:6px;padding:5px 12px;cursor:pointer">Lihat Butiran Penilaian ▼</button></div>` : ''}
+            </div>`:''}
+          ${l.ID_LAPORAN?`<div id="detail-${l.ID_LAPORAN}">
+            <button onclick="muatDetailLaporan('${l.ID_LAPORAN}')" style="font-size:12px;color:#1D9E75;background:none;border:1px solid #1D9E75;border-radius:6px;padding:5px 12px;cursor:pointer;width:100%">
+              Lihat Butiran Penilaian ▼
+            </button>
+          </div>`:''}
         </div>`;
       }).join('')}
       <button class="btn-keluar" onclick="keluar()"><i class="ti ti-logout"></i> Log Keluar</button>
@@ -518,8 +568,7 @@ async function renderLaporanAnak() {
   } catch(e) {
     main.innerHTML = `
       <div style="text-align:center;padding:30px;color:#aaa">
-        <div style="font-size:14px">Gagal muatkan laporan</div>
-        <div style="font-size:12px;margin-top:4px">${e.message}</div>
+        <div style="font-size:14px">Gagal muatkan laporan: ${e.message}</div>
       </div>
       <button class="btn-keluar" onclick="keluar()"><i class="ti ti-logout"></i> Log Keluar</button>
     `;
@@ -544,6 +593,103 @@ async function muatDetailLaporan(idLaporan) {
       : '<div style="font-size:12px;color:#aaa;padding:6px">Tiada item penilaian</div>';
   } catch(e) {
     el.innerHTML = '<div style="font-size:12px;color:#aaa">Gagal muatkan butiran</div>';
+  }
+}
+
+
+// ── Silibus Anak (ikut bengkung) ─────────────────────────────
+async function renderSilabusAnak() {
+  const main = document.getElementById('portal-main');
+  main.innerHTML = '<div style="text-align:center;padding:30px;color:#888"><i class="ti ti-loader-2" style="font-size:28px;animation:spin 1s linear infinite"></i><br>Memuatkan silibus...</div>';
+
+  try {
+    const bengkung = (dataAnak.BENGKUNG_SEMASA || '').toUpperCase();
+    const semua    = await api('silibus');
+
+    // Map bengkung → senarai kategori relevan (ikut peringkat)
+    function kategoriRelevaN(b) {
+      const semua = ['WIRID 700','BENGKUNG HITAM','BENGKUNG PUTIH','BENGKUNG BIRU','BENGKUNG HIJAU','BENGKUNG KUNING','BENGKUNG MERAH','TARI TERATAI','PECAHAN IBU GAYONG','SENAMAN KEKUDA','IBU GAYONG'];
+      if (b.includes('HITAM')) return ['WIRID 700','BENGKUNG HITAM','SENAMAN KEKUDA','TARI TERATAI','IBU GAYONG'];
+      if (b.includes('PUTIH')) return ['WIRID 700','BENGKUNG HITAM','BENGKUNG PUTIH','SENAMAN KEKUDA','TARI TERATAI','PECAHAN IBU GAYONG','IBU GAYONG'];
+      if (b.includes('BIRU'))  return ['BENGKUNG PUTIH','BENGKUNG BIRU','TARI TERATAI','PECAHAN IBU GAYONG','IBU GAYONG','SENAMAN KEKUDA'];
+      if (b.includes('HIJAU')) return ['BENGKUNG BIRU','BENGKUNG HIJAU','TARI TERATAI','PECAHAN IBU GAYONG','IBU GAYONG'];
+      if (b.includes('KUNING')|| b.includes('MERAH')) return semua;
+      return ['WIRID 700','SENAMAN KEKUDA','TARI TERATAI'];
+    }
+
+    const katRelevaN = kategoriRelevaN(bengkung);
+
+    // Asingkan — relevan dulu, kemudian lain
+    const relevan = semua.filter(s => s.LINK && katRelevaN.some(k => (s.KATEGORI||'').includes(k)));
+    const lain    = semua.filter(s => s.LINK && !katRelevaN.some(k => (s.KATEGORI||'').includes(k)));
+
+    function buatKadVideo(item, isRelevaN) {
+      const match  = (item.LINK||'').match(/\/d\/([^\/\?]+)/);
+      const fileId = match ? match[1] : '';
+      const embed  = fileId ? `https://drive.google.com/file/d/${fileId}/preview` : '';
+      return `
+        <div class="video-kad" id="vkad-${item.ID}">
+          <div class="video-thumb" onclick="togVideo('${item.ID}','${embed}')">
+            <div class="play-btn">▶</div>
+            <div class="video-tajuk">${item.TAJUK}</div>
+          </div>
+          <div class="video-embed" id="vembed-${item.ID}">
+            <iframe id="vframe-${item.ID}" src="" allowfullscreen allow="autoplay"></iframe>
+          </div>
+          <div class="video-info">
+            <span class="video-kat">${item.KATEGORI||'—'}</span>
+            ${isRelevaN ? '<span class="bengkung-chip">✓ Tahap Semasa</span>' : '<span style="font-size:10px;color:#aaa">Rujukan</span>'}
+          </div>
+        </div>`;
+    }
+
+    main.innerHTML = `
+      <div style="background:#E1F5EE;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">🥋</span>
+        <div>
+          <div style="font-size:11px;color:#085041;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Tahap Bengkung Semasa</div>
+          <div style="font-size:14px;font-weight:700;color:#085041">${bengkung||'—'}</div>
+        </div>
+      </div>
+
+      ${relevan.length ? `
+        <div style="font-size:13px;font-weight:700;color:#085041;margin-bottom:10px">
+          📚 Pelajaran Untuk Tahap Ini (${relevan.length} video)
+        </div>
+        ${relevan.map(s => buatKadVideo(s, true)).join('')}
+      ` : ''}
+
+      ${lain.length ? `
+        <div style="font-size:13px;font-weight:700;color:#888;margin:14px 0 10px;padding-top:10px;border-top:1px solid #eee">
+          📁 Semua Bahan Rujukan
+        </div>
+        ${lain.map(s => buatKadVideo(s, false)).join('')}
+      ` : ''}
+
+      ${!relevan.length && !lain.length ? '<div style="text-align:center;padding:30px;color:#aaa"><div style="font-size:32px">📭</div><div style="margin-top:8px">Tiada video tersedia</div></div>' : ''}
+
+      <button class="btn-keluar" onclick="keluar()"><i class="ti ti-logout"></i> Log Keluar</button>
+    `;
+  } catch(e) {
+    main.innerHTML = `<div style="text-align:center;padding:30px;color:#aaa"><div>Gagal muatkan silibus</div><div style="font-size:12px;margin-top:4px">${e.message}</div></div>`;
+  }
+}
+
+function togVideo(id, embed) {
+  const thumb  = document.querySelector(`#vkad-${id} .video-thumb`);
+  const player = document.getElementById('vembed-' + id);
+  const frame  = document.getElementById('vframe-' + id);
+  if (!player || !frame) return;
+  const buka = player.style.display === 'none' || !player.style.display;
+  if (buka) {
+    player.style.display = 'block';
+    frame.src = embed;
+    if (thumb) thumb.style.display = 'none';
+    player.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  } else {
+    player.style.display = 'none';
+    frame.src = '';
+    if (thumb) thumb.style.display = 'flex';
   }
 }
 
