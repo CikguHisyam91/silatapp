@@ -606,90 +606,93 @@ async function renderSilabusAnak() {
     const bengkung = (dataAnak.BENGKUNG_SEMASA || '').toUpperCase();
     const semua    = await api('silibus');
 
-    // Map bengkung → senarai kategori relevan (ikut peringkat)
-    function kategoriRelevaN(b) {
-      const semua = ['WIRID 700','BENGKUNG HITAM','BENGKUNG PUTIH','BENGKUNG BIRU','BENGKUNG HIJAU','BENGKUNG KUNING','BENGKUNG MERAH','TARI TERATAI','PECAHAN IBU GAYONG','SENAMAN KEKUDA','IBU GAYONG'];
-      if (b.includes('HITAM')) return ['WIRID 700','BENGKUNG HITAM','SENAMAN KEKUDA','TARI TERATAI','IBU GAYONG'];
-      if (b.includes('PUTIH')) return ['WIRID 700','BENGKUNG HITAM','BENGKUNG PUTIH','SENAMAN KEKUDA','TARI TERATAI','PECAHAN IBU GAYONG','IBU GAYONG'];
-      if (b.includes('BIRU'))  return ['BENGKUNG PUTIH','BENGKUNG BIRU','TARI TERATAI','PECAHAN IBU GAYONG','IBU GAYONG','SENAMAN KEKUDA'];
-      if (b.includes('HIJAU')) return ['BENGKUNG BIRU','BENGKUNG HIJAU','TARI TERATAI','PECAHAN IBU GAYONG','IBU GAYONG'];
-      if (b.includes('KUNING')|| b.includes('MERAH')) return semua;
-      return ['WIRID 700','SENAMAN KEKUDA','TARI TERATAI'];
+    // Map bengkung → kategori relevan
+    function katRelevaN(b) {
+      if (b.includes('HITAM'))  return ['WIRID 700','BENGKUNG HITAM','SENAMAN KEKUDA','TARI TERATAI','IBU GAYONG'];
+      if (b.includes('PUTIH'))  return ['WIRID 700','BENGKUNG HITAM','BENGKUNG PUTIH','SENAMAN KEKUDA','TARI TERATAI','PECAHAN IBU GAYONG','IBU GAYONG'];
+      if (b.includes('BIRU'))   return ['BENGKUNG PUTIH','BENGKUNG BIRU','TARI TERATAI','PECAHAN IBU GAYONG','IBU GAYONG','SENAMAN KEKUDA'];
+      if (b.includes('HIJAU'))  return ['BENGKUNG BIRU','BENGKUNG HIJAU','TARI TERATAI','PECAHAN IBU GAYONG','IBU GAYONG'];
+      if (b.includes('KUNING') || b.includes('MERAH')) return ['WIRID 700','BENGKUNG HITAM','BENGKUNG PUTIH','BENGKUNG BIRU','BENGKUNG HIJAU','BENGKUNG KUNING','BENGKUNG MERAH','TARI TERATAI','PECAHAN IBU GAYONG','IBU GAYONG','SENAMAN KEKUDA'];
+      return ['WIRID 700','SENAMAN KEKUDA'];
     }
 
-    const katRelevaN = kategoriRelevaN(bengkung);
+    const kat      = katRelevaN(bengkung);
+    const adaLink  = semua.filter(s => s.LINK && s.LINK.length > 5);
+    const relevan  = adaLink.filter(s => kat.some(k => (s.KATEGORI||'').toUpperCase().includes(k)));
+    const lain     = adaLink.filter(s => !kat.some(k => (s.KATEGORI||'').toUpperCase().includes(k)));
 
-    // Asingkan — relevan dulu, kemudian lain
-    const relevan = semua.filter(s => s.LINK && katRelevaN.some(k => (s.KATEGORI||'').includes(k)));
-    const lain    = semua.filter(s => s.LINK && !katRelevaN.some(k => (s.KATEGORI||'').includes(k)));
+    function kadVideo(item, isRelevan) {
+      const m      = (item.LINK||'').match(/\/d\/([^\/\?&]+)/);
+      const fid    = m ? m[1] : '';
+      const embed  = fid ? 'https://drive.google.com/file/d/'+fid+'/preview' : item.LINK;
+      const thumb  = fid ? 'https://lh3.googleusercontent.com/d/'+fid+'=w400' : '';
+      const vid    = 'v'+item.ID;
 
-    function buatKadVideo(item, isRelevaN) {
-      const match  = (item.LINK||'').match(/\/d\/([^\/\?]+)/);
-      const fileId = match ? match[1] : '';
-      const embed  = fileId ? `https://drive.google.com/file/d/${fileId}/preview` : '';
-      return `
-        <div class="video-kad" id="vkad-${item.ID}">
-          <div class="video-thumb" onclick="togVideo('${item.ID}','${embed}')">
-            <div class="play-btn">▶</div>
-            <div class="video-tajuk">${item.TAJUK}</div>
+      return `<div style="background:#fff;border-radius:14px;margin-bottom:14px;overflow:hidden;box-shadow:0 3px 12px rgba(0,0,0,.1)">
+        <div id="thumb-${vid}" onclick="togVid('${vid}','${embed}')" style="cursor:pointer;position:relative;height:170px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#085041 0%,#1D9E75 100%);overflow:hidden">
+          ${thumb?`<img src="${thumb}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.65" onerror="this.style.display='none'">`:``}
+          <div style="position:relative;z-index:1;text-align:center;padding:0 16px">
+            <div style="width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.3);border:3px solid rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:24px;color:#fff">▶</div>
+            <div style="font-weight:700;font-size:14px;color:#fff;text-shadow:0 2px 6px rgba(0,0,0,.4);line-height:1.3">${item.TAJUK}</div>
           </div>
-          <div class="video-embed" id="vembed-${item.ID}">
-            <iframe id="vframe-${item.ID}" src="" allowfullscreen allow="autoplay"></iframe>
-          </div>
-          <div class="video-info">
-            <span class="video-kat">${item.KATEGORI||'—'}</span>
-            ${isRelevaN ? '<span class="bengkung-chip">✓ Tahap Semasa</span>' : '<span style="font-size:10px;color:#aaa">Rujukan</span>'}
-          </div>
-        </div>`;
+        </div>
+        <div id="player-${vid}" style="display:none;aspect-ratio:16/9;background:#000">
+          <iframe id="frame-${vid}" src="" style="width:100%;height:100%;border:none" allowfullscreen allow="autoplay"></iframe>
+        </div>
+        <div style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #f0f0f0">
+          <span style="font-size:11px;color:#1D9E75;font-weight:700;text-transform:uppercase;letter-spacing:.5px">${item.KATEGORI||'—'}</span>
+          ${isRelevan?`<span style="font-size:10px;background:#E1F5EE;color:#085041;padding:2px 8px;border-radius:99px;font-weight:600">✓ Tahap Semasa</span>`:`<span style="font-size:10px;color:#bbb">Rujukan</span>`}
+        </div>
+      </div>`;
     }
 
     main.innerHTML = `
-      <div style="background:#E1F5EE;border-radius:12px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
-        <span style="font-size:22px">🥋</span>
+      <div style="background:linear-gradient(135deg,#E1F5EE,#B2DFDB);border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px">
+        <span style="font-size:28px">🥋</span>
         <div>
-          <div style="font-size:11px;color:#085041;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Tahap Bengkung Semasa</div>
-          <div style="font-size:14px;font-weight:700;color:#085041">${bengkung||'—'}</div>
+          <div style="font-size:10px;color:#085041;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Tahap Bengkung Semasa</div>
+          <div style="font-size:15px;font-weight:700;color:#085041">${bengkung||'—'}</div>
         </div>
       </div>
 
-      ${relevan.length ? `
-        <div style="font-size:13px;font-weight:700;color:#085041;margin-bottom:10px">
-          📚 Pelajaran Untuk Tahap Ini (${relevan.length} video)
+      ${relevan.length?`
+        <div style="font-size:13px;font-weight:700;color:#085041;margin-bottom:12px;display:flex;align-items:center;gap:6px">
+          <span>📚</span> Pelajaran Untuk Tahap Ini (${relevan.length} video)
         </div>
-        ${relevan.map(s => buatKadVideo(s, true)).join('')}
-      ` : ''}
+        ${relevan.map(s=>kadVideo(s,true)).join('')}
+      `:''}
 
-      ${lain.length ? `
-        <div style="font-size:13px;font-weight:700;color:#888;margin:14px 0 10px;padding-top:10px;border-top:1px solid #eee">
-          📁 Semua Bahan Rujukan
+      ${lain.length?`
+        <div style="font-size:12px;font-weight:700;color:#999;margin:16px 0 12px;padding-top:12px;border-top:2px dashed #eee;display:flex;align-items:center;gap:6px">
+          <span>📁</span> Semua Bahan Rujukan (${lain.length} video)
         </div>
-        ${lain.map(s => buatKadVideo(s, false)).join('')}
-      ` : ''}
+        ${lain.map(s=>kadVideo(s,false)).join('')}
+      `:''}
 
-      ${!relevan.length && !lain.length ? '<div style="text-align:center;padding:30px;color:#aaa"><div style="font-size:32px">📭</div><div style="margin-top:8px">Tiada video tersedia</div></div>' : ''}
+      ${!relevan.length&&!lain.length?`<div style="text-align:center;padding:40px 20px;color:#bbb"><div style="font-size:40px;margin-bottom:10px">📭</div><div>Tiada video tersedia</div></div>`:''}
 
       <button class="btn-keluar" onclick="keluar()"><i class="ti ti-logout"></i> Log Keluar</button>
     `;
   } catch(e) {
-    main.innerHTML = `<div style="text-align:center;padding:30px;color:#aaa"><div>Gagal muatkan silibus</div><div style="font-size:12px;margin-top:4px">${e.message}</div></div>`;
+    main.innerHTML = `<div style="text-align:center;padding:30px;color:#aaa"><div style="font-size:13px">Gagal muatkan silibus: ${e.message}</div></div>`;
   }
 }
 
-function togVideo(id, embed) {
-  const thumb  = document.querySelector(`#vkad-${id} .video-thumb`);
-  const player = document.getElementById('vembed-' + id);
-  const frame  = document.getElementById('vframe-' + id);
+function togVid(vid, embed) {
+  const thumb  = document.getElementById('thumb-'+vid);
+  const player = document.getElementById('player-'+vid);
+  const frame  = document.getElementById('frame-'+vid);
   if (!player || !frame) return;
-  const buka = player.style.display === 'none' || !player.style.display;
-  if (buka) {
-    player.style.display = 'block';
-    frame.src = embed;
-    if (thumb) thumb.style.display = 'none';
-    player.scrollIntoView({ behavior:'smooth', block:'nearest' });
-  } else {
+  const sedangMain = player.style.display !== 'none';
+  if (sedangMain) {
     player.style.display = 'none';
     frame.src = '';
     if (thumb) thumb.style.display = 'flex';
+  } else {
+    player.style.display = 'block';
+    frame.src = embed;
+    if (thumb) thumb.style.display = 'none';
+    player.scrollIntoView({behavior:'smooth',block:'nearest'});
   }
 }
 
