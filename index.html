@@ -8,8 +8,13 @@
 <meta name="theme-color" content="#1A0A3E">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SilatApp">
+
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
 :root{
   --bg:#1A0A3E;--bg2:#2D1060;
@@ -81,7 +86,7 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
 .c4{background:linear-gradient(160deg,#448AFF,var(--c4));box-shadow:var(--c4s);border-color:rgba(255,255,255,.35)}
 .c5{background:linear-gradient(160deg,#CC44FF,var(--c5));box-shadow:var(--c5s);border-color:rgba(255,255,255,.35)}
 .c6{background:linear-gradient(160deg,#FF5177,var(--c6));box-shadow:var(--c6s);border-color:rgba(255,255,255,.35)}
-.c7{background:linear-gradient(160deg,#00E5FF,var(--c7));box-shadow:var(--c7s);border-color:rgba(255,255,255,.35)}
+.c7{background:linear-gradient(160deg,#00BCD4,var(--c7));box-shadow:var(--c7s);border-color:rgba(255,255,255,.35)}
 
 /* ── Page Container ── */
 #page-container{
@@ -214,16 +219,6 @@ select.form-input{appearance:none}
 .gred-bengkung{font-weight:800;font-size:14px;color:#fff}
 .gred-tarikh{font-size:12px;color:var(--muted);margin-top:2px}
 
-/* ── Silibus ── */
-.silibus-item{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:12px;padding:12px;margin-bottom:8px}
-.silibus-ikon{width:42px;height:42px;border-radius:10px;background:rgba(0,200,83,.2);color:#00E676;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
-.silibus-nama{font-weight:800;font-size:14px;color:#fff}
-.silibus-kat{font-size:12px;color:var(--muted);margin-top:2px}
-
-/* ── Sedekah ── */
-.btn-sedekah{display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border-radius:12px;font-family:var(--font-h);font-size:13px;background:linear-gradient(160deg,#FFE566,var(--c2));color:#333;border:2px solid rgba(255,255,255,.3);border-bottom-width:4px;box-shadow:var(--c2s);cursor:pointer;width:100%;margin-bottom:12px;transition:.1s}
-.btn-sedekah:active{transform:translateY(3px);border-bottom-width:1px}
-
 /* ── Loading & Empty ── */
 .muat{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 0;gap:12px;color:var(--muted)}
 .muat i{font-size:32px;animation:spin 1s linear infinite;color:#FFD700}
@@ -232,7 +227,7 @@ select.form-input{appearance:none}
 .kosong i{font-size:48px}
 .kosong p{font-size:14px;font-weight:700}
 
-/* ── Toast ── */
+/* ── Toast Asal (Dikekalkan untuk backup) ── */
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:linear-gradient(135deg,#1E0850,#2D1060);border:2px solid rgba(255,215,0,.4);color:#FFD700;padding:10px 20px;border-radius:99px;font-size:13px;font-weight:800;z-index:999;opacity:0;transition:.3s;white-space:nowrap;max-width:90vw;box-shadow:0 8px 0 rgba(0,0,0,.3)}
 #toast.nampak{opacity:1;transform:translateX(-50%) translateY(0)}
 #toast.ok{border-color:rgba(0,200,83,.5);color:#00E676}
@@ -249,7 +244,6 @@ select.form-input{appearance:none}
   </header>
 
   <main id="main">
-    <!-- Dashboard Game Grid -->
     <div id="dashboard-grid">
       <div class="game-btn c4" onclick="bukaPage('ahli','🥷 Ahli')">
         <span class="game-ikon">🥷</span>
@@ -257,7 +251,7 @@ select.form-input{appearance:none}
       </div>
       <div class="game-btn c3" onclick="bukaPage('kehadiran','⚔️ Kehadiran')">
         <span class="game-ikon">⚔️</span>
-        <span class="game-lbl">HADIR</span>
+        <span class="game-lbl" style="font-size:11px">REKOD<br>HADIR</span>
       </div>
       <div class="game-btn c5" onclick="bukaPage('yuran','💎 Yuran')">
         <span class="game-ikon">💎</span>
@@ -279,10 +273,6 @@ select.form-input{appearance:none}
         <span class="game-ikon">📋</span>
         <span class="game-lbl">LAPORAN</span>
       </div>
-      <div class="game-btn" style="background:linear-gradient(160deg,#9E9E9E,#616161);box-shadow:0 6px 0 #212121,0 10px 20px rgba(0,0,0,.3);border:2px solid rgba(255,255,255,.3);border-bottom-width:6px" onclick="bukaPage('tetapan','⚙️ Tetapan')">
-        <span class="game-ikon">⚙️</span>
-        <span class="game-lbl">TETAPAN</span>
-      </div>
       <div class="game-btn" style="background:linear-gradient(160deg,#26A69A,#00796B);box-shadow:0 6px 0 #004D40,0 10px 20px rgba(0,121,107,.3);border:2px solid rgba(255,255,255,.3);border-bottom-width:6px" onclick="bukaPage('kewangan','💰 Kewangan')">
         <span class="game-ikon">💰</span>
         <span class="game-lbl">KEWANGAN</span>
@@ -291,12 +281,18 @@ select.form-input{appearance:none}
         <span class="game-ikon">🏃</span>
         <span class="game-lbl">LATIHAN</span>
       </div>
+      <div class="game-btn" style="background:linear-gradient(160deg,#8E24AA,#4A148C);box-shadow:0 6px 0 #380b6b,0 10px 20px rgba(142,36,170,.3);border:2px solid rgba(255,255,255,.3);border-bottom-width:6px" onclick="bukaPage('analisis','📈 Analisis')">
+        <span class="game-ikon">📈</span>
+        <span class="game-lbl">ANALISIS</span>
+      </div>
+      <div class="game-btn" style="background:linear-gradient(160deg,#9E9E9E,#616161);box-shadow:0 6px 0 #212121,0 10px 20px rgba(0,0,0,.3);border:2px solid rgba(255,255,255,.3);border-bottom-width:6px" onclick="bukaPage('tetapan','⚙️ Tetapan')">
+        <span class="game-ikon">⚙️</span>
+        <span class="game-lbl">TETAPAN</span>
+      </div>
     </div>
 
-    <!-- Dashboard stats (loaded async) -->
     <div id="dashboard-stats" style="display:none;padding:0 12px 80px"></div>
 
-    <!-- Page Container (slides in) -->
     <div id="page-container">
       <div id="page-header">
         <div class="btn-balik" onclick="tutupPage()"><i class="ti ti-arrow-left"></i></div>
@@ -307,13 +303,11 @@ select.form-input{appearance:none}
     </div>
   </main>
 
-  <!-- Dashboard FAB -->
   <div class="btn-fab" id="fab-utama" onclick="bukaModal('modal-daftar')" style="display:none">
     <i class="ti ti-plus"></i>
   </div>
 </div>
 
-<!-- Modal: Daftar Ahli Baru -->
 <div class="modal-bg" id="modal-daftar">
   <div class="modal">
     <div class="modal-tajuk">
@@ -388,7 +382,6 @@ select.form-input{appearance:none}
   </div>
 </div>
 
-<!-- Modal: Rekod Yuran -->
 <div class="modal-bg" id="modal-yuran">
   <div class="modal">
     <div class="modal-tajuk">
@@ -440,7 +433,6 @@ select.form-input{appearance:none}
   </div>
 </div>
 
-<!-- Modal: Naik Gred -->
 <div class="modal-bg" id="modal-gred">
   <div class="modal">
     <div class="modal-tajuk">
@@ -474,8 +466,6 @@ select.form-input{appearance:none}
   </div>
 </div>
 
-
-<!-- Modal: Update Berat & Tinggi -->
 <div class="modal-bg" id="modal-berat">
   <div class="modal">
     <div class="modal-tajuk">
@@ -508,45 +498,33 @@ select.form-input{appearance:none}
   </div>
 </div>
 
-
-<!-- Modal: Bayaran Pukal -->
 <div class="modal-bg" id="modal-pukal">
   <div class="modal">
     <div class="modal-tajuk">
       💰 Bayaran Pukal
       <div class="modal-tutup" onclick="tutupModal('modal-pukal')"><i class="ti ti-x"></i></div>
     </div>
-
     <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
       Bulan: <strong id="info-bulan-pukal" style="color:#FFD700">—</strong>
     </div>
-
-    <!-- Carian autocomplete -->
     <div style="position:relative;margin-bottom:10px">
       <input id="inp-cari-pukal" class="form-input" type="text"
         placeholder="🔍 Taip nama ahli..." autocomplete="off"
         oninput="cariAhliPukal(this.value)">
       <div id="dropdown-pukal" style="display:none;position:absolute;top:100%;left:0;right:0;background:#1E0850;border:2px solid rgba(255,215,0,.3);border-top:none;border-radius:0 0 10px 10px;max-height:200px;overflow-y:auto;z-index:200"></div>
     </div>
-
-    <!-- Tindakan pantas -->
     <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
       <button onclick="pilihSemuaBelumBayar()" class="btn btn-outline" style="font-size:11px;padding:6px 10px;flex:1">☑️ Semua Belum Bayar</button>
       <button onclick="setSemuaJumlah(20)" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer">RM20</button>
       <button onclick="setSemuaJumlah(30)" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer">RM30</button>
     </div>
-
-    <!-- Senarai dipilih -->
     <div id="senarai-dipilih-pukal" style="max-height:260px;overflow-y:auto;margin-bottom:10px;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:4px 8px">
       <div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">Belum ada ahli dipilih</div>
     </div>
-
-    <!-- Ringkasan -->
     <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid rgba(255,255,255,.1);margin-bottom:12px">
       <span style="font-size:12px;color:var(--muted)">Jumlah Terpilih:</span>
       <span style="font-size:14px;font-weight:800;color:#00E676" id="ringkasan-pukal">0 orang · RM0.00</span>
     </div>
-
     <button class="btn btn-pri btn-blok" id="btn-hantar-pukal" onclick="hantarPukal()">
       <i class="ti ti-send"></i> Hantar Semua Bayaran
     </button>
@@ -554,7 +532,6 @@ select.form-input{appearance:none}
 </div>
 
 <div id="toast"></div>
-
 
 <script>
 // ── Konfigurasi ──────────────────────────────────────────────
@@ -565,8 +542,6 @@ const bulanSkrg  = NAMA_BULAN[new Date().getMonth()];
 const tahunSkrg  = new Date().getFullYear();
 
 let halamanSkrg = 'dashboard';
-
-
 let halamanLepas = null;
 let dataAhliCache = null;
 let statusHadir = {};
@@ -674,7 +649,6 @@ function togDark() {
     localStorage.setItem('silatapp-dark', '1');
   }
 }
-// Load dark mode preference
 if (localStorage.getItem('silatapp-dark') === '1') {
   document.documentElement.setAttribute('data-dark', '');
   document.addEventListener('DOMContentLoaded', () => {
@@ -718,8 +692,8 @@ function navigasi(halaman, simpanLepas = false) {
     sejarah_gred : '🏅 Sejarah Gred',
     silibus      : '📖 Silibus',
     profil_pesilat: '📊 Profil Pesilat',
-    lagi         : '⚙️ Tetapan',
     tetapan      : '⚙️ Tetapan',
+    analisis     : '📈 Analisis',
   };
   bukaPage(halaman, tajukPeta[halaman] || halaman);
 }
@@ -747,18 +721,16 @@ function renderHalamanPage(halaman) {
     case 'profil-ahli'   : renderProfilAhli();     break;
     case 'kehadiran'     : renderKehadiran();      break;
     case 'yuran'         : renderYuran();          break;
-    case 'lagi'          : renderTetapan();        break;
     case 'tetapan'       : renderTetapan();        break;
     case 'kewangan'      : renderKewangan();       break;
     case 'latihan'       : renderLatihanKendiri(); break;
     case 'sejarah_gred'  : renderSejarahGred();    break;
     case 'silibus'       : renderSilibus();        break;
     case 'profil_pesilat': renderProfilPesilat();  break;
+    case 'analisis'      : renderAnalisis();       break;
     default              : tutupPage();
   }
 }
-
-function renderHalaman(halaman) { renderHalamanPage(halaman); }
 
 // ── HALAMAN: Dashboard ───────────────────────────────────────
 async function renderDashboard() {
@@ -768,24 +740,11 @@ async function renderDashboard() {
     main.innerHTML = `
       <div class="seksyen-tajuk">Gelanggang Sri Gayong Panglima Ulung</div>
       <div class="kad-row">
-        <div class="stat-kad g">
-          <div class="stat-num">${d.jumlah_ahli_aktif}</div>
-          <div class="stat-lbl"><i class="ti ti-users"></i> Ahli Aktif</div>
-        </div>
-        <div class="stat-kad p">
-          <div class="stat-num">${d.hadir_hari_ini}</div>
-          <div class="stat-lbl"><i class="ti ti-calendar-check"></i> Hadir Hari Ini</div>
-        </div>
-        <div class="stat-kad o">
-          <div class="stat-num">RM${(d.kutipan_bulan_ini||0).toFixed(0)}</div>
-          <div class="stat-lbl" style="color:rgba(255,255,255,.8)"><i class="ti ti-coin"></i> Kutipan ${d.bulan_yuran}</div>
-        </div>
-        <div class="stat-kad r">
-          <div class="stat-num">${d.belum_bayar}</div>
-          <div class="stat-lbl"><i class="ti ti-alert-circle"></i> Belum Bayar</div>
-        </div>
+        <div class="stat-kad g"><div class="stat-num">${d.jumlah_ahli_aktif}</div><div class="stat-lbl"><i class="ti ti-users"></i> Ahli Aktif</div></div>
+        <div class="stat-kad p"><div class="stat-num">${d.hadir_hari_ini}</div><div class="stat-lbl"><i class="ti ti-calendar-check"></i> Hadir Hari Ini</div></div>
+        <div class="stat-kad o"><div class="stat-num">RM${(d.kutipan_bulan_ini||0).toFixed(0)}</div><div class="stat-lbl" style="color:rgba(255,255,255,.8)"><i class="ti ti-coin"></i> Kutipan ${d.bulan_yuran}</div></div>
+        <div class="stat-kad r"><div class="stat-num">${d.belum_bayar}</div><div class="stat-lbl"><i class="ti ti-alert-circle"></i> Belum Bayar</div></div>
       </div>
-
       <div class="seksyen-tajuk">Pecahan Ahli</div>
       <div class="kad">
         <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -794,7 +753,6 @@ async function renderDashboard() {
           <span class="badge kuning"><i class="ti ti-user"></i> Dewasa: ${d.dewasa}</span>
         </div>
       </div>
-
       <div class="seksyen-tajuk">Tindakan Pantas</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <button class="btn btn-pri" onclick="navigasi('kehadiran')"><i class="ti ti-calendar-check"></i> Rekod Hadir</button>
@@ -802,7 +760,6 @@ async function renderDashboard() {
         <button class="btn btn-outline" onclick="navigasi('yuran')"><i class="ti ti-coin"></i> Rekod Yuran</button>
         <button class="btn btn-outline" onclick="navigasi('silibus')"><i class="ti ti-book"></i> Silibus</button>
       </div>
-
       <div class="seksyen-tajuk">Yuran ${d.bulan_yuran} ${d.tahun_yuran}</div>
       <div class="kad">
         <div style="display:flex;justify-content:space-between;margin-bottom:10px">
@@ -828,44 +785,32 @@ async function renderSenaraiAhli() {
   try {
     if (!dataAhliCache) dataAhliCache = await api('senarai_ahli', {status:'AKTIF'});
     const ahli = dataAhliCache;
-    main.innerHTML = `
-      <div class="kotak-carian"><i class="ti ti-search"></i><input type="search" placeholder="Cari nama atau no. KP..." oninput="tapis(this.value)" id="inp-carian"></div>
-      <div id="senarai-ahli"></div>
-    `;
+    main.innerHTML = `<div class="kotak-carian"><i class="ti ti-search"></i><input type="search" placeholder="Cari nama atau no. KP..." oninput="tapis(this.value)" id="inp-carian"></div><div id="senarai-ahli"></div>`;
     renderSenarai(ahli);
     tambahFab(() => bukaModal('modal-daftar'));
   } catch (e) {
     main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p><button class="btn btn-outline" onclick="muatSemula()">Cuba Semula</button></div>`;
   }
 }
-
 function renderSenarai(senarai) {
   const el = document.getElementById('senarai-ahli');
   if (!el) return;
   if (!senarai.length) { el.innerHTML = '<div class="kosong"><i class="ti ti-user-off"></i><p>Tiada ahli dijumpai</p></div>'; return; }
-
   const warna = (k) => k.includes('RENDAH') ? 'hijau' : k.includes('MENENGAH') ? 'pur' : 'amb';
   el.innerHTML = senarai.map(a => `
     <div class="senarai-item" onclick="bukaProfilAhli('${a.no_kp}')">
       <div class="avatar ${warna(a.kategori||'')}">${(a.nama||'?')[0]}</div>
-      <div class="item-info">
-        <div class="item-nama">${a.nama}</div>
-        <div class="item-sub">${a.id_ahli} · ${a.bengkung||'—'}</div>
-      </div>
+      <div class="item-info"><div class="item-nama">${a.nama}</div><div class="item-sub">${a.id_ahli} · ${a.bengkung||'—'}</div></div>
       <span class="badge ${warna(a.kategori||'')}">${a.kategori?.includes('RENDAH')?'SR':a.kategori?.includes('MENENGAH')?'SM':'DWS'}</span>
     </div>
   `).join('');
 }
-
 let timerCarian;
 function tapis(q) {
   clearTimeout(timerCarian);
   timerCarian = setTimeout(() => {
     if (!dataAhliCache) return;
-    const hasil = q ? dataAhliCache.filter(a =>
-      a.nama.toLowerCase().includes(q.toLowerCase()) ||
-      a.no_kp.includes(q)
-    ) : dataAhliCache;
+    const hasil = q ? dataAhliCache.filter(a => a.nama.toLowerCase().includes(q.toLowerCase()) || a.no_kp.includes(q)) : dataAhliCache;
     renderSenarai(hasil);
   }, 250);
 }
@@ -882,15 +827,13 @@ async function renderProfilAhli() {
     const a = await api('profil_ahli', {no_kp});
     const stat = await api('statistik_kehadiran', {no_kp, tahun: tahunSkrg});
     const gred = await api('sejarah_gred', {no_kp});
-    const warna = (k) => k?.includes('RENDAH') ? 'var(--c3)' : k?.includes('MENENGAH') ? 'var(--c2)' : 'var(--c4)';
 
     main.innerHTML = `
-      <div class="profil-header" style="background:linear-gradient(135deg,var(--c1),var(--c2));border:none;/* ${a.KATEGORI?.includes('RENDAH')?'var(--g2)':a.KATEGORI?.includes('MENENGAH')?'var(--b2)':'var(--o2)'};box-shadow:0 0 20px ${a.KATEGORI?.includes('RENDAH')?'var(--g3)':a.KATEGORI?.includes('MENENGAH')?'var(--b3)':'var(--o3)'}">
+      <div class="profil-header" style="background:linear-gradient(135deg,var(--c1),var(--c2));border:none;">
         <div class="profil-nama">${a.NAMA_PENUH}</div>
         <div class="profil-id">${a.ID_AHLI} · ${a.NO_KP}</div>
         <div class="profil-badge">${a.BENGKUNG_SEMASA||'—'}</div>
       </div>
-
       <div class="kad">
         <div class="seksyen-tajuk" style="margin-top:0">Maklumat Peribadi</div>
         <div class="maklumat-baris"><i class="ti ti-user"></i><div><div class="lbl">Jantina</div><div class="val">${a.JANTINA||'—'}</div></div></div>
@@ -900,7 +843,6 @@ async function renderProfilAhli() {
         <div class="maklumat-baris"><i class="ti ti-phone"></i><div><div class="lbl">No. Tel</div><div class="val">${a.NO_TEL_WARIS||'—'}</div></div></div>
         <div class="maklumat-baris"><i class="ti ti-calendar-check"></i><div><div class="lbl">Tarikh Daftar</div><div class="val">${formatTarikh(a.TARIKH_DAFTAR)}</div></div></div>
       </div>
-
       <div class="kad">
         <div class="seksyen-tajuk" style="margin-top:0">Kehadiran ${tahunSkrg}</div>
         <div class="kad-row" style="margin-bottom:0">
@@ -909,7 +851,6 @@ async function renderProfilAhli() {
           <div class="stat-kad"><div class="stat-num">${stat.peratus}%</div><div class="stat-lbl">Kehadiran</div></div>
         </div>
       </div>
-
       <div class="kad">
         <div class="seksyen-tajuk" style="margin-top:0">Sejarah Gred</div>
         ${gred.length ? gred.slice().reverse().map((g, i, arr) => `
@@ -922,7 +863,6 @@ async function renderProfilAhli() {
           </div>
         `).join('') : '<div style="color:var(--hint);font-size:14px">Tiada sejarah gred direkodkan</div>'}
       </div>
-
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
         <button class="btn btn-pri" onclick="bukaModalYuran('${a.NO_KP}','${a.NAMA_PENUH}')"><i class="ti ti-coin"></i> Rekod Yuran</button>
         <button class="btn btn-outline" onclick="bukaModalGred('${a.NO_KP}','${a.NAMA_PENUH}')"><i class="ti ti-award"></i> Naik Gred</button>
@@ -961,7 +901,6 @@ async function renderKehadiran() {
         <i class="ti ti-device-floppy"></i> Simpan Kehadiran
       </button>
     `;
-
     renderSenaraiKehadiran();
     muatStatusHadir();
   } catch (e) {
@@ -973,20 +912,14 @@ function renderSenaraiKehadiran() {
   const senarai = dataAhliCache || [];
   const el = document.getElementById('senarai-kehadiran');
   if (!el) return;
-
   senarai.forEach(a => { if (!statusHadir[a.no_kp]) statusHadir[a.no_kp] = false; });
-
   el.innerHTML = senarai.map(a => `
     <div class="item-kehadiran" id="item-${a.no_kp}">
       <div class="toggle-hadir ${statusHadir[a.no_kp]?'on':''}" id="tog-${a.no_kp}" onclick="togHadir('${a.no_kp}')"></div>
-      <div class="item-info">
-        <div class="item-nama">${a.nama}</div>
-        <div class="item-sub">${a.bengkung||'—'}</div>
-      </div>
+      <div class="item-info"><div class="item-nama">${a.nama}</div><div class="item-sub">${a.bengkung||'—'}</div></div>
       <span class="badge ${statusHadir[a.no_kp]?'hijau':'abu'}" id="bdg-${a.no_kp}">${statusHadir[a.no_kp]?'HADIR':'—'}</span>
     </div>
   `).join('');
-
   kemaskiniJumHadir();
 }
 
@@ -1020,30 +953,206 @@ function kemaskiniJumHadir() {
   if (el) el.textContent = jum;
 }
 
+// SIMPAN KEHADIRAN & POPUP
 async function simpanKehadiran() {
   const tarikh = document.getElementById('inp-tarikh-hadir')?.value;
   const masa   = new Date().toTimeString().slice(0,5);
   const btn    = document.getElementById('btn-simpan-hadir');
   const senarai= dataAhliCache || [];
+  const isLight = document.body.getAttribute('data-theme') === 'light';
 
   if (!senarai.length) { tunjukToast('Tiada ahli untuk direkodkan', 'ralat'); return; }
 
   btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Menyimpan...';
-
   const rekod = senarai.map(a => ({ no_kp: a.no_kp, status: statusHadir[a.no_kp] ? 'HADIR' : 'TIDAK HADIR' }));
 
   try {
     await apiPost({ tindakan:'rekod_kehadiran', rekod, tarikh, masa });
-    tunjukToast('Kehadiran berjaya disimpan!', 'ok');
+    Swal.fire({
+      title: 'Berjaya!',
+      text: 'Kehadiran telah direkodkan.',
+      icon: 'success',
+      timer: 2000,
+      showConfirmButton: false,
+      background: isLight ? '#FFFFFF' : '#1E0850',
+      color: isLight ? '#1A1A3E' : '#FFD700'
+    });
   } catch (e) {
-    tunjukToast('Gagal: ' + e.message, 'ralat');
+    Swal.fire({
+      title: 'Ralat!',
+      text: e.message,
+      icon: 'error',
+      background: isLight ? '#FFFFFF' : '#1E0850',
+      color: isLight ? '#1A1A3E' : '#FFD700'
+    });
   } finally {
     btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Simpan Kehadiran';
   }
 }
 
+// ── HALAMAN: Analisis (BARU) ──────────────────────────────────
+let chartHadir, chartYuran, chartBengkung;
+
+async function renderAnalisis() {
+  const main = getMain();
+  const BULAN_LIST = ['JANUARI','FEBRUARI','MAC','APRIL','MEI','JUN','JULAI','OGOS','SEPTEMBER','OKTOBER','NOVEMBER','DISEMBER'];
+
+  main.innerHTML = `
+    <div class="kad" style="padding:12px 14px;margin-bottom:10px">
+      <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:8px;letter-spacing:.5px">📅 Pilih Bulan & Tahun</div>
+      <div style="display:flex;gap:8px">
+        <select class="form-input" id="ana-bulan" style="flex:2;padding:9px 10px;font-size:13px" onchange="muatDataAnalisis()">
+          ${BULAN_LIST.map(b => `<option value="${b}" ${b===yuranBulanPilih?'selected':''}>${b}</option>`).join('')}
+        </select>
+        <select class="form-input" id="ana-tahun" style="flex:1;padding:9px 10px;font-size:13px" onchange="muatDataAnalisis()">
+          ${[2024,2025,2026,2027,2028].map(y => `<option value="${y}" ${y===parseInt(yuranTahunPilih)?'selected':''}>${y}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+
+    <div id="ana-loader" class="muat" style="display:none"><i class="ti ti-loader-2"></i><span>Memuatkan Data...</span></div>
+
+    <div id="ana-charts">
+      <div class="kad" style="margin-bottom:10px">
+        <div class="seksyen-tajuk" style="margin-top:0">Trend Kehadiran Bulanan</div>
+        <canvas id="chartHadirBulanan" height="200"></canvas>
+      </div>
+      <div class="kad" style="margin-bottom:10px">
+        <div class="seksyen-tajuk" style="margin-top:0">Status Kutipan Yuran Bulanan</div>
+        <canvas id="chartYuranBulanan" height="200"></canvas>
+      </div>
+      <div class="kad" style="margin-bottom:10px">
+        <div class="seksyen-tajuk" style="margin-top:0">Taburan Pemegang Bengkung</div>
+        <canvas id="chartTaburanBengkung" height="250"></canvas>
+      </div>
+    </div>
+  `;
+
+  // Tetapan asal carta (Kosmetik Top Notch)
+  Chart.defaults.color = '#C8AAFF';
+  Chart.defaults.font.family = "'Nunito', sans-serif";
+  Chart.defaults.plugins.legend.labels.font = { size: 11, family: "'Nunito', sans-serif", weight: 'bold' };
+
+  await muatDataAnalisis();
+}
+
+async function muatDataAnalisis() {
+  const bulan = document.getElementById('ana-bulan').value;
+  const tahun = document.getElementById('ana-tahun').value;
+  document.getElementById('ana-charts').style.display = 'none';
+  document.getElementById('ana-loader').style.display = 'flex';
+
+  try {
+    const [senarai, yuranData, hadirData] = await Promise.all([
+      api('senarai_ahli', {status: 'AKTIF'}),
+      api('status_yuran', {bulan, tahun}),
+      api('kehadiran', {bulan, tahun})
+    ]);
+
+    plotChartBengkung(senarai);
+    plotChartYuran(yuranData);
+    plotChartHadir(hadirData);
+
+    document.getElementById('ana-loader').style.display = 'none';
+    document.getElementById('ana-charts').style.display = 'block';
+  } catch(e) {
+    document.getElementById('ana-loader').innerHTML = `<i class="ti ti-alert-circle"></i><p>Ralat memuatkan graf: ${e.message}</p>`;
+  }
+}
+
+function plotChartBengkung(senarai) {
+  const ctx = document.getElementById('chartTaburanBengkung');
+  if(!ctx) return;
+  if(chartBengkung) chartBengkung.destroy();
+
+  const counts = {};
+  senarai.forEach(a => {
+    const b = (a.bengkung || 'TIADA BENGKUNG').replace('BENGKUNG ','');
+    counts[b] = (counts[b] || 0) + 1;
+  });
+
+  chartBengkung = new Chart(ctx, {
+    type: 'pie',
+    data: {
+      labels: Object.keys(counts),
+      datasets: [{
+        data: Object.values(counts),
+        backgroundColor: ['#1A1A3E','#FFFFFF','#2979FF','#00C853','#FFD700','#FF1744','#CC44FF','#FF6B35','#00BCD4'],
+        borderWidth: 2,
+        borderColor: '#1E0850'
+      }]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+  });
+}
+
+function plotChartYuran(yuranData) {
+  const ctx = document.getElementById('chartYuranBulanan');
+  if(!ctx) return;
+  if(chartYuran) chartYuran.destroy();
+
+  chartYuran = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Sudah Bayar', 'Belum Bayar'],
+      datasets: [{
+        data: [yuranData.sudah_bayar || 0, yuranData.belum_bayar || 0],
+        backgroundColor: ['#00E676', '#FF1744'],
+        borderWidth: 0,
+        hoverOffset: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      cutout: '70%',
+      plugins: { legend: { position: 'bottom' } }
+    }
+  });
+}
+
+function plotChartHadir(hadirData) {
+  const ctx = document.getElementById('chartHadirBulanan');
+  if(!ctx) return;
+  if(chartHadir) chartHadir.destroy();
+
+  const kiraHadir = {};
+  (hadirData || []).forEach(r => {
+    if (r.STATUS_KEHADIRAN === 'HADIR') {
+      const d = formatTarikh(r.TARIKH).substring(0,5); // ambil DD/MM
+      kiraHadir[d] = (kiraHadir[d] || 0) + 1;
+    }
+  });
+
+  const dates = Object.keys(kiraHadir).sort();
+  const values = dates.map(d => kiraHadir[d]);
+
+  chartHadir = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: dates.length ? dates : ['Tiada Data'],
+      datasets: [{
+        label: 'Jumlah Hadir',
+        data: values.length ? values : [0],
+        borderColor: '#FFD700',
+        backgroundColor: 'rgba(255,215,0,0.2)',
+        borderWidth: 3,
+        fill: true,
+        tension: 0.4,
+        pointBackgroundColor: '#FF6B35'
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' } },
+        x: { grid: { display: false } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
+}
+
 // ── HALAMAN: Yuran ───────────────────────────────────────────
-// ── State yuran ──────────────────────────────────────────────
 let tapisBayar   = 'semua';
 let dataYuranCache = [];
 let yuranBulanPilih = bulanSkrg;
@@ -1052,13 +1161,10 @@ let yuranTahunPilih = tahunSkrg;
 async function renderYuran() {
   const main = getMain();
   const BULAN_LIST = ['JANUARI','FEBRUARI','MAC','APRIL','MEI','JUN','JULAI','OGOS','SEPTEMBER','OKTOBER','NOVEMBER','DISEMBER'];
-
   try {
     const data = await api('status_yuran', {bulan: yuranBulanPilih, tahun: yuranTahunPilih});
     const pct  = data.senarai?.length > 0 ? Math.round(data.sudah_bayar / data.senarai.length * 100) : 0;
-
     main.innerHTML = `
-      <!-- Selector Bulan/Tahun -->
       <div class="kad" style="padding:12px 14px;margin-bottom:10px">
         <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:8px;letter-spacing:.5px">📅 Pilih Bulan & Tahun</div>
         <div style="display:flex;gap:8px">
@@ -1070,46 +1176,30 @@ async function renderYuran() {
           </select>
         </div>
       </div>
-
-      <!-- Ringkasan -->
       <div class="kad" style="margin-bottom:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div>
-            <div style="font-weight:700;font-size:16px;color:#FFD700">${data.bulan} ${data.tahun}</div>
-            <div style="font-size:13px;color:var(--muted);margin-top:2px">${data.sudah_bayar} / ${data.senarai?.length||0} orang bayar</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:22px;font-weight:700;color:#00E676">RM${(data.jumlah_kutipan||0).toFixed(2)}</div>
-            <div style="font-size:11px;color:var(--muted)">Jumlah kutipan</div>
-          </div>
+          <div><div style="font-weight:700;font-size:16px;color:#FFD700">${data.bulan} ${data.tahun}</div><div style="font-size:13px;color:var(--muted);margin-top:2px">${data.sudah_bayar} / ${data.senarai?.length||0} orang bayar</div></div>
+          <div style="text-align:right"><div style="font-size:22px;font-weight:700;color:#00E676">RM${(data.jumlah_kutipan||0).toFixed(2)}</div><div style="font-size:11px;color:var(--muted)">Jumlah kutipan</div></div>
         </div>
         <div style="background:rgba(255,255,255,.1);border-radius:99px;height:10px;overflow:hidden">
           <div style="background:linear-gradient(90deg,var(--c3),var(--c2));height:100%;width:${pct}%;transition:.5s;border-radius:99px"></div>
         </div>
         <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--muted)">
-          <span>${pct}% pembayaran</span>
-          <span style="color:var(--c6)">${data.belum_bayar} belum bayar</span>
+          <span>${pct}% pembayaran</span><span style="color:var(--c6)">${data.belum_bayar} belum bayar</span>
         </div>
       </div>
-
-      <!-- Butang Pukal -->
       <button class="btn btn-outline btn-blok" style="margin-bottom:10px;border-color:var(--c2);color:var(--c2);font-size:13px;padding:10px" onclick="bukaModPukal()">
         <i class="ti ti-currency-dollar"></i> 💰 Bayaran Pukal (Pilih & Edit Jumlah)
       </button>
-
-      <!-- Butang Tiada Pembayaran -->
       <button onclick="rekodTiadaBayaran('${data.bulan}','${data.tahun}')"
         style="display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border-radius:12px;font-family:var(--font-h);font-size:12px;background:rgba(255,255,255,.08);color:var(--muted);border:2px dashed rgba(255,255,255,.2);cursor:pointer;width:100%;margin-bottom:12px;transition:.1s">
         <i class="ti ti-calendar-off"></i> 📵 Tiada Pembayaran Bulan Ini — Auto lompat ke bulan seterusnya
       </button>
-
-      <!-- Filter -->
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
         <button class="btn ${tapisBayar==='semua'?'btn-pri':'btn-outline'}" style="font-size:12px;padding:7px 12px" onclick="tapYuran('semua')">Semua (${data.senarai?.length||0})</button>
         <button class="btn btn-outline" style="font-size:12px;padding:7px 12px;border-color:var(--c6);color:${tapisBayar==='belum'?'#fff':'var(--c6)'};background:${tapisBayar==='belum'?'var(--c6)':'transparent'}" onclick="tapYuran('belum')">❌ Belum (${data.belum_bayar})</button>
         <button class="btn btn-outline" style="font-size:12px;padding:7px 12px;border-color:var(--c3);color:${tapisBayar==='dah'?'#fff':'var(--c3)'};background:${tapisBayar==='dah'?'var(--c3)':'transparent'}" onclick="tapYuran('dah')">✅ Sudah (${data.sudah_bayar})</button>
       </div>
-
       <div id="senarai-yuran"></div>
     `;
     dataYuranCache = data.senarai || [];
@@ -1118,7 +1208,6 @@ async function renderYuran() {
     main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p><button class="btn btn-outline" onclick="muatSemula()">Cuba Semula</button></div>`;
   }
 }
-
 function tukarBulanYuran() {
   const b = document.getElementById('sel-bulan-yuran');
   const t = document.getElementById('sel-tahun-yuran');
@@ -1127,12 +1216,7 @@ function tukarBulanYuran() {
   tapisBayar = 'semua';
   renderYuran();
 }
-
-function tapYuran(jenis) {
-  tapisBayar = jenis;
-  renderYuran();
-}
-
+function tapYuran(jenis) { tapisBayar = jenis; renderYuran(); }
 function renderSenaraiYuran() {
   const el = document.getElementById('senarai-yuran');
   if (!el) return;
@@ -1143,35 +1227,10 @@ function renderSenaraiYuran() {
   el.innerHTML = senarai.map(a => `
     <div class="senarai-item" onclick="${!a.sudah_bayar?`bukaModalYuran('${a.no_kp}','${a.nama}')`:''}" style="${a.sudah_bayar?'cursor:default':''}">
       <div class="avatar ${a.sudah_bayar?'':'merah'}">${(a.nama||'?')[0]}</div>
-      <div class="item-info">
-        <div class="item-nama">${a.nama}</div>
-        <div class="item-sub">${a.kategori?.includes('RENDAH')?'Sekolah Rendah':a.kategori?.includes('MENENGAH')?'Sekolah Menengah':'Dewasa'}</div>
-      </div>
+      <div class="item-info"><div class="item-nama">${a.nama}</div><div class="item-sub">${a.kategori?.includes('RENDAH')?'Sekolah Rendah':a.kategori?.includes('MENENGAH')?'Sekolah Menengah':'Dewasa'}</div></div>
       <span class="badge ${a.sudah_bayar?'hijau':'merah'}">${a.sudah_bayar?'RM'+a.jumlah:'BELUM'}</span>
     </div>
   `).join('');
-}
-
-// ── HALAMAN: Lagi ────────────────────────────────────────────
-function renderLagi() {
-  const main = getMain();
-  main.innerHTML = `
-    <div class="seksyen-tajuk">Portal</div>
-    <div class="senarai-item" onclick="window.open('parent.html','_blank')">
-      <div class="avatar" style="background:rgba(255,107,53,.2);font-size:22px">👨‍👩‍👧</div>
-      <div class="item-info"><div class="item-nama">Portal Ibu Bapa</div><div class="item-sub">Login guna No. KP anak</div></div>
-      <i class="ti ti-external-link" style="color:var(--muted)"></i>
-    </div>
-    <div class="senarai-item" onclick="bukaModal('modal-daftar')">
-      <div class="avatar" style="background:rgba(0,200,83,.2);font-size:22px">➕</div>
-      <div class="item-info"><div class="item-nama">Daftar Ahli Baharu</div><div class="item-sub">Tambah pesilat baru ke sistem</div></div>
-      <i class="ti ti-chevron-right" style="color:var(--muted)"></i>
-    </div>
-    <div class="kad" style="margin-top:20px;text-align:center">
-      <div style="font-family:var(--font-h);font-size:16px;color:#FFD700;margin-bottom:4px">⚔️ SilatApp v1.1</div>
-      <div style="font-size:12px;color:var(--muted)">Gelanggang Sri Gayong Panglima Ulung<br>Google Sheets + Apps Script</div>
-    </div>
-  `;
 }
 
 // ── HALAMAN: Profil Pesilat (Senarai Lengkap + BMI) ──────────
@@ -1184,12 +1243,8 @@ async function renderProfilPesilat() {
   try {
     if (!dataAhliCache) dataAhliCache = await api('senarai_ahli', {status:'AKTIF'});
     dataPesilat = dataAhliCache;
-
     main.innerHTML = `
-      <div class="kotak-carian" style="margin-bottom:10px">
-        <i class="ti ti-search"></i>
-        <input type="search" id="carian-pesilat" placeholder="Cari nama atau No. KP..." oninput="tapisPesilat(this.value)" autocomplete="off">
-      </div>
+      <div class="kotak-carian" style="margin-bottom:10px"><i class="ti ti-search"></i><input type="search" id="carian-pesilat" placeholder="Cari nama atau No. KP..." oninput="tapisPesilat(this.value)" autocomplete="off"></div>
       <div style="margin-bottom:10px">
         <select class="form-input" id="pilih-pesilat" onchange="pilihDariDropdown(this.value)" style="font-size:13px;padding:9px 12px">
           <option value="">— Pilih nama dari senarai —</option>
@@ -1203,14 +1258,12 @@ async function renderProfilPesilat() {
     main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p><button class="btn btn-outline" onclick="muatSemula()">Cuba Semula</button></div>`;
   }
 }
-
 function pilihDariDropdown(noKp) {
   if (!noKp) { paparJadualPesilat(dataPesilat); return; }
   document.getElementById('carian-pesilat').value = '';
   const hasil = dataPesilat.filter(a => a.no_kp === noKp);
   paparJadualPesilat(hasil);
 }
-
 let timerCariPesilat;
 function tapisPesilat(q) {
   clearTimeout(timerCariPesilat);
@@ -1218,13 +1271,10 @@ function tapisPesilat(q) {
   document.getElementById('pilih-pesilat').value = '';
   timerCariPesilat = setTimeout(() => {
     if (!dataPesilat) return;
-    const hasil = q ? dataPesilat.filter(a =>
-      a.nama.toLowerCase().includes(q.toLowerCase()) || a.no_kp.includes(q)
-    ) : dataPesilat;
+    const hasil = q ? dataPesilat.filter(a => a.nama.toLowerCase().includes(q.toLowerCase()) || a.no_kp.includes(q)) : dataPesilat;
     paparJadualPesilat(hasil);
   }, 250);
 }
-
 function kiraUsiaDariKP(tarikhLahir, noKp) {
   let tLahir = null;
   if (tarikhLahir && tarikhLahir.length >= 6) { tLahir = new Date(tarikhLahir); }
@@ -1237,75 +1287,38 @@ function kiraUsiaDariKP(tarikhLahir, noKp) {
   if (skrg.getMonth()<tLahir.getMonth()||(skrg.getMonth()===tLahir.getMonth()&&skrg.getDate()<tLahir.getDate())) u--;
   return u;
 }
-
 function paparJadualPesilat(senarai) {
   const el = document.getElementById('jadual-pesilat');
   if (!el) return;
-  if (!senarai || !senarai.length) {
-    el.innerHTML = '<div class="kosong"><i class="ti ti-user-off"></i><p>Tiada pesilat dijumpai</p></div>';
-    return;
-  }
+  if (!senarai || !senarai.length) { el.innerHTML = '<div class="kosong"><i class="ti ti-user-off"></i><p>Tiada pesilat dijumpai</p></div>'; return; }
+  const warnaBMI = bmi => { if (!bmi) return '#ccc'; if (bmi < 18.5) return '#3B8BD4'; if (bmi < 23) return '#1D9E75'; if (bmi < 27.5) return '#BA7517'; return '#A32D2D'; };
+  const labelBMI = bmi => { if (!bmi) return '—'; if (bmi < 18.5) return 'Kurus'; if (bmi < 23) return 'Normal'; if (bmi < 27.5) return 'Lebih'; return 'Obes'; };
 
-  const warnaBMI = bmi => {
-    if (!bmi) return '#ccc';
-    if (bmi < 18.5) return '#3B8BD4';
-    if (bmi < 23)   return '#1D9E75';
-    if (bmi < 27.5) return '#BA7517';
-    return '#A32D2D';
-  };
-  const labelBMI = bmi => {
-    if (!bmi) return '—';
-    if (bmi < 18.5) return 'Kurus';
-    if (bmi < 23)   return 'Normal';
-    if (bmi < 27.5) return 'Lebih';
-    return 'Obes';
-  };
-
-  el.innerHTML = `
-    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${senarai.length} pesilat dijumpai</div>
-    ${senarai.map(a => {
+  el.innerHTML = `<div style="font-size:12px;color:var(--muted);margin-bottom:8px">${senarai.length} pesilat dijumpai</div>` + senarai.map(a => {
       const usia   = kiraUsiaDariKP(a.tarikh_lahir, a.no_kp);
       const berat  = parseFloat(a.berat) || 0;
       const tinggi = parseFloat(a.tinggi) || 0;
       const bmi    = (berat>0&&tinggi>0) ? Math.round(berat/Math.pow(tinggi/100,2)*10)/10 : null;
       const warna  = a.kategori?.includes('RENDAH')?'var(--pri)':a.kategori?.includes('MENENGAH')?'var(--pur)':'var(--amb)';
-
       return `
       <div class="kad" style="margin-bottom:10px;padding:14px;cursor:pointer" onclick="bukaProfilAhli('${a.no_kp}')">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
           <div class="avatar" style="background:${warna}25;color:${warna};flex-shrink:0;border:none">${(a.nama||'?')[0]}</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nama}</div>
-            <div style="font-size:11px;color:var(--muted)">${a.id_ahli} · ${a.no_kp}</div>
-          </div>
+          <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.nama}</div><div style="font-size:11px;color:var(--muted)">${a.id_ahli} · ${a.no_kp}</div></div>
           <i class="ti ti-chevron-right" style="color:var(--hint);flex-shrink:0"></i>
         </div>
-
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-          <div style="background:var(--bg);border-radius:8px;padding:8px;text-align:center">
-            <div style="font-size:16px;font-weight:700;color:${warna}">${usia !== null ? usia : '—'}</div>
-            <div style="font-size:10px;color:var(--muted)">USIA</div>
-          </div>
-          <div style="background:var(--bg);border-radius:8px;padding:8px;text-align:center">
-            <div style="font-size:16px;font-weight:700">${berat > 0 ? berat+'kg' : '—'}</div>
-            <div style="font-size:10px;color:var(--muted)">BERAT</div>
-          </div>
-          <div style="background:var(--bg);border-radius:8px;padding:8px;text-align:center">
-            <div style="font-size:16px;font-weight:700">${tinggi > 0 ? tinggi+'cm' : '—'}</div>
-            <div style="font-size:10px;color:var(--muted)">TINGGI</div>
-          </div>
+          <div style="background:var(--bg);border-radius:8px;padding:8px;text-align:center"><div style="font-size:16px;font-weight:700;color:${warna}">${usia !== null ? usia : '—'}</div><div style="font-size:10px;color:var(--muted)">USIA</div></div>
+          <div style="background:var(--bg);border-radius:8px;padding:8px;text-align:center"><div style="font-size:16px;font-weight:700">${berat > 0 ? berat+'kg' : '—'}</div><div style="font-size:10px;color:var(--muted)">BERAT</div></div>
+          <div style="background:var(--bg);border-radius:8px;padding:8px;text-align:center"><div style="font-size:16px;font-weight:700">${tinggi > 0 ? tinggi+'cm' : '—'}</div><div style="font-size:10px;color:var(--muted)">TINGGI</div></div>
         </div>
-
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
           <span class="badge hijau" style="font-size:10px">${(a.bengkung||'—').replace('BENGKUNG ','')}</span>
           ${bmi ? `<span class="badge" style="font-size:10px;background:${warnaBMI(bmi)}20;color:${warnaBMI(bmi)}">BMI ${bmi} · ${labelBMI(bmi)}</span>` : ''}
         </div>
       </div>`;
-    }).join('')}
-  `;
+    }).join('');
 }
-
-
 
 // ── HALAMAN: Kewangan ─────────────────────────────────────────
 let tahunKewangan = new Date().getFullYear();
@@ -1318,7 +1331,6 @@ async function renderKewangan() {
     const TAHUN_LIST = [2024, 2025, 2026, 2027];
 
     main.innerHTML = `
-      <!-- Pilih Tahun -->
       <div class="kad" style="padding:12px 14px;margin-bottom:10px">
         <div style="display:flex;align-items:center;gap:10px">
           <div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase">Tahun</div>
@@ -1327,38 +1339,19 @@ async function renderKewangan() {
           </div>
         </div>
       </div>
-
-      <!-- Ringkasan -->
       <div class="kad-row">
-        <div class="stat-kad g">
-          <div class="stat-num">RM${(d.jumlah_masuk||0).toFixed(0)}</div>
-          <div class="stat-lbl">📥 Jumlah Masuk</div>
-        </div>
-        <div class="stat-kad r">
-          <div class="stat-num">RM${(d.perbelanjaan||0).toFixed(0)}</div>
-          <div class="stat-lbl">📤 Perbelanjaan</div>
-        </div>
+        <div class="stat-kad g"><div class="stat-num">RM${(d.jumlah_masuk||0).toFixed(0)}</div><div class="stat-lbl">📥 Jumlah Masuk</div></div>
+        <div class="stat-kad r"><div class="stat-num">RM${(d.perbelanjaan||0).toFixed(0)}</div><div class="stat-lbl">📤 Perbelanjaan</div></div>
       </div>
       <div class="kad" style="text-align:center;margin-bottom:12px">
         <div style="font-size:12px;color:var(--muted);margin-bottom:4px">BAKI TERKINI ${d.tahun}</div>
         <div style="font-size:36px;font-weight:700;color:${wBaki}">RM${(d.baki||0).toFixed(2)}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">
-          Yuran: RM${(d.kutipan_yuran||0).toFixed(2)} + 
-          Lain-lain: RM${(d.pendapatan_lain||0).toFixed(2)}
-        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">Yuran: RM${(d.kutipan_yuran||0).toFixed(2)} + Lain-lain: RM${(d.pendapatan_lain||0).toFixed(2)}</div>
       </div>
-
-      <!-- Butang Tambah -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-        <button class="btn btn-pri" onclick="bukaModalKewangan('PENDAPATAN')">
-          <i class="ti ti-plus"></i> Tambah Masuk
-        </button>
-        <button class="btn btn-red" onclick="bukaModalKewangan('PERBELANJAAN')">
-          <i class="ti ti-minus"></i> Tambah Keluar
-        </button>
+        <button class="btn btn-pri" onclick="bukaModalKewangan('PENDAPATAN')"><i class="ti ti-plus"></i> Tambah Masuk</button>
+        <button class="btn btn-red" onclick="bukaModalKewangan('PERBELANJAAN')"><i class="ti ti-minus"></i> Tambah Keluar</button>
       </div>
-
-      <!-- Graf Bar Mudah -->
       <div class="kad" style="margin-bottom:12px">
         <div class="seksyen-tajuk" style="margin-top:0">Aliran Mengikut Bulan ${d.tahun}</div>
         ${(d.ikut_bulan||[]).map(b => {
@@ -1368,33 +1361,18 @@ async function renderKewangan() {
           if (!b.masuk && !b.keluar) return '';
           return `
           <div style="margin-bottom:10px">
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px">
-              <span>${b.bulan}</span>
-              <span style="color:var(--c3)">+RM${b.masuk.toFixed(0)}</span>
-              <span style="color:var(--c6)">-RM${b.keluar.toFixed(0)}</span>
-            </div>
-            <div style="background:rgba(255,255,255,.08);border-radius:4px;height:8px;overflow:hidden;margin-bottom:2px">
-              <div style="background:var(--c3);height:100%;width:${pMasuk}%;border-radius:4px"></div>
-            </div>
-            <div style="background:rgba(255,255,255,.08);border-radius:4px;height:8px;overflow:hidden">
-              <div style="background:var(--c6);height:100%;width:${pKeluar}%;border-radius:4px"></div>
-            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px"><span>${b.bulan}</span><span style="color:var(--c3)">+RM${b.masuk.toFixed(0)}</span><span style="color:var(--c6)">-RM${b.keluar.toFixed(0)}</span></div>
+            <div style="background:rgba(255,255,255,.08);border-radius:4px;height:8px;overflow:hidden;margin-bottom:2px"><div style="background:var(--c3);height:100%;width:${pMasuk}%;border-radius:4px"></div></div>
+            <div style="background:rgba(255,255,255,.08);border-radius:4px;height:8px;overflow:hidden"><div style="background:var(--c6);height:100%;width:${pKeluar}%;border-radius:4px"></div></div>
           </div>`;
         }).join('')}
       </div>
-
-      <!-- Rekod Terkini -->
       <div class="seksyen-tajuk">Rekod Terkini</div>
       ${(d.terkini||[]).length ? d.terkini.map(r=>`
         <div class="senarai-item" style="cursor:default">
           <div class="avatar ${r.JENIS==='PENDAPATAN'?'g':'r'}" style="font-size:18px">${r.JENIS==='PENDAPATAN'?'📥':'📤'}</div>
-          <div class="item-info">
-            <div class="item-nama">${r.KETERANGAN||r.KATEGORI||'—'}</div>
-            <div class="item-sub">${r.TARIKH} · ${r.KATEGORI}</div>
-          </div>
-          <span class="badge ${r.JENIS==='PENDAPATAN'?'hijau':'merah'}">
-            ${r.JENIS==='PENDAPATAN'?'+':'-'}RM${parseFloat(r.JUMLAH||0).toFixed(2)}
-          </span>
+          <div class="item-info"><div class="item-nama">${r.KETERANGAN||r.KATEGORI||'—'}</div><div class="item-sub">${r.TARIKH} · ${r.KATEGORI}</div></div>
+          <span class="badge ${r.JENIS==='PENDAPATAN'?'hijau':'merah'}">${r.JENIS==='PENDAPATAN'?'+':'-'}RM${parseFloat(r.JUMLAH||0).toFixed(2)}</span>
         </div>
       `).join('') : '<div class="kosong"><i class="ti ti-receipt-off"></i><p>Tiada rekod lagi</p></div>'}
     `;
@@ -1402,60 +1380,30 @@ async function renderKewangan() {
     main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p><button class="btn btn-outline" onclick="muatSemula()">Cuba Semula</button></div>`;
   }
 }
-
 function tukarTahunKewangan(tahun) { tahunKewangan = tahun; renderKewangan(); }
-
 function bukaModalKewangan(jenis) {
   const tajuk = jenis === 'PENDAPATAN' ? '📥 Tambah Pendapatan' : '📤 Tambah Perbelanjaan';
   const warna = jenis === 'PENDAPATAN' ? '#00E676' : '#FF5177';
-  const katList = jenis === 'PENDAPATAN'
-    ? ['YURAN BULANAN','YURAN PENDAFTARAN','DERMA','LAIN-LAIN PENDAPATAN']
-    : ['PERALATAN LATIHAN','SEWA TEMPAT','PERTANDINGAN','PERJALANAN','BAYARAN GURU TAMU','LAIN-LAIN PERBELANJAAN'];
-
+  const katList = jenis === 'PENDAPATAN' ? ['YURAN BULANAN','YURAN PENDAFTARAN','DERMA','LAIN-LAIN PENDAPATAN'] : ['PERALATAN LATIHAN','SEWA TEMPAT','PERTANDINGAN','PERJALANAN','BAYARAN GURU TAMU','LAIN-LAIN PERBELANJAAN'];
   const modal = document.createElement('div');
   modal.className = 'modal-bg buka';
   modal.id = 'modal-kewangan-temp';
   modal.innerHTML = `
     <div class="modal">
-      <div class="modal-tajuk" style="color:${warna}">${tajuk}
-        <div class="modal-tutup" onclick="document.getElementById('modal-kewangan-temp').remove()"><i class="ti ti-x"></i></div>
-      </div>
-      <div class="form-kump">
-        <label class="form-label">Kategori</label>
-        <select class="form-input" id="kw-kategori">
-          ${katList.map(k=>`<option>${k}</option>`).join('')}
-        </select>
-      </div>
-      <div class="form-kump">
-        <label class="form-label">Jumlah (RM)</label>
-        <input class="form-input" id="kw-jumlah" type="number" min="0" step="0.01" placeholder="0.00" required>
-      </div>
-      <div class="form-kump">
-        <label class="form-label">Tarikh</label>
-        <input class="form-input" id="kw-tarikh" type="date" value="${new Date().toISOString().split('T')[0]}">
-      </div>
-      <div class="form-kump">
-        <label class="form-label">Keterangan</label>
-        <input class="form-input" id="kw-keterangan" type="text" placeholder="Hurai ringkas">
-      </div>
-      <button class="btn btn-blok" style="background:${warna};color:#fff;border:none;box-shadow:none" onclick="simpanKewangan('${jenis}')">
-        <i class="ti ti-device-floppy"></i> Simpan
-      </button>
+      <div class="modal-tajuk" style="color:${warna}">${tajuk}<div class="modal-tutup" onclick="document.getElementById('modal-kewangan-temp').remove()"><i class="ti ti-x"></i></div></div>
+      <div class="form-kump"><label class="form-label">Kategori</label><select class="form-input" id="kw-kategori">${katList.map(k=>`<option>${k}</option>`).join('')}</select></div>
+      <div class="form-kump"><label class="form-label">Jumlah (RM)</label><input class="form-input" id="kw-jumlah" type="number" min="0" step="0.01" placeholder="0.00" required></div>
+      <div class="form-kump"><label class="form-label">Tarikh</label><input class="form-input" id="kw-tarikh" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
+      <div class="form-kump"><label class="form-label">Keterangan</label><input class="form-input" id="kw-keterangan" type="text" placeholder="Hurai ringkas"></div>
+      <button class="btn btn-blok" style="background:${warna};color:#fff;border:none;box-shadow:none" onclick="simpanKewangan('${jenis}')"><i class="ti ti-device-floppy"></i> Simpan</button>
     </div>`;
   document.body.appendChild(modal);
 }
-
 async function simpanKewangan(jenis) {
   const jumlah = document.getElementById('kw-jumlah')?.value;
   if (!jumlah) { tunjukToast('Sila isi jumlah!','ralat'); return; }
   try {
-    await apiPost({
-      tindakan: 'tambah_kewangan',
-      jenis, jumlah,
-      kategori   : document.getElementById('kw-kategori')?.value,
-      tarikh     : document.getElementById('kw-tarikh')?.value,
-      keterangan : document.getElementById('kw-keterangan')?.value,
-    });
+    await apiPost({ tindakan: 'tambah_kewangan', jenis, jumlah, kategori: document.getElementById('kw-kategori')?.value, tarikh: document.getElementById('kw-tarikh')?.value, keterangan : document.getElementById('kw-keterangan')?.value });
     document.getElementById('modal-kewangan-temp')?.remove();
     tunjukToast('✅ Rekod kewangan disimpan!','ok');
     renderKewangan();
@@ -1469,15 +1417,10 @@ async function renderLatihanKendiri() {
     const data = await api('latihan_kendiri');
     const ahli = dataAhliCache || await api('senarai_ahli', {status:'AKTIF'});
     if (!dataAhliCache) dataAhliCache = ahli;
-
     main.innerHTML = `
-      <button class="btn btn-pri btn-blok" style="margin-bottom:12px" onclick="bukaModalLatihan()">
-        <i class="ti ti-plus"></i> Assign Latihan Baharu
-      </button>
+      <button class="btn btn-pri btn-blok" style="margin-bottom:12px" onclick="bukaModalLatihan()"><i class="ti ti-plus"></i> Assign Latihan Baharu</button>
       ${!data.length ? '<div class="kosong"><i class="ti ti-run"></i><p>Tiada latihan kendiri aktif</p></div>' :
-        data.map(l => {
-          const pct = Math.min(100, Math.round((parseInt(l.TEMPOH_HARI)||0) > 0 ? 0 : 0));
-          return `
+        data.map(l => `
           <div class="kad" style="margin-bottom:10px">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
               <div style="flex:1;min-width:0">
@@ -1489,14 +1432,10 @@ async function renderLatihanKendiri() {
             </div>
             ${l.PENERANGAN?`<div style="font-size:12px;color:var(--muted);margin-bottom:6px">${l.PENERANGAN}</div>`:''}
             <div style="font-size:11px;color:var(--muted)">📅 ${l.STATUS}</div>
-          </div>`;
-        }).join('')}
+          </div>`).join('')}
     `;
-  } catch(e) {
-    main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p><button class="btn btn-outline" onclick="muatSemula()">Cuba Semula</button></div>`;
-  }
+  } catch(e) { main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p><button class="btn btn-outline" onclick="muatSemula()">Cuba Semula</button></div>`; }
 }
-
 function bukaModalLatihan() {
   const ahli = dataAhliCache || [];
   const modal = document.createElement('div');
@@ -1504,66 +1443,29 @@ function bukaModalLatihan() {
   modal.id = 'modal-latihan-temp';
   modal.innerHTML = `
     <div class="modal">
-      <div class="modal-tajuk">🏃 Assign Latihan Kendiri
-        <div class="modal-tutup" onclick="document.getElementById('modal-latihan-temp').remove()"><i class="ti ti-x"></i></div>
-      </div>
-      <div class="form-kump">
-        <label class="form-label">Assign Kepada</label>
-        <select class="form-input" id="lt-no-kp">
-          <option value="SEMUA">Semua Pesilat</option>
-          ${ahli.map(a=>`<option value="${a.no_kp}">${a.nama}</option>`).join('')}
-        </select>
-      </div>
-      <div class="form-kump">
-        <label class="form-label">Nama Tugasan</label>
-        <input class="form-input" id="lt-nama" type="text" placeholder="cth: Berlatih Ibu Gayong 5 minit">
-      </div>
-      <div class="form-kump">
-        <label class="form-label">Penerangan</label>
-        <textarea class="form-input" id="lt-penerangan" rows="2" placeholder="Butiran tugasan..."></textarea>
-      </div>
+      <div class="modal-tajuk">🏃 Assign Latihan Kendiri<div class="modal-tutup" onclick="document.getElementById('modal-latihan-temp').remove()"><i class="ti ti-x"></i></div></div>
+      <div class="form-kump"><label class="form-label">Assign Kepada</label><select class="form-input" id="lt-no-kp"><option value="SEMUA">Semua Pesilat</option>${ahli.map(a=>`<option value="${a.no_kp}">${a.nama}</option>`).join('')}</select></div>
+      <div class="form-kump"><label class="form-label">Nama Tugasan</label><input class="form-input" id="lt-nama" type="text" placeholder="cth: Berlatih Ibu Gayong 5 minit"></div>
+      <div class="form-kump"><label class="form-label">Penerangan</label><textarea class="form-input" id="lt-penerangan" rows="2" placeholder="Butiran tugasan..."></textarea></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div class="form-kump">
-          <label class="form-label">Tempoh (Hari)</label>
-          <input class="form-input" id="lt-tempoh" type="number" value="30" min="1" max="365">
-        </div>
-        <div class="form-kump">
-          <label class="form-label">Tarikh Mula</label>
-          <input class="form-input" id="lt-mula" type="date" value="${new Date().toISOString().split('T')[0]}">
-        </div>
+        <div class="form-kump"><label class="form-label">Tempoh (Hari)</label><input class="form-input" id="lt-tempoh" type="number" value="30" min="1" max="365"></div>
+        <div class="form-kump"><label class="form-label">Tarikh Mula</label><input class="form-input" id="lt-mula" type="date" value="${new Date().toISOString().split('T')[0]}"></div>
       </div>
-      <button class="btn btn-pri btn-blok" onclick="simpanLatihan()">
-        <i class="ti ti-send"></i> Assign Latihan
-      </button>
+      <button class="btn btn-pri btn-blok" onclick="simpanLatihan()"><i class="ti ti-send"></i> Assign Latihan</button>
     </div>`;
   document.body.appendChild(modal);
 }
-
 async function simpanLatihan() {
   const nama = document.getElementById('lt-nama')?.value?.trim();
   if (!nama) { tunjukToast('Sila isi nama tugasan!','ralat'); return; }
   try {
-    await apiPost({
-      tindakan     : 'tambah_latihan',
-      no_kp        : document.getElementById('lt-no-kp')?.value,
-      nama_tugasan : nama,
-      penerangan   : document.getElementById('lt-penerangan')?.value,
-      tempoh_hari  : document.getElementById('lt-tempoh')?.value,
-      tarikh_mula  : document.getElementById('lt-mula')?.value,
-    });
-    document.getElementById('modal-latihan-temp')?.remove();
-    tunjukToast('✅ Latihan berjaya di-assign!','ok');
-    renderLatihanKendiri();
+    await apiPost({ tindakan: 'tambah_latihan', no_kp: document.getElementById('lt-no-kp')?.value, nama_tugasan: nama, penerangan: document.getElementById('lt-penerangan')?.value, tempoh_hari: document.getElementById('lt-tempoh')?.value, tarikh_mula: document.getElementById('lt-mula')?.value });
+    document.getElementById('modal-latihan-temp')?.remove(); tunjukToast('✅ Latihan berjaya di-assign!','ok'); renderLatihanKendiri();
   } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
 }
-
 async function padamLatihanAdmin(id) {
   if (!confirm('Padam tugasan latihan ini?')) return;
-  try {
-    await apiPost({ tindakan:'padam_latihan', id_latihan: id });
-    tunjukToast('Latihan dipadamkan','ok');
-    renderLatihanKendiri();
-  } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
+  try { await apiPost({ tindakan:'padam_latihan', id_latihan: id }); tunjukToast('Latihan dipadamkan','ok'); renderLatihanKendiri(); } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
 }
 
 // ── HALAMAN: Tetapan ─────────────────────────────────────────
@@ -1580,26 +1482,17 @@ async function renderTetapan() {
       </div>
       <div class="senarai-item" onclick="window.open('laporan.html','_blank')">
         <div class="avatar" style="background:rgba(255,100,0,.2);font-size:22px">📋</div>
-        <div class="item-info"><div class="item-nama">Buat Laporan Pesilat</div><div class="item-sub">Penilaian bengkung + gambar + bakat</div></div>
-        <i class="ti ti-external-link" style="color:var(--muted)"></i>
+        <div class="item-info"><div class="item-nama">Buat Laporan Pesilat</div><div class="item-sub">Penilaian bengkung + gambar + bakat</div></div><i class="ti ti-external-link" style="color:var(--muted)"></i>
       </div>
       <div class="senarai-item" onclick="window.open('parent.html','_blank')">
         <div class="avatar" style="background:rgba(170,0,255,.2);font-size:22px">👨‍👩‍👧</div>
-        <div class="item-info"><div class="item-nama">Portal Ibu Bapa</div><div class="item-sub">Login guna No. KP anak</div></div>
-        <i class="ti ti-external-link" style="color:var(--muted)"></i>
+        <div class="item-info"><div class="item-nama">Portal Ibu Bapa</div><div class="item-sub">Login guna No. KP anak</div></div><i class="ti ti-external-link" style="color:var(--muted)"></i>
       </div>
       <div class="seksyen-tajuk">Edit Tetapan</div>
-      <div class="kad" style="font-size:13px;color:var(--muted)">
-        Untuk edit nama gelanggang, logo, dan maklumat lain — buka Google Sheet dan pergi ke tab <strong style="color:var(--gold)">TETAPAN</strong>.
-      </div>
-      <div class="kad" style="margin-top:0">
-        <div style="font-family:var(--font-h);font-size:14px;color:var(--gold);margin-bottom:6px">⚔️ SilatApp v1.2</div>
-        <div style="font-size:12px;color:var(--muted)">Guru: ${t.NAMA_GURU||'Muhammad Hisyam'}<br>Tel: ${t.TELEFON_GURU||'—'}</div>
-      </div>
+      <div class="kad" style="font-size:13px;color:var(--muted)">Untuk edit nama gelanggang, logo, dan maklumat lain — buka Google Sheet dan pergi ke tab <strong style="color:var(--gold)">TETAPAN</strong>.</div>
+      <div class="kad" style="margin-top:0"><div style="font-family:var(--font-h);font-size:14px;color:var(--gold);margin-bottom:6px">⚔️ SilatApp v1.3</div><div style="font-size:12px;color:var(--muted)">Guru: ${t.NAMA_GURU||'Muhammad Hisyam'}<br>Tel: ${t.TELEFON_GURU||'—'}</div></div>
     `;
-  } catch(e) {
-    main.innerHTML = `<div class="kosong"><i class="ti ti-settings"></i><p>Gagal muatkan tetapan</p><p style="font-size:12px">Pastikan sheet TETAPAN wujud</p></div>`;
-  }
+  } catch(e) { main.innerHTML = `<div class="kosong"><i class="ti ti-settings"></i><p>Gagal muatkan tetapan</p><p style="font-size:12px">Pastikan sheet TETAPAN wujud</p></div>`; }
 }
 
 // ── HALAMAN: Sejarah Gred ────────────────────────────────────
@@ -1607,96 +1500,52 @@ async function renderSejarahGred() {
   const main = getMain();
   try {
     const data = await api('sejarah_gred');
-    if (!data.length) {
-      main.innerHTML = '<div class="kosong"><i class="ti ti-award"></i><p>Tiada sejarah gred direkodkan lagi</p></div>';
-      return;
-    }
+    if (!data.length) { main.innerHTML = '<div class="kosong"><i class="ti ti-award"></i><p>Tiada sejarah gred direkodkan lagi</p></div>'; return; }
     const ikutAhli = {};
-    data.slice().reverse().forEach(g => {
-      if (!ikutAhli[g.NO_KP]) ikutAhli[g.NO_KP] = { nama: g.NAMA_PESILAT, rekod: [] };
-      ikutAhli[g.NO_KP].rekod.push(g);
-    });
+    data.slice().reverse().forEach(g => { if (!ikutAhli[g.NO_KP]) ikutAhli[g.NO_KP] = { nama: g.NAMA_PESILAT, rekod: [] }; ikutAhli[g.NO_KP].rekod.push(g); });
     main.innerHTML = Object.entries(ikutAhli).map(([no_kp, {nama, rekod}]) => `
       <div class="kad" style="margin-bottom:12px">
         <div style="font-weight:700;margin-bottom:12px;font-size:14px">${nama}</div>
         ${rekod.map((g, i, arr) => `
           <div class="gred-item">
             <div class="gred-garis"><div class="gred-dot"></div>${i < arr.length-1 ? '<div class="gred-line"></div>' : ''}</div>
-            <div class="gred-content">
-              <div class="gred-bengkung">${g.BENGKUNG_BARU}</div>
-              <div class="gred-tarikh">${g.TARIKH_NAIK_GRED||'—'}${g.CATATAN?' · '+g.CATATAN:''}</div>
-            </div>
+            <div class="gred-content"><div class="gred-bengkung">${g.BENGKUNG_BARU}</div><div class="gred-tarikh">${g.TARIKH_NAIK_GRED||'—'}${g.CATATAN?' · '+g.CATATAN:''}</div></div>
           </div>
         `).join('')}
       </div>
     `).join('');
-  } catch (e) {
-    main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p></div>`;
-  }
+  } catch (e) { main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p></div>`; }
 }
 
-// ── HALAMAN: Silibus ─────────────────────────────────────────
 // ── HALAMAN: Silibus (Admin) ─────────────────────────────────
-let modSilibus  = 'lihat';
+let modSilibus = 'lihat';
 let dataSilibus = [];
-
-const SENARAI_BENGKUNG_SILIBUS = [
-  'BENGKUNG HITAM','BENGKUNG PUTIH','BENGKUNG BIRU',
-  'BENGKUNG HIJAU','BENGKUNG KUNING','BENGKUNG MERAH','SEMUA'
-];
-
-const SENARAI_KAT_SILIBUS = [
-  'WIRID 700','BENGKUNG HITAM','BENGKUNG PUTIH','BENGKUNG BIRU',
-  'BENGKUNG HIJAU','BENGKUNG KUNING','BENGKUNG MERAH',
-  'TARI TERATAI','PECAHAN IBU GAYONG','SENAMAN KEKUDA','IBU GAYONG','LAIN-LAIN'
-];
+const SENARAI_BENGKUNG_SILIBUS = ['BENGKUNG HITAM','BENGKUNG PUTIH','BENGKUNG BIRU','BENGKUNG HIJAU','BENGKUNG KUNING','BENGKUNG MERAH','SEMUA'];
+const SENARAI_KAT_SILIBUS = ['WIRID 700','BENGKUNG HITAM','BENGKUNG PUTIH','BENGKUNG BIRU','BENGKUNG HIJAU','BENGKUNG KUNING','BENGKUNG MERAH','TARI TERATAI','PECAHAN IBU GAYONG','SENAMAN KEKUDA','IBU GAYONG','LAIN-LAIN'];
 
 async function renderSilibus() {
-  const main = getMain();
-  main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan...</span></div>';
-  try {
-    dataSilibus = await api('silibus');
-    paparSilibus();
-  } catch(e) {
-    main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p></div>`;
-  }
+  const main = getMain(); main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan...</span></div>';
+  try { dataSilibus = await api('silibus'); paparSilibus(); } catch(e) { main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p></div>`; }
 }
-
 function paparSilibus() {
-  const main = getMain();
-  const isEdit = modSilibus === 'edit';
-  const kump   = {};
-  dataSilibus.forEach(s => {
-    const k = s.KATEGORI || 'LAIN-LAIN';
-    if (!kump[k]) kump[k] = [];
-    kump[k].push(s);
-  });
-
+  const main = getMain(); const isEdit = modSilibus === 'edit'; const kump = {};
+  dataSilibus.forEach(s => { const k = s.KATEGORI || 'LAIN-LAIN'; if (!kump[k]) kump[k] = []; kump[k].push(s); });
   main.innerHTML = `
-    <!-- Header & butang edit -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <div style="font-size:13px;color:var(--muted)">${dataSilibus.length} item</div>
       <div style="display:flex;gap:8px">
         ${isEdit?`<button class="btn btn-pri" style="padding:7px 12px;font-size:12px" onclick="bukaFormTambahSilibus()"><i class="ti ti-plus"></i> Tambah</button>`:''}
-        <button class="btn ${isEdit?'btn-red':'btn-outline'}" style="padding:7px 12px;font-size:12px" onclick="togModSilibus()">
-          <i class="ti ti-${isEdit?'check':'pencil'}"></i> ${isEdit?'Selesai':'Edit'}
-        </button>
+        <button class="btn ${isEdit?'btn-red':'btn-outline'}" style="padding:7px 12px;font-size:12px" onclick="togModSilibus()"><i class="ti ti-${isEdit?'check':'pencil'}"></i> ${isEdit?'Selesai':'Edit'}</button>
       </div>
     </div>
-
-    <!-- Senarai video mengikut kategori -->
     ${Object.entries(kump).map(([kat, items]) => `
       <div class="seksyen-tajuk">${kat}</div>
       ${items.map(s => {
-        const m    = (s.LINK||'').match(/\/d\/([^\/\?&]+)/);
-        const fid  = m ? m[1] : '';
-        const thumb = fid ? 'https://lh3.googleusercontent.com/d/'+fid+'=w200' : '';
+        const m = (s.LINK||'').match(/\/d\/([^\/\?&]+)/); const fid = m ? m[1] : ''; const thumb = fid ? 'https://lh3.googleusercontent.com/d/'+fid+'=w200' : '';
         return `
         <div class="senarai-item" style="align-items:flex-start;cursor:${isEdit?'default':'pointer'}" ${!isEdit&&s.LINK?`onclick="mainVidAdmin('${s.ID}','${s.LINK}')"`:''}>
-          <!-- Thumbnail kecil -->
           <div style="width:56px;height:40px;border-radius:8px;overflow:hidden;background:linear-gradient(135deg,#085041,#1D9E75);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;color:rgba(255,255,255,.8)">
-            ${thumb?`<img src="${thumb}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`:``}
-            ${!thumb?'▶':''}
+            ${thumb?`<img src="${thumb}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`:``}${!thumb?'▶':''}
           </div>
           <div class="item-info" style="min-width:0">
             <div class="item-nama">${s.TAJUK||'—'}</div>
@@ -1711,7 +1560,6 @@ function paparSilibus() {
             <button onclick="padamSilabus('${s.ID}')" style="background:rgba(255,23,68,.2);border:1px solid rgba(255,23,68,.4);color:var(--c6);border-radius:8px;padding:5px 8px;font-size:11px;cursor:pointer">🗑️</button>
           </div>`:`<i class="ti ti-player-play" style="color:var(--c3);flex-shrink:0"></i>`}
         </div>
-        <!-- Player inline -->
         <div id="vplayer-${s.ID}" style="display:none;aspect-ratio:16/9;border-radius:10px;overflow:hidden;margin:-6px 0 8px">
           <iframe id="vframe-${s.ID}" src="" style="width:100%;height:100%;border:none" allowfullscreen></iframe>
         </div>`;
@@ -1719,416 +1567,180 @@ function paparSilibus() {
     `).join('')}
   `;
 }
-
-function togModSilibus() {
-  modSilibus = modSilibus==='lihat'?'edit':'lihat';
-  paparSilibus();
-}
-
+function togModSilibus() { modSilibus = modSilibus==='lihat'?'edit':'lihat'; paparSilibus(); }
 function mainVidAdmin(id, link) {
-  const player = document.getElementById('vplayer-'+id);
-  const frame  = document.getElementById('vframe-'+id);
-  if (!player||!frame) return;
-  const buka = player.style.display==='none'||!player.style.display;
-  const m    = (link||'').match(/\/d\/([^\/\?&]+)/);
-  const fid  = m?m[1]:'';
-  const url  = fid?'https://drive.google.com/file/d/'+fid+'/preview':link;
-  if (buka) { player.style.display='block'; frame.src=url; player.scrollIntoView({behavior:'smooth',block:'nearest'}); }
-  else       { player.style.display='none';  frame.src=''; }
+  const player = document.getElementById('vplayer-'+id); const frame = document.getElementById('vframe-'+id);
+  if (!player||!frame) return; const buka = player.style.display==='none'||!player.style.display;
+  const m = (link||'').match(/\/d\/([^\/\?&]+)/); const fid = m?m[1]:''; const url = fid?'https://drive.google.com/file/d/'+fid+'/preview':link;
+  if (buka) { player.style.display='block'; frame.src=url; player.scrollIntoView({behavior:'smooth',block:'nearest'}); } else { player.style.display='none'; frame.src=''; }
 }
-
-function bukaFormTambahSilibus() {
-  bukaFormSilibus(null);
-}
-
-function bukaEditSilibus(id) {
-  const item = dataSilibus.find(s=>s.ID===id||s.ID===parseInt(id));
-  bukaFormSilibus(item);
-}
-
+function bukaFormTambahSilibus() { bukaFormSilibus(null); }
+function bukaEditSilibus(id) { const item = dataSilibus.find(s=>s.ID===id||s.ID===parseInt(id)); bukaFormSilibus(item); }
 function bukaFormSilibus(item) {
-  const isEdit = !!item;
-  const modal  = document.createElement('div');
-  modal.className = 'modal-bg buka';
-  modal.id = 'modal-silibus-form';
+  const isEdit = !!item; const modal = document.createElement('div'); modal.className = 'modal-bg buka'; modal.id = 'modal-silibus-form';
   modal.innerHTML = `
     <div class="modal" style="max-height:90vh">
-      <div class="modal-tajuk">
-        ${isEdit?'✏️ Edit Video':'➕ Tambah Video Baru'}
-        <div class="modal-tutup" onclick="document.getElementById('modal-silibus-form').remove()"><i class="ti ti-x"></i></div>
-      </div>
-
-      <div class="form-kump">
-        <label class="form-label">Tajuk Video *</label>
-        <input class="form-input" id="sv-tajuk" placeholder="cth: Tari Teratai 1-10" value="${item?.TAJUK||''}">
-      </div>
-
-      <div class="form-kump">
-        <label class="form-label">Link Google Drive *</label>
-        <input class="form-input" id="sv-link" type="url" placeholder="https://drive.google.com/file/d/..." value="${item?.LINK||''}">
-        <div class="form-hint">Pastikan fail ditetapkan "Anyone with the link can view"</div>
-      </div>
-
-      <div class="form-kump">
-        <label class="form-label">Kategori</label>
-        <select class="form-input" id="sv-kat">
-          ${SENARAI_KAT_SILIBUS.map(k=>`<option ${(item?.KATEGORI||'')==k?'selected':''}>${k}</option>`).join('')}
-        </select>
-      </div>
-
+      <div class="modal-tajuk">${isEdit?'✏️ Edit Video':'➕ Tambah Video Baru'}<div class="modal-tutup" onclick="document.getElementById('modal-silibus-form').remove()"><i class="ti ti-x"></i></div></div>
+      <div class="form-kump"><label class="form-label">Tajuk Video *</label><input class="form-input" id="sv-tajuk" placeholder="cth: Tari Teratai 1-10" value="${item?.TAJUK||''}"></div>
+      <div class="form-kump"><label class="form-label">Link Google Drive *</label><input class="form-input" id="sv-link" type="url" placeholder="https://drive.google.com/file/d/..." value="${item?.LINK||''}"><div class="form-hint">Pastikan fail ditetapkan "Anyone with the link can view"</div></div>
+      <div class="form-kump"><label class="form-label">Kategori</label><select class="form-input" id="sv-kat">${SENARAI_KAT_SILIBUS.map(k=>`<option ${(item?.KATEGORI||'')==k?'selected':''}>${k}</option>`).join('')}</select></div>
       <div class="form-kump">
         <label class="form-label">Tag Bengkung (boleh pilih lebih satu)</label>
         <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
           ${SENARAI_BENGKUNG_SILIBUS.map(b => {
             const tagged = (item?.BENGKUNG_TAG||'').split(',').map(x=>x.trim()).includes(b);
-            return `<label style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px">
-              <input type="checkbox" class="cb-bengkung" value="${b}" ${tagged?'checked':''}> ${b}
-            </label>`;
+            return `<label style="display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:5px 10px;cursor:pointer;font-size:12px"><input type="checkbox" class="cb-bengkung" value="${b}" ${tagged?'checked':''}> ${b}</label>`;
           }).join('')}
-        </div>
-        <div class="form-hint">Biarkan kosong jika sesuai untuk semua peringkat</div>
+        </div><div class="form-hint">Biarkan kosong jika sesuai untuk semua peringkat</div>
       </div>
-
-      <button class="btn btn-pri btn-blok" onclick="simpanFormSilibus('${item?.ID||''}')">
-        <i class="ti ti-device-floppy"></i> ${isEdit?'Kemaskini':'Tambah'} Video
-      </button>
+      <button class="btn btn-pri btn-blok" onclick="simpanFormSilibus('${item?.ID||''}')"><i class="ti ti-device-floppy"></i> ${isEdit?'Kemaskini':'Tambah'} Video</button>
     </div>`;
   document.body.appendChild(modal);
 }
-
 async function simpanFormSilibus(id) {
-  const tajuk = document.getElementById('sv-tajuk')?.value?.trim();
-  const link  = document.getElementById('sv-link')?.value?.trim();
-  const kat   = document.getElementById('sv-kat')?.value;
-  const tags  = Array.from(document.querySelectorAll('.cb-bengkung:checked')).map(c=>c.value).join(',');
-
+  const tajuk = document.getElementById('sv-tajuk')?.value?.trim(); const link = document.getElementById('sv-link')?.value?.trim();
+  const kat = document.getElementById('sv-kat')?.value; const tags = Array.from(document.querySelectorAll('.cb-bengkung:checked')).map(c=>c.value).join(',');
   if (!tajuk) { tunjukToast('Sila isi tajuk!','ralat'); return; }
-
   try {
-    if (id) {
-      // Edit
-      await apiPost({ tindakan:'kemaskini_silibus', id, tajuk, link: link||'', bengkung_tag: tags });
-    } else {
-      // Tambah baru
-      await apiPost({ tindakan:'tambah_silibus', tajuk, link: link||'', kategori: kat, bengkung_tag: tags });
-    }
-    document.getElementById('modal-silibus-form')?.remove();
-    tunjukToast('✅ Video berjaya '+(id?'dikemaskini':'ditambah')+'!','ok');
-    dataSilibus = await api('silibus');
-    paparSilibus();
+    if (id) await apiPost({ tindakan:'kemaskini_silibus', id, tajuk, link: link||'', bengkung_tag: tags });
+    else    await apiPost({ tindakan:'tambah_silibus', tajuk, link: link||'', kategori: kat, bengkung_tag: tags });
+    document.getElementById('modal-silibus-form')?.remove(); tunjukToast('✅ Video berjaya '+(id?'dikemaskini':'ditambah')+'!','ok');
+    dataSilibus = await api('silibus'); paparSilibus();
   } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
 }
-
 async function padamSilabus(id) {
   if (!confirm('Padam video ini dari senarai silibus?')) return;
-  try {
-    await apiPost({ tindakan:'padam_silibus', id });
-    tunjukToast('Video dipadamkan','ok');
-    dataSilibus = await api('silibus');
-    paparSilibus();
-  } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
+  try { await apiPost({ tindakan:'padam_silibus', id }); tunjukToast('Video dipadamkan','ok'); dataSilibus = await api('silibus'); paparSilibus(); } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
 }
 
 // ── Modal Berat & Tinggi ──────────────────────────────────────
 const SENARAI_BULAN_KAT = ['JANUARI','FEBRUARI','MAC','APRIL','MEI','JUN','JULAI','OGOS','SEPTEMBER','OKTOBER','NOVEMBER','DISEMBER'];
-
 function bukaModalBerat(no_kp, nama, beratSedia, tinggiSedia, usia) {
-  document.getElementById('berat-no-kp').value = no_kp;
-  document.getElementById('tajuk-modal-berat').textContent = '⚖️ ' + nama.split(' ')[0];
+  document.getElementById('berat-no-kp').value = no_kp; document.getElementById('tajuk-modal-berat').textContent = '⚖️ ' + nama.split(' ')[0];
   document.getElementById('berat-profil-info').textContent = nama + ' · Usia: ' + (usia||'?') + ' tahun';
-  document.getElementById('inp-berat-kg').value  = beratSedia || '';
-  document.getElementById('inp-tinggi-cm').value = tinggiSedia || '';
-  const preview = document.getElementById('preview-bmi');
-  if (preview) preview.style.display = 'none';
+  document.getElementById('inp-berat-kg').value  = beratSedia || ''; document.getElementById('inp-tinggi-cm').value = tinggiSedia || '';
+  const preview = document.getElementById('preview-bmi'); if (preview) preview.style.display = 'none';
   bukaModal('modal-berat');
-  // Preview BMI bila tukar nilai
-  ['inp-berat-kg','inp-tinggi-cm'].forEach(id => {
-    document.getElementById(id)?.addEventListener('input', kiraBMIPreview);
-  });
+  ['inp-berat-kg','inp-tinggi-cm'].forEach(id => { document.getElementById(id)?.addEventListener('input', kiraBMIPreview); });
   if (beratSedia && tinggiSedia) kiraBMIPreview();
 }
-
 function kiraBMIPreview() {
-  const berat  = parseFloat(document.getElementById('inp-berat-kg')?.value) || 0;
-  const tinggi = parseFloat(document.getElementById('inp-tinggi-cm')?.value) || 0;
-  const preview = document.getElementById('preview-bmi');
-  if (!berat || !tinggi || !preview) return;
+  const berat = parseFloat(document.getElementById('inp-berat-kg')?.value) || 0; const tinggi = parseFloat(document.getElementById('inp-tinggi-cm')?.value) || 0;
+  const preview = document.getElementById('preview-bmi'); if (!berat || !tinggi || !preview) return;
   const bmi = Math.round(berat / Math.pow(tinggi/100, 2) * 10) / 10;
   const status = bmi < 18.5 ? {label:'Kurus',warna:'#3B8BD4'} : bmi < 23 ? {label:'Normal',warna:'#00C853'} : bmi < 27.5 ? {label:'Lebih Berat',warna:'#FF6D00'} : {label:'Obes',warna:'#FF1744'};
-  preview.style.display = 'block';
-  document.getElementById('val-bmi').textContent = bmi;
-  document.getElementById('val-bmi').style.color = status.warna;
-  document.getElementById('lbl-bmi').textContent = status.label;
-  document.getElementById('lbl-bmi').style.color = status.warna;
+  preview.style.display = 'block'; document.getElementById('val-bmi').textContent = bmi; document.getElementById('val-bmi').style.color = status.warna;
+  document.getElementById('lbl-bmi').textContent = status.label; document.getElementById('lbl-bmi').style.color = status.warna;
 }
-
 async function hantarBeratTinggi(e) {
-  e.preventDefault();
-  const btn  = document.getElementById('btn-submit-berat');
-  const data = Object.fromEntries(new FormData(e.target));
-  data.tindakan = 'kemaskini_berat';
-
+  e.preventDefault(); const btn = document.getElementById('btn-submit-berat'); const data = Object.fromEntries(new FormData(e.target)); data.tindakan = 'kemaskini_berat';
   btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Menyimpan...';
   try {
-    await apiPost(data);
-    tunjukToast('✅ Berat & tinggi berjaya dikemaskini!', 'ok');
-    tutupModal('modal-berat');
-    dataAhliCache = null;
+    await apiPost(data); tunjukToast('✅ Berat & tinggi berjaya dikemaskini!', 'ok'); tutupModal('modal-berat'); dataAhliCache = null;
     if (halamanSkrg === 'profil-ahli') renderProfilAhli();
-  } catch (err) {
-    tunjukToast('Gagal: ' + err.message, 'ralat');
-  } finally {
-    btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Simpan Berat & Tinggi';
-  }
+  } catch (err) { tunjukToast('Gagal: ' + err.message, 'ralat'); } finally { btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Simpan Berat & Tinggi'; }
 }
 
 // ── Modal Helpers ────────────────────────────────────────────
-function bukaModal(id) {
-  document.getElementById(id).classList.add('buka');
-  document.body.style.overflow = 'hidden';
-}
-function tutupModal(id) {
-  document.getElementById(id).classList.remove('buka');
-  document.body.style.overflow = '';
-}
-
+function bukaModal(id) { document.getElementById(id).classList.add('buka'); document.body.style.overflow = 'hidden'; }
+function tutupModal(id) { document.getElementById(id).classList.remove('buka'); document.body.style.overflow = ''; }
 function bukaModalYuran(no_kp, nama) {
-  document.getElementById('yuran-no-kp').value = no_kp;
-  document.getElementById('yuran-nama').value  = nama;
+  document.getElementById('yuran-no-kp').value = no_kp; document.getElementById('yuran-nama').value  = nama;
   document.getElementById('tajuk-modal-yuran').textContent = 'Yuran — ' + nama.split(' ')[0];
-  const sel = document.querySelector('#form-yuran select[name="bulan"]');
-  if (sel) Array.from(sel.options).forEach(o => { if (o.value === (yuranBulanPilih||bulanSkrg)) o.selected = true; });
-  const selThn = document.querySelector('#form-yuran input[name="tahun"]');
-  if (selThn) selThn.value = yuranTahunPilih || tahunSkrg;
-  document.getElementById('yuran-tarikh').value = new Date().toISOString().split('T')[0];
-  bukaModal('modal-yuran');
+  const sel = document.querySelector('#form-yuran select[name="bulan"]'); if (sel) Array.from(sel.options).forEach(o => { if (o.value === (yuranBulanPilih||bulanSkrg)) o.selected = true; });
+  const selThn = document.querySelector('#form-yuran input[name="tahun"]'); if (selThn) selThn.value = yuranTahunPilih || tahunSkrg;
+  document.getElementById('yuran-tarikh').value = new Date().toISOString().split('T')[0]; bukaModal('modal-yuran');
 }
-
 function bukaModalGred(no_kp, nama) {
-  document.getElementById('gred-no-kp').value = no_kp;
-  document.getElementById('tajuk-modal-gred').textContent = 'Naik Gred — ' + nama.split(' ')[0];
-  document.querySelector('#form-gred select[name="bengkung_baru"]').value = '';
-  bukaModal('modal-gred');
+  document.getElementById('gred-no-kp').value = no_kp; document.getElementById('tajuk-modal-gred').textContent = 'Naik Gred — ' + nama.split(' ')[0];
+  document.querySelector('#form-gred select[name="bengkung_baru"]').value = ''; bukaModal('modal-gred');
 }
 
 // ── Form Handlers ────────────────────────────────────────────
 async function hantarDaftar(e) {
-  e.preventDefault();
-  const btn  = document.getElementById('btn-submit-daftar');
-  const data = Object.fromEntries(new FormData(e.target));
-  data.tindakan   = 'daftar_ahli';
-  data.nama_penuh = data.nama_penuh.toUpperCase();
-  data.nama_waris = data.nama_waris?.toUpperCase();
-
+  e.preventDefault(); const btn = document.getElementById('btn-submit-daftar'); const data = Object.fromEntries(new FormData(e.target));
+  data.tindakan = 'daftar_ahli'; data.nama_penuh = data.nama_penuh.toUpperCase(); data.nama_waris = data.nama_waris?.toUpperCase();
   btn.disabled = true; btn.textContent = 'Mendaftar...';
   try {
-    const hasil = await apiPost(data);
-    tunjukToast('✓ ' + hasil.nama + ' berjaya didaftarkan!', 'ok');
-    tutupModal('modal-daftar');
-    e.target.reset();
-    dataAhliCache = null;
+    const hasil = await apiPost(data); tunjukToast('✓ ' + hasil.nama + ' berjaya didaftarkan!', 'ok'); tutupModal('modal-daftar'); e.target.reset(); dataAhliCache = null;
     if (halamanSkrg === 'ahli') renderSenaraiAhli();
-  } catch (err) {
-    tunjukToast('Gagal: ' + err.message, 'ralat');
-  } finally {
-    btn.disabled = false; btn.innerHTML = '<i class="ti ti-user-plus"></i> Daftar Ahli';
-  }
+  } catch (err) { tunjukToast('Gagal: ' + err.message, 'ralat'); } finally { btn.disabled = false; btn.innerHTML = '<i class="ti ti-user-plus"></i> Daftar Ahli'; }
 }
-
 async function hantarYuran(e) {
-  e.preventDefault();
-  const btn  = document.getElementById('btn-submit-yuran');
-  const data = Object.fromEntries(new FormData(e.target));
-  data.tindakan = 'tambah_yuran';
-
+  e.preventDefault(); const btn = document.getElementById('btn-submit-yuran'); const data = Object.fromEntries(new FormData(e.target)); data.tindakan = 'tambah_yuran';
   btn.disabled = true; btn.textContent = 'Menyimpan...';
-  try {
-    await apiPost(data);
-    tunjukToast('Yuran berjaya direkodkan!', 'ok');
-    tutupModal('modal-yuran');
-  } catch (err) {
-    tunjukToast('Gagal: ' + err.message, 'ralat');
-  } finally {
-    btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Simpan Bayaran';
-  }
+  try { await apiPost(data); tunjukToast('Yuran berjaya direkodkan!', 'ok'); tutupModal('modal-yuran'); } catch (err) { tunjukToast('Gagal: ' + err.message, 'ralat'); } finally { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Simpan Bayaran'; }
 }
-
 async function hantarGred(e) {
-  e.preventDefault();
-  const data = Object.fromEntries(new FormData(e.target));
-  data.tindakan = 'naik_gred';
-  try {
-    await apiPost(data);
-    tunjukToast('Kenaikan gred berjaya direkodkan!', 'ok');
-    tutupModal('modal-gred');
-    if (halamanSkrg === 'profil-ahli') renderProfilAhli();
-  } catch (err) {
-    tunjukToast('Gagal: ' + err.message, 'ralat');
-  }
+  e.preventDefault(); const data = Object.fromEntries(new FormData(e.target)); data.tindakan = 'naik_gred';
+  try { await apiPost(data); tunjukToast('Kenaikan gred berjaya direkodkan!', 'ok'); tutupModal('modal-gred'); if (halamanSkrg === 'profil-ahli') renderProfilAhli(); } catch (err) { tunjukToast('Gagal: ' + err.message, 'ralat'); }
 }
-
 
 // ── Tiada Pembayaran (ganti Sedekah) ─────────────────────────
 const BULAN_URUTAN = ['JANUARI','FEBRUARI','MAC','APRIL','MEI','JUN','JULAI','OGOS','SEPTEMBER','OKTOBER','NOVEMBER','DISEMBER'];
-
 async function rekodTiadaBayaran(bulan, tahun) {
-  bulan = bulan || yuranBulanPilih || bulanSkrg;
-  tahun = parseInt(tahun || yuranTahunPilih || tahunSkrg);
+  bulan = bulan || yuranBulanPilih || bulanSkrg; tahun = parseInt(tahun || yuranTahunPilih || tahunSkrg);
   if (!confirm('Rekodkan TIADA PEMBAYARAN untuk ' + bulan + ' ' + tahun + '?\n\nSistem akan auto lompat ke bulan seterusnya.')) return;
   try {
     await apiPost({ tindakan:'tambah_yuran', no_kp:'SEDEKAH', jenis_yuran:'TIADA_BAYARAN', bulan, tahun, jumlah:0, catatan:'Tiada pembayaran - bulan dikecualikan' });
     tunjukToast('📵 ' + bulan + ' ' + tahun + ' — Tiada Pembayaran direkod!', 'ok');
-    // Auto lompat ke bulan seterusnya
     const idx = BULAN_URUTAN.indexOf(bulan);
-    if (idx === 11) { yuranBulanPilih = 'JANUARI'; yuranTahunPilih = tahun + 1; }
-    else            { yuranBulanPilih = BULAN_URUTAN[idx + 1]; yuranTahunPilih = tahun; }
-    tapisBayar = 'semua';
-    renderYuran();
+    if (idx === 11) { yuranBulanPilih = 'JANUARI'; yuranTahunPilih = tahun + 1; } else { yuranBulanPilih = BULAN_URUTAN[idx + 1]; yuranTahunPilih = tahun; }
+    tapisBayar = 'semua'; renderYuran();
   } catch(e) { tunjukToast('Gagal: ' + e.message, 'ralat'); }
 }
 
-// Kekalkan sahkanSedekah untuk backward compat
-function sahkanSedekah(b,t) { rekodTiadaBayaran(b,t); }
-
-
 // ── YURAN PUKAL ───────────────────────────────────────────────
 let senaraiPukal = [];
-
-function bukaModPukal() {
-  senaraiPukal = [];
-  const el = document.getElementById('info-bulan-pukal');
-  if (el) el.textContent = (yuranBulanPilih||bulanSkrg) + ' ' + (yuranTahunPilih||tahunSkrg);
-  renderPanelPukal();
-  bukaModal('modal-pukal');
-}
-
+function bukaModPukal() { senaraiPukal = []; const el = document.getElementById('info-bulan-pukal'); if (el) el.textContent = (yuranBulanPilih||bulanSkrg) + ' ' + (yuranTahunPilih||tahunSkrg); renderPanelPukal(); bukaModal('modal-pukal'); }
 function renderPanelPukal() {
-  const el  = document.getElementById('senarai-dipilih-pukal');
-  const sum = document.getElementById('ringkasan-pukal');
-  if (!el) return;
-  const jumlah = senaraiPukal.reduce((s,a) => s+(parseFloat(a.jumlah)||0), 0);
-  if (sum) sum.textContent = senaraiPukal.length + ' orang · RM' + jumlah.toFixed(2);
-  if (!senaraiPukal.length) {
-    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">Belum ada ahli dipilih</div>';
-    return;
-  }
+  const el = document.getElementById('senarai-dipilih-pukal'); const sum = document.getElementById('ringkasan-pukal'); if (!el) return;
+  const jumlah = senaraiPukal.reduce((s,a) => s+(parseFloat(a.jumlah)||0), 0); if (sum) sum.textContent = senaraiPukal.length + ' orang · RM' + jumlah.toFixed(2);
+  if (!senaraiPukal.length) { el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">Belum ada ahli dipilih</div>'; return; }
   el.innerHTML = senaraiPukal.map((a, i) => `
     <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">
       <div style="flex:1;font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.nama}</div>
-      <div style="display:flex;align-items:center;gap:3px;flex-shrink:0">
-        <span style="font-size:11px;color:var(--muted)">RM</span>
-        <input type="number" value="${a.jumlah}" min="0" step="0.01"
-          style="width:64px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:4px 6px;color:#fff;font-size:13px;text-align:right"
-          onchange="senaraiPukal[${i}].jumlah=parseFloat(this.value)||0;kemaskiniRingkasanPukal()">
-      </div>
+      <div style="display:flex;align-items:center;gap:3px;flex-shrink:0"><span style="font-size:11px;color:var(--muted)">RM</span><input type="number" value="${a.jumlah}" min="0" step="0.01" style="width:64px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:4px 6px;color:#fff;font-size:13px;text-align:right" onchange="senaraiPukal[${i}].jumlah=parseFloat(this.value)||0;kemaskiniRingkasanPukal()"></div>
       <button onclick="buangPukal(${i})" style="background:rgba(255,23,68,.2);border:1px solid rgba(255,23,68,.4);color:var(--c6);border-radius:6px;padding:3px 8px;font-size:12px;cursor:pointer;flex-shrink:0">✕</button>
     </div>
   `).join('');
 }
-
-function kemaskiniRingkasanPukal() {
-  const jumlah = senaraiPukal.reduce((s,a) => s+(parseFloat(a.jumlah)||0), 0);
-  const sum = document.getElementById('ringkasan-pukal');
-  if (sum) sum.textContent = senaraiPukal.length + ' orang · RM' + jumlah.toFixed(2);
-}
-
+function kemaskiniRingkasanPukal() { const jumlah = senaraiPukal.reduce((s,a) => s+(parseFloat(a.jumlah)||0), 0); const sum = document.getElementById('ringkasan-pukal'); if (sum) sum.textContent = senaraiPukal.length + ' orang · RM' + jumlah.toFixed(2); }
 function cariAhliPukal(q) {
-  const dd = document.getElementById('dropdown-pukal');
-  if (!dd) return;
-  if (!q) { dd.style.display='none'; return; }
+  const dd = document.getElementById('dropdown-pukal'); if (!dd) return; if (!q) { dd.style.display='none'; return; }
   const dipilih = senaraiPukal.map(a => a.no_kp);
-  const hasil = (dataYuranCache||[])
-    .filter(a => !a.sudah_bayar && !dipilih.includes(a.no_kp) && a.nama.toLowerCase().includes(q.toLowerCase()))
-    .slice(0, 8);
+  const hasil = (dataYuranCache||[]).filter(a => !a.sudah_bayar && !dipilih.includes(a.no_kp) && a.nama.toLowerCase().includes(q.toLowerCase())).slice(0, 8);
   if (!hasil.length) { dd.style.display='none'; return; }
   dd.style.display = 'block';
-  dd.innerHTML = hasil.map(a => `
-    <div onclick="pilihAhliPukal('${a.no_kp}','${a.nama.replace(/'/g,"\'")}')"
-      style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;font-weight:700">
-      ${a.nama}
-      <span style="font-size:10px;color:var(--muted);margin-left:6px">${a.kategori?.includes('RENDAH')?'SR':a.kategori?.includes('MENENGAH')?'SM':'DWS'}</span>
-    </div>`).join('');
+  dd.innerHTML = hasil.map(a => `<div onclick="pilihAhliPukal('${a.no_kp}','${a.nama.replace(/'/g,"\'")}')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;font-weight:700">${a.nama}<span style="font-size:10px;color:var(--muted);margin-left:6px">${a.kategori?.includes('RENDAH')?'SR':a.kategori?.includes('MENENGAH')?'SM':'DWS'}</span></div>`).join('');
 }
-
-function pilihAhliPukal(no_kp, nama) {
-  if (!senaraiPukal.find(a => a.no_kp === no_kp))
-    senaraiPukal.push({ no_kp, nama, jumlah: 30 });
-  const inp = document.getElementById('inp-cari-pukal');
-  const dd  = document.getElementById('dropdown-pukal');
-  if (inp) inp.value = '';
-  if (dd)  dd.style.display = 'none';
-  renderPanelPukal();
-}
-
-function buangPukal(idx) {
-  senaraiPukal.splice(idx, 1);
-  renderPanelPukal();
-}
-
-function pilihSemuaBelumBayar() {
-  const dipilih = senaraiPukal.map(a => a.no_kp);
-  const baru = (dataYuranCache||[])
-    .filter(a => !a.sudah_bayar && !dipilih.includes(a.no_kp))
-    .map(a => ({ no_kp: a.no_kp, nama: a.nama, jumlah: 30 }));
-  senaraiPukal = [...senaraiPukal, ...baru];
-  renderPanelPukal();
-}
-
-function setSemuaJumlah(jumlah) {
-  senaraiPukal.forEach(a => a.jumlah = jumlah);
-  renderPanelPukal();
-}
-
+function pilihAhliPukal(no_kp, nama) { if (!senaraiPukal.find(a => a.no_kp === no_kp)) senaraiPukal.push({ no_kp, nama, jumlah: 30 }); const inp = document.getElementById('inp-cari-pukal'); const dd = document.getElementById('dropdown-pukal'); if (inp) inp.value = ''; if (dd) dd.style.display = 'none'; renderPanelPukal(); }
+function buangPukal(idx) { senaraiPukal.splice(idx, 1); renderPanelPukal(); }
+function pilihSemuaBelumBayar() { const dipilih = senaraiPukal.map(a => a.no_kp); const baru = (dataYuranCache||[]).filter(a => !a.sudah_bayar && !dipilih.includes(a.no_kp)).map(a => ({ no_kp: a.no_kp, nama: a.nama, jumlah: 30 })); senaraiPukal = [...senaraiPukal, ...baru]; renderPanelPukal(); }
+function setSemuaJumlah(jumlah) { senaraiPukal.forEach(a => a.jumlah = jumlah); renderPanelPukal(); }
 async function hantarPukal() {
   if (!senaraiPukal.length) { tunjukToast('Pilih sekurang-kurangnya seorang!','ralat'); return; }
-  const btn = document.getElementById('btn-hantar-pukal');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Menyimpan...';
-  const bulan  = yuranBulanPilih || bulanSkrg;
-  const tahun  = yuranTahunPilih || tahunSkrg;
-  const tarikh = new Date().toISOString().split('T')[0];
+  const btn = document.getElementById('btn-hantar-pukal'); btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Menyimpan...';
+  const bulan = yuranBulanPilih || bulanSkrg; const tahun = yuranTahunPilih || tahunSkrg; const tarikh = new Date().toISOString().split('T')[0];
   let berjaya = 0, gagal = 0;
-  for (const a of senaraiPukal) {
-    try {
-      await apiPost({ tindakan:'tambah_yuran', no_kp:a.no_kp, jenis_yuran:'BULANAN', bulan, tahun, jumlah:a.jumlah, kaedah_bayar:'TUNAI', tarikh_bayar:tarikh });
-      berjaya++;
-    } catch(e) { gagal++; }
-  }
-  tutupModal('modal-pukal');
-  senaraiPukal = [];
-  tunjukToast('✅ ' + berjaya + ' bayaran disimpan!' + (gagal?' ('+gagal+' gagal)':''), berjaya > 0 ? 'ok' : 'ralat');
-  renderYuran();
+  for (const a of senaraiPukal) { try { await apiPost({ tindakan:'tambah_yuran', no_kp:a.no_kp, jenis_yuran:'BULANAN', bulan, tahun, jumlah:a.jumlah, kaedah_bayar:'TUNAI', tarikh_bayar:tarikh }); berjaya++; } catch(e) { gagal++; } }
+  tutupModal('modal-pukal'); senaraiPukal = []; tunjukToast('✅ ' + berjaya + ' bayaran disimpan!' + (gagal?' ('+gagal+' gagal)':''), berjaya > 0 ? 'ok' : 'ralat'); renderYuran();
 }
 
 // Tutup dropdown bila klik luar
-document.addEventListener('click', e => {
-  if (!e.target.closest('#inp-cari-pukal') && !e.target.closest('#dropdown-pukal')) {
-    const dd = document.getElementById('dropdown-pukal');
-    if (dd) dd.style.display = 'none';
-  }
-});
+document.addEventListener('click', e => { if (!e.target.closest('#inp-cari-pukal') && !e.target.closest('#dropdown-pukal')) { const dd = document.getElementById('dropdown-pukal'); if (dd) dd.style.display = 'none'; } });
 
 // ── FAB ──────────────────────────────────────────────────────
 function tambahFab(onClick) { const f=document.getElementById('fab-utama'); if(f){f.style.display='flex';f.onclick=onClick;} }
-
 // ── Tutup modal bila klik luar ────────────────────────────────
-document.querySelectorAll('.modal-bg').forEach(bg => {
-  bg.addEventListener('click', e => { if (e.target === bg) tutupModal(bg.id); });
-});
-
+document.querySelectorAll('.modal-bg').forEach(bg => { bg.addEventListener('click', e => { if (e.target === bg) tutupModal(bg.id); }); });
 // ── Service Worker ────────────────────────────────────────────
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
-}
-
-
+if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').catch(() => {}); }
 
 async function loadDashboardStats() {
-  const el = document.getElementById('dashboard-stats');
-  if (!el) return;
+  const el = document.getElementById('dashboard-stats'); if (!el) return;
   try {
-    const d = await api('dashboard');
-    el.style.display = 'block';
+    const d = await api('dashboard'); el.style.display = 'block';
     el.innerHTML = `
       <div class="kad-row" style="margin-top:12px">
         <div class="stat-kad g"><div class="stat-num">${d.jumlah_ahli_aktif}</div><div class="stat-lbl">⚔️ Ahli Aktif</div></div>
@@ -2136,11 +1748,7 @@ async function loadDashboardStats() {
         <div class="stat-kad y"><div class="stat-num">RM${(d.kutipan_bulan_ini||0).toFixed(0)}</div><div class="stat-lbl">💰 Kutipan ${d.bulan_yuran}</div></div>
         <div class="stat-kad r"><div class="stat-num">${d.belum_bayar}</div><div class="stat-lbl">⚠️ Belum Bayar</div></div>
       </div>
-      <div style="text-align:center;padding:8px 0 4px">
-        <span class="badge hijau">SR: ${d.rendah}</span>
-        <span class="badge biru" style="margin:0 6px">SM: ${d.menengah}</span>
-        <span class="badge kuning">Dewasa: ${d.dewasa}</span>
-      </div>
+      <div style="text-align:center;padding:8px 0 4px"><span class="badge hijau">SR: ${d.rendah}</span><span class="badge biru" style="margin:0 6px">SM: ${d.menengah}</span><span class="badge kuning">Dewasa: ${d.dewasa}</span></div>
     `;
   } catch(e) {}
 }
@@ -2148,15 +1756,8 @@ async function loadDashboardStats() {
 // ── Dark Mode Toggle ──────────────────────────────────────────
 function togDarkMode() {
   const isLight = document.body.getAttribute('data-theme') === 'light';
-  if (isLight) {
-    document.body.removeAttribute('data-theme');
-    document.getElementById('ikon-darkmode').className = 'ti ti-moon';
-    localStorage.setItem('silatapp-theme', 'dark');
-  } else {
-    document.body.setAttribute('data-theme', 'light');
-    document.getElementById('ikon-darkmode').className = 'ti ti-sun';
-    localStorage.setItem('silatapp-theme', 'light');
-  }
+  if (isLight) { document.body.removeAttribute('data-theme'); document.getElementById('ikon-darkmode').className = 'ti ti-moon'; localStorage.setItem('silatapp-theme', 'dark'); }
+  else { document.body.setAttribute('data-theme', 'light'); document.getElementById('ikon-darkmode').className = 'ti ti-sun'; localStorage.setItem('silatapp-theme', 'light'); }
 }
 
 // ── Mula ─────────────────────────────────────────────────────
