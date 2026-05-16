@@ -508,6 +508,51 @@ select.form-input{appearance:none}
   </div>
 </div>
 
+
+<!-- Modal: Bayaran Pukal -->
+<div class="modal-bg" id="modal-pukal">
+  <div class="modal">
+    <div class="modal-tajuk">
+      💰 Bayaran Pukal
+      <div class="modal-tutup" onclick="tutupModal('modal-pukal')"><i class="ti ti-x"></i></div>
+    </div>
+
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+      Bulan: <strong id="info-bulan-pukal" style="color:#FFD700">—</strong>
+    </div>
+
+    <!-- Carian autocomplete -->
+    <div style="position:relative;margin-bottom:10px">
+      <input id="inp-cari-pukal" class="form-input" type="text"
+        placeholder="🔍 Taip nama ahli..." autocomplete="off"
+        oninput="cariAhliPukal(this.value)">
+      <div id="dropdown-pukal" style="display:none;position:absolute;top:100%;left:0;right:0;background:#1E0850;border:2px solid rgba(255,215,0,.3);border-top:none;border-radius:0 0 10px 10px;max-height:200px;overflow-y:auto;z-index:200"></div>
+    </div>
+
+    <!-- Tindakan pantas -->
+    <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <button onclick="pilihSemuaBelumBayar()" class="btn btn-outline" style="font-size:11px;padding:6px 10px;flex:1">☑️ Semua Belum Bayar</button>
+      <button onclick="setSemuaJumlah(20)" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer">RM20</button>
+      <button onclick="setSemuaJumlah(30)" style="background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer">RM30</button>
+    </div>
+
+    <!-- Senarai dipilih -->
+    <div id="senarai-dipilih-pukal" style="max-height:260px;overflow-y:auto;margin-bottom:10px;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:4px 8px">
+      <div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">Belum ada ahli dipilih</div>
+    </div>
+
+    <!-- Ringkasan -->
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-top:1px solid rgba(255,255,255,.1);margin-bottom:12px">
+      <span style="font-size:12px;color:var(--muted)">Jumlah Terpilih:</span>
+      <span style="font-size:14px;font-weight:800;color:#00E676" id="ringkasan-pukal">0 orang · RM0.00</span>
+    </div>
+
+    <button class="btn btn-pri btn-blok" id="btn-hantar-pukal" onclick="hantarPukal()">
+      <i class="ti ti-send"></i> Hantar Semua Bayaran
+    </button>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 
@@ -1046,6 +1091,11 @@ async function renderYuran() {
           <span style="color:var(--c6)">${data.belum_bayar} belum bayar</span>
         </div>
       </div>
+
+      <!-- Butang Pukal -->
+      <button class="btn btn-outline btn-blok" style="margin-bottom:10px;border-color:var(--c2);color:var(--c2);font-size:13px;padding:10px" onclick="bukaModPukal()">
+        <i class="ti ti-currency-dollar"></i> 💰 Bayaran Pukal (Pilih & Edit Jumlah)
+      </button>
 
       <!-- Butang Sedekah -->
       <button class="btn-sedekah" onclick="sahkanSedekah('${data.bulan}','${data.tahun}')">
@@ -1928,6 +1978,124 @@ async function sahkanSedekah(bulan, tahun) {
     navigasi('yuran');
   } catch(e) { tunjukToast('Gagal: ' + e.message, 'ralat'); }
 }
+
+
+// ── YURAN PUKAL ───────────────────────────────────────────────
+let senaraiPukal = [];
+
+function bukaModPukal() {
+  senaraiPukal = [];
+  const el = document.getElementById('info-bulan-pukal');
+  if (el) el.textContent = (yuranBulanPilih||bulanSkrg) + ' ' + (yuranTahunPilih||tahunSkrg);
+  renderPanelPukal();
+  bukaModal('modal-pukal');
+}
+
+function renderPanelPukal() {
+  const el  = document.getElementById('senarai-dipilih-pukal');
+  const sum = document.getElementById('ringkasan-pukal');
+  if (!el) return;
+  const jumlah = senaraiPukal.reduce((s,a) => s+(parseFloat(a.jumlah)||0), 0);
+  if (sum) sum.textContent = senaraiPukal.length + ' orang · RM' + jumlah.toFixed(2);
+  if (!senaraiPukal.length) {
+    el.innerHTML = '<div style="text-align:center;padding:16px;color:var(--muted);font-size:13px">Belum ada ahli dipilih</div>';
+    return;
+  }
+  el.innerHTML = senaraiPukal.map((a, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="flex:1;font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.nama}</div>
+      <div style="display:flex;align-items:center;gap:3px;flex-shrink:0">
+        <span style="font-size:11px;color:var(--muted)">RM</span>
+        <input type="number" value="${a.jumlah}" min="0" step="0.01"
+          style="width:64px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:6px;padding:4px 6px;color:#fff;font-size:13px;text-align:right"
+          onchange="senaraiPukal[${i}].jumlah=parseFloat(this.value)||0;kemaskiniRingkasanPukal()">
+      </div>
+      <button onclick="buangPukal(${i})" style="background:rgba(255,23,68,.2);border:1px solid rgba(255,23,68,.4);color:var(--c6);border-radius:6px;padding:3px 8px;font-size:12px;cursor:pointer;flex-shrink:0">✕</button>
+    </div>
+  `).join('');
+}
+
+function kemaskiniRingkasanPukal() {
+  const jumlah = senaraiPukal.reduce((s,a) => s+(parseFloat(a.jumlah)||0), 0);
+  const sum = document.getElementById('ringkasan-pukal');
+  if (sum) sum.textContent = senaraiPukal.length + ' orang · RM' + jumlah.toFixed(2);
+}
+
+function cariAhliPukal(q) {
+  const dd = document.getElementById('dropdown-pukal');
+  if (!dd) return;
+  if (!q) { dd.style.display='none'; return; }
+  const dipilih = senaraiPukal.map(a => a.no_kp);
+  const hasil = (dataYuranCache||[])
+    .filter(a => !a.sudah_bayar && !dipilih.includes(a.no_kp) && a.nama.toLowerCase().includes(q.toLowerCase()))
+    .slice(0, 8);
+  if (!hasil.length) { dd.style.display='none'; return; }
+  dd.style.display = 'block';
+  dd.innerHTML = hasil.map(a => `
+    <div onclick="pilihAhliPukal('${a.no_kp}','${a.nama.replace(/'/g,"\'")}')"
+      style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;font-weight:700">
+      ${a.nama}
+      <span style="font-size:10px;color:var(--muted);margin-left:6px">${a.kategori?.includes('RENDAH')?'SR':a.kategori?.includes('MENENGAH')?'SM':'DWS'}</span>
+    </div>`).join('');
+}
+
+function pilihAhliPukal(no_kp, nama) {
+  if (!senaraiPukal.find(a => a.no_kp === no_kp))
+    senaraiPukal.push({ no_kp, nama, jumlah: 30 });
+  const inp = document.getElementById('inp-cari-pukal');
+  const dd  = document.getElementById('dropdown-pukal');
+  if (inp) inp.value = '';
+  if (dd)  dd.style.display = 'none';
+  renderPanelPukal();
+}
+
+function buangPukal(idx) {
+  senaraiPukal.splice(idx, 1);
+  renderPanelPukal();
+}
+
+function pilihSemuaBelumBayar() {
+  const dipilih = senaraiPukal.map(a => a.no_kp);
+  const baru = (dataYuranCache||[])
+    .filter(a => !a.sudah_bayar && !dipilih.includes(a.no_kp))
+    .map(a => ({ no_kp: a.no_kp, nama: a.nama, jumlah: 30 }));
+  senaraiPukal = [...senaraiPukal, ...baru];
+  renderPanelPukal();
+}
+
+function setSemuaJumlah(jumlah) {
+  senaraiPukal.forEach(a => a.jumlah = jumlah);
+  renderPanelPukal();
+}
+
+async function hantarPukal() {
+  if (!senaraiPukal.length) { tunjukToast('Pilih sekurang-kurangnya seorang!','ralat'); return; }
+  const btn = document.getElementById('btn-hantar-pukal');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Menyimpan...';
+  const bulan  = yuranBulanPilih || bulanSkrg;
+  const tahun  = yuranTahunPilih || tahunSkrg;
+  const tarikh = new Date().toISOString().split('T')[0];
+  let berjaya = 0, gagal = 0;
+  for (const a of senaraiPukal) {
+    try {
+      await apiPost({ tindakan:'tambah_yuran', no_kp:a.no_kp, jenis_yuran:'BULANAN', bulan, tahun, jumlah:a.jumlah, kaedah_bayar:'TUNAI', tarikh_bayar:tarikh });
+      berjaya++;
+    } catch(e) { gagal++; }
+  }
+  tutupModal('modal-pukal');
+  senaraiPukal = [];
+  tunjukToast('✅ ' + berjaya + ' bayaran disimpan!' + (gagal?' ('+gagal+' gagal)':''), berjaya > 0 ? 'ok' : 'ralat');
+  renderYuran();
+}
+
+// Tutup dropdown bila klik luar
+document.addEventListener('click', e => {
+  if (!e.target.closest('#inp-cari-pukal') && !e.target.closest('#dropdown-pukal')) {
+    const dd = document.getElementById('dropdown-pukal');
+    if (dd) dd.style.display = 'none';
+  }
+});
 
 // ── FAB ──────────────────────────────────────────────────────
 function tambahFab(onClick) { const f=document.getElementById('fab-utama'); if(f){f.style.display='flex';f.onclick=onClick;} }
