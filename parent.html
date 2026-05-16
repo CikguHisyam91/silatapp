@@ -373,10 +373,21 @@ function renderProfil() {
       </div>
     </div>
 
+    <div style="margin:12px 0">
+      <div style="font-size:11px;font-weight:700;color:#085041;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
+        💰 Status Yuran ${new Date().getFullYear()}
+      </div>
+      <div id="grid-yuran-parent">
+        <div style="text-align:center;padding:10px;color:#bbb;font-size:12px">Memuatkan...</div>
+      </div>
+    </div>
+
     <button class="btn-keluar" onclick="keluar()">
       <i class="ti ti-logout"></i> Log Keluar
     </button>
   `;
+  // Muat rekod yuran selepas render profil
+  setTimeout(muatYuranParent, 400);
 }
 
 // ── Render Kehadiran ──────────────────────────────────────────
@@ -693,6 +704,58 @@ function togVid(vid, embed) {
     frame.src = embed;
     if (thumb) thumb.style.display = 'none';
     player.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+}
+
+
+// ── Yuran Parent ─────────────────────────────────────────────
+const BULAN_SINGKAT = ['JAN','FEB','MAC','APR','MEI','JUN','JUL','OGS','SEP','OKT','NOV','DIS'];
+const BULAN_PENUH_P = ['JANUARI','FEBRUARI','MAC','APRIL','MEI','JUN','JULAI','OGOS','SEPTEMBER','OKTOBER','NOVEMBER','DISEMBER'];
+
+async function muatYuranParent() {
+  const el = document.getElementById('grid-yuran-parent');
+  if (!el || !dataAnak) return;
+  const tahun = new Date().getFullYear();
+  const bulanSkrg = new Date().getMonth();
+
+  try {
+    const rekod = await api('yuran', { no_kp: dataAnak.NO_KP });
+    let html = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">';
+    BULAN_SINGKAT.forEach((b, i) => {
+      const bPenuh = BULAN_PENUH_P[i];
+      if (i > bulanSkrg) {
+        html += `<div style="text-align:center;padding:8px 4px;background:#f9f9f9;border-radius:8px;border:1px solid #eee;opacity:.4">
+          <div style="font-size:10px;font-weight:700;color:#999">${b}</div>
+          <div style="font-size:15px;margin-top:2px">·</div>
+        </div>`;
+        return;
+      }
+      const bayar = rekod.find(r => (r.BULAN||'').toUpperCase()===bPenuh && String(r.TAHUN)===String(tahun) && r.STATUS_PENGESAHAN==='SELESAI');
+      const tiada = rekod.find(r => (r.BULAN||'').toUpperCase()===bPenuh && String(r.TAHUN)===String(tahun) && (r.JENIS_YURAN==='TIADA_BAYARAN'||r.JENIS_YURAN==='SEDEKAH'));
+      if (tiada) {
+        html += `<div style="text-align:center;padding:8px 4px;background:#F5F5F5;border-radius:8px;border:1px solid #E0E0E0">
+          <div style="font-size:10px;font-weight:700;color:#9E9E9E">${b}</div>
+          <div style="font-size:15px;margin-top:2px">📵</div>
+          <div style="font-size:9px;color:#9E9E9E">Tiada</div>
+        </div>`;
+      } else if (bayar) {
+        html += `<div style="text-align:center;padding:8px 4px;background:#E8F5E9;border-radius:8px;border:1px solid #A5D6A7">
+          <div style="font-size:10px;font-weight:700;color:#2E7D32">${b}</div>
+          <div style="font-size:15px;margin-top:2px">✅</div>
+          <div style="font-size:9px;color:#388E3C">RM${parseFloat(bayar.JUMLAH_BAYARAN||0).toFixed(0)}</div>
+        </div>`;
+      } else {
+        html += `<div style="text-align:center;padding:8px 4px;background:#FFEBEE;border-radius:8px;border:1px solid #FFCDD2">
+          <div style="font-size:10px;font-weight:700;color:#C62828">${b}</div>
+          <div style="font-size:15px;margin-top:2px">❌</div>
+          <div style="font-size:9px;color:#D32F2F">Belum</div>
+        </div>`;
+      }
+    });
+    html += '</div><div style="display:flex;gap:12px;margin-top:8px;font-size:10px;color:#999"><span>✅ Bayar</span><span>❌ Belum</span><span>📵 Dikecualikan</span></div>';
+    el.innerHTML = html;
+  } catch(e) {
+    if (el) el.innerHTML = '<div style="font-size:12px;color:#bbb;padding:8px">Gagal muatkan status yuran</div>';
   }
 }
 
