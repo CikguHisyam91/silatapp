@@ -1097,9 +1097,10 @@ async function renderYuran() {
         <i class="ti ti-currency-dollar"></i> 💰 Bayaran Pukal (Pilih & Edit Jumlah)
       </button>
 
-      <!-- Butang Sedekah -->
-      <button class="btn-sedekah" onclick="sahkanSedekah('${data.bulan}','${data.tahun}')">
-        <i class="ti ti-gift"></i> Tandakan ${data.bulan} ${data.tahun} sebagai Bulan Sedekah (RM0)
+      <!-- Butang Tiada Pembayaran -->
+      <button onclick="rekodTiadaBayaran('${data.bulan}','${data.tahun}')"
+        style="display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border-radius:12px;font-family:var(--font-h);font-size:12px;background:rgba(255,255,255,.08);color:var(--muted);border:2px dashed rgba(255,255,255,.2);cursor:pointer;width:100%;margin-bottom:12px;transition:.1s">
+        <i class="ti ti-calendar-off"></i> 📵 Tiada Pembayaran Bulan Ini — Auto lompat ke bulan seterusnya
       </button>
 
       <!-- Filter -->
@@ -1967,17 +1968,27 @@ async function hantarGred(e) {
 }
 
 
-// ── Fungsi Sedekah ───────────────────────────────────────────
-async function sahkanSedekah(bulan, tahun) {
+// ── Tiada Pembayaran (ganti Sedekah) ─────────────────────────
+const BULAN_URUTAN = ['JANUARI','FEBRUARI','MAC','APRIL','MEI','JUN','JULAI','OGOS','SEPTEMBER','OKTOBER','NOVEMBER','DISEMBER'];
+
+async function rekodTiadaBayaran(bulan, tahun) {
   bulan = bulan || yuranBulanPilih || bulanSkrg;
-  tahun = tahun || yuranTahunPilih || tahunSkrg;
-  if (!confirm('Tandakan ' + bulan + ' ' + tahun + ' sebagai Bulan Sedekah?\n\nSemua ahli akan ditandakan tiada bayaran bulan ini.')) return;
+  tahun = parseInt(tahun || yuranTahunPilih || tahunSkrg);
+  if (!confirm('Rekodkan TIADA PEMBAYARAN untuk ' + bulan + ' ' + tahun + '?\n\nSistem akan auto lompat ke bulan seterusnya.')) return;
   try {
-    await apiPost({ tindakan:'tambah_yuran', no_kp:'SEDEKAH', jenis_yuran:'SEDEKAH', bulan, tahun, jumlah:0, catatan:'Bulan Sedekah - tiada kutipan' });
-    tunjukToast('🎁 ' + bulan + ' ' + tahun + ' ditandakan Bulan Sedekah!', 'ok');
-    navigasi('yuran');
+    await apiPost({ tindakan:'tambah_yuran', no_kp:'SEDEKAH', jenis_yuran:'TIADA_BAYARAN', bulan, tahun, jumlah:0, catatan:'Tiada pembayaran - bulan dikecualikan' });
+    tunjukToast('📵 ' + bulan + ' ' + tahun + ' — Tiada Pembayaran direkod!', 'ok');
+    // Auto lompat ke bulan seterusnya
+    const idx = BULAN_URUTAN.indexOf(bulan);
+    if (idx === 11) { yuranBulanPilih = 'JANUARI'; yuranTahunPilih = tahun + 1; }
+    else            { yuranBulanPilih = BULAN_URUTAN[idx + 1]; yuranTahunPilih = tahun; }
+    tapisBayar = 'semua';
+    renderYuran();
   } catch(e) { tunjukToast('Gagal: ' + e.message, 'ralat'); }
 }
+
+// Kekalkan sahkanSedekah untuk backward compat
+function sahkanSedekah(b,t) { rekodTiadaBayaran(b,t); }
 
 
 // ── YURAN PUKAL ───────────────────────────────────────────────
