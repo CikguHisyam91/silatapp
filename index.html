@@ -517,7 +517,7 @@ const NAMA_BULAN = ['JANUARI','FEBRUARI','MAC','APRIL','MEI','JUN','JULAI','OGOS
 const bulanSkrg  = NAMA_BULAN[new Date().getMonth()];
 const tahunSkrg  = new Date().getFullYear();
 
-// SENARAI BENGKUNG (Untuk menu Ahli Dropdown)
+// SENARAI BENGKUNG
 const SENARAI_BENGKUNG_PENUH = [
   'BENGKUNG HITAM KOSONG (AHLI BAHARU)',
   'BENGKUNG HITAM CULA 1',
@@ -773,7 +773,7 @@ async function renderDashboard() {
   }
 }
 
-// ── HALAMAN: Senarai Ahli (Telah Ditambah Baik Dengan Dropdown Edit) ──
+// ── HALAMAN: Senarai Ahli ──
 async function renderSenaraiAhli() {
   const main = getMain();
   try {
@@ -831,7 +831,7 @@ async function tukarBengkungPantas(no_kp, bengkung_baru, el) {
     }
   } catch(e) {
     tunjukToast('Gagal: ' + e.message, 'ralat');
-    el.value = sblm; // patah balik
+    el.value = sblm;
   } finally {
     el.disabled = false;
     el.style.color = asalColor;
@@ -911,7 +911,7 @@ async function renderProfilAhli() {
   }
 }
 
-// ── HALAMAN: Kehadiran ───────────────────────────────────────
+// ── HALAMAN: Kehadiran (DILENGKAPI BUTANG PADAM) ───────────────────────────────────────
 async function renderKehadiran() {
   const main = getMain();
   const hari  = new Date().toISOString().split('T')[0];
@@ -929,6 +929,7 @@ async function renderKehadiran() {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
           <div style="font-weight:600">Senarai Ahli (<span id="jum-hadir">0</span> hadir)</div>
           <div style="display:flex;gap:8px">
+            <button class="btn btn-outline" style="padding:6px 12px;font-size:12px;border-color:var(--c6);color:var(--c6)" onclick="padamKehadiranHariIni()">🗑️ Padam</button>
             <button class="btn btn-outline" style="padding:6px 12px;font-size:12px" onclick="tandaSemuaHadir()">Semua Hadir</button>
           </div>
         </div>
@@ -1025,15 +1026,48 @@ async function simpanKehadiran() {
     });
     muatStatusHadir();
   } catch (e) {
-    Swal.fire({
-      title: 'Ralat!',
-      text: e.message,
-      icon: 'error',
-      background: isLight ? '#FFFFFF' : '#1E0850',
-      color: isLight ? '#1A1A3E' : '#FFD700'
-    });
-  } finally {
-    btn.disabled = false;
+    Swal.fire({ title: 'Ralat!', text: e.message, icon: 'error', background: isLight ? '#FFFFFF' : '#1E0850', color: isLight ? '#1A1A3E' : '#FFD700' });
+  } finally { btn.disabled = false; }
+}
+
+async function padamKehadiranHariIni() {
+  const tarikh = document.getElementById('inp-tarikh-hadir')?.value;
+  if (!tarikh) return;
+  const isLight = document.body.getAttribute('data-theme') === 'light';
+
+  if (!rekodWujudHariIni) {
+    Swal.fire({ title: 'Tiada Rekod', text: 'Tiada rekod kehadiran untuk dipadam pada tarikh ini.', icon: 'info', background: isLight ? '#FFFFFF' : '#1E0850', color: isLight ? '#1A1A3E' : '#FFD700' });
+    return;
+  }
+
+  const sah = await Swal.fire({
+    title: 'Padam Rekod Kehadiran?',
+    text: `Adakah anda pasti mahu memadam SEMUA rekod kehadiran bertarikh ${tarikh}? Anda boleh merekod semula selepas ini.`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Ya, Padam!',
+    cancelButtonText: 'Batal',
+    background: isLight ? '#FFFFFF' : '#1E0850',
+    color: isLight ? '#1A1A3E' : '#FFD700',
+    confirmButtonColor: '#FF1744'
+  });
+
+  if (sah.isConfirmed) {
+    const btnSimpan = document.getElementById('btn-simpan-hadir');
+    btnSimpan.disabled = true;
+    btnSimpan.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Memadam...';
+    
+    try {
+      await apiPost({ tindakan: 'padam_kehadiran', tarikh: tarikh });
+      Swal.fire({ title: 'Terpadam!', text: 'Rekod tarikh ini telah dibersihkan.', icon: 'success', timer: 2000, showConfirmButton: false, background: isLight ? '#FFFFFF' : '#1E0850', color: isLight ? '#1A1A3E' : '#FFD700' });
+      // Reset checkbox & Semak semula
+      Object.keys(statusHadir).forEach(k => statusHadir[k] = false);
+      renderSenaraiKehadiran();
+      muatStatusHadir();
+    } catch (e) {
+      Swal.fire({ title: 'Ralat!', text: e.message, icon: 'error', background: isLight ? '#FFFFFF' : '#1E0850', color: isLight ? '#1A1A3E' : '#FFD700' });
+      btnSimpan.disabled = false;
+    }
   }
 }
 
@@ -1529,7 +1563,7 @@ async function renderTetapan() {
       </div>
       <div class="seksyen-tajuk">Edit Tetapan</div>
       <div class="kad" style="font-size:13px;color:var(--muted)">Untuk edit nama gelanggang, logo, dan maklumat lain — buka Google Sheet dan pergi ke tab <strong style="color:var(--gold)">TETAPAN</strong>.</div>
-      <div class="kad" style="margin-top:0"><div style="font-family:var(--font-h);font-size:14px;color:var(--gold);margin-bottom:6px">⚔️ SeriMutiaraApp v1.3</div><div style="font-size:12px;color:var(--muted)">Guru: ${t.NAMA_GURU||'Muhammad Hisyam'}<br>Tel: ${t.TELEFON_GURU||'—'}</div></div>
+      <div class="kad" style="margin-top:0"><div style="font-family:var(--font-h);font-size:14px;color:var(--gold);margin-bottom:6px">⚔️ SeriMutiaraApp v1.4</div><div style="font-size:12px;color:var(--muted)">Guru: ${t.NAMA_GURU||'Muhammad Hisyam'}<br>Tel: ${t.TELEFON_GURU||'—'}</div></div>
     `;
   } catch(e) { main.innerHTML = `<div class="kosong"><i class="ti ti-settings"></i><p>Gagal muatkan tetapan</p><p style="font-size:12px">Pastikan sheet TETAPAN wujud</p></div>`; }
 }
@@ -1556,7 +1590,7 @@ async function renderSejarahGred() {
   } catch (e) { main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p></div>`; }
 }
 
-// ── HALAMAN: Silibus (Admin) (Telah Dibaiki Isu Buka Player) ──
+// ── HALAMAN: Silibus (Admin) ──
 let modSilibus = 'lihat';
 let dataSilibus = [];
 const SENARAI_BENGKUNG_SILIBUS = ['BENGKUNG HITAM','BENGKUNG PUTIH','BENGKUNG BIRU','BENGKUNG HIJAU','BENGKUNG KUNING','BENGKUNG MERAH','SEMUA'];
@@ -1571,7 +1605,7 @@ function paparSilibus() {
   const main = getMain(); const isEdit = modSilibus === 'edit'; const kump = {};
   dataSilibus.forEach(s => { const k = s.KATEGORI || 'LAIN-LAIN'; if (!kump[k]) kump[k] = []; kump[k].push(s); });
   
-  let vidCounter = 0; // PENYELESAIAN ISU ID PLAYER UNIK
+  let vidCounter = 0;
 
   main.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -1585,7 +1619,7 @@ function paparSilibus() {
       <div class="seksyen-tajuk">${kat}</div>
       ${items.map(s => {
         vidCounter++;
-        const uId = 'v_' + vidCounter; // Hasilkan ID unik untuk div html player
+        const uId = 'v_' + vidCounter;
         const m = (s.LINK||'').match(/\/d\/([^\/\?&]+)/); const fid = m ? m[1] : ''; const thumb = fid ? 'https://lh3.googleusercontent.com/d/'+fid+'=w200' : '';
         return `
         <div class="senarai-item" style="align-items:flex-start;cursor:${isEdit?'default':'pointer'}" ${!isEdit&&s.LINK?`onclick="mainVidAdmin('${uId}','${s.LINK}')"`:''}>
