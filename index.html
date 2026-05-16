@@ -44,22 +44,17 @@ body{height:100%;font-family:var(--font-b);background:radial-gradient(ellipse at
 button{cursor:pointer;border:none;background:none;font-family:inherit}
 input,select,textarea{font-family:var(--font-b)}
 
-/* ── Stars background ── */
 body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.15) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
 
-/* ── App Shell ── */
 #app{display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto;position:relative;z-index:1}
 @media(min-width:481px){#app{max-width:960px}}
 
-/* ── Header ── */
 #header{background:rgba(0,0,0,.4);backdrop-filter:blur(10px);border-bottom:2px solid rgba(255,255,255,.15);color:#fff;display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0;height:54px;z-index:100}
 #header h1{font-family:var(--font-h);font-size:22px;flex:1;background:linear-gradient(90deg,#FFD700,#FF6B35,#FF1744);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:none}
 .hdr-btn{width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.25);color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer}
 
-/* ── Main area ── */
 #main{flex:1;overflow:hidden;position:relative}
 
-/* ── Dashboard Game Grid ── */
 #dashboard-grid{
   display:grid;grid-template-columns:1fr 1fr 1fr 1fr;
   gap:10px;padding:12px;
@@ -78,7 +73,6 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
 .game-btn:active{transform:translateY(4px);border-bottom-width:2px}
 .game-ikon{font-size:36px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4));position:relative;z-index:1}
 .game-lbl{font-family:var(--font-h);font-size:13px;color:#fff;text-shadow:0 2px 4px rgba(0,0,0,.5);position:relative;z-index:1;text-align:center;line-height:1.2}
-.game-badge{position:absolute;top:6px;right:6px;background:#FF1744;border-radius:99px;font-size:10px;font-weight:900;color:#fff;padding:1px 6px;font-family:var(--font-h)}
 
 .c1{background:linear-gradient(160deg,#FF8C42,var(--c1));box-shadow:var(--c1s);border-color:rgba(255,255,255,.35)}
 .c2{background:linear-gradient(160deg,#FFE566,var(--c2));box-shadow:var(--c2s);border-color:rgba(255,255,255,.35)}
@@ -88,7 +82,6 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
 .c6{background:linear-gradient(160deg,#FF5177,var(--c6));box-shadow:var(--c6s);border-color:rgba(255,255,255,.35)}
 .c7{background:linear-gradient(160deg,#00BCD4,var(--c7));box-shadow:var(--c7s);border-color:rgba(255,255,255,.35)}
 
-/* ── Page Container ── */
 #page-container{
   position:absolute;inset:0;background:rgba(0,0,0,.85);
   backdrop-filter:blur(8px);
@@ -106,14 +99,11 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
 .btn-balik{width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.15);border:1.5px solid rgba(255,255,255,.2);color:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer}
 #page-content{flex:1;overflow-y:auto;padding:14px}
 
-/* ── Page Cards ── */
 .kad{background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:14px;padding:14px;margin-bottom:10px;backdrop-filter:blur(4px)}
 .kad-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 
-/* ── Stat kad ── */
 .stat-kad{border-radius:14px;padding:14px 14px 16px;display:flex;flex-direction:column;gap:5px;transition:.1s;position:relative;overflow:hidden;border:2px solid rgba(255,255,255,.2);cursor:default}
 .stat-kad::after{content:'';position:absolute;top:-15px;right:-15px;width:70px;height:70px;border-radius:50%;background:rgba(255,255,255,.1)}
-.stat-kad:active{transform:translateY(3px)}
 .stat-num{font-family:var(--font-h);font-size:30px;color:#fff;line-height:1}
 .stat-lbl{font-size:11px;color:rgba(255,255,255,.85);font-weight:700}
 .stat-kad.g{background:linear-gradient(135deg,#00E676,var(--c3));box-shadow:var(--c3s)}
@@ -123,14 +113,11 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
 .stat-kad.p{background:linear-gradient(135deg,#CC44FF,var(--c5));box-shadow:var(--c5s)}
 .stat-kad.y{background:linear-gradient(135deg,#FFE566,var(--c2));box-shadow:var(--c2s)}
 
-/* ── Seksyen Tajuk ── */
 .seksyen-tajuk{font-family:var(--font-h);font-size:14px;color:rgba(255,255,255,.6);margin:16px 0 8px;letter-spacing:.3px}
 
-/* ── Senarai Item ── */
 .senarai-item{background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.12);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:.1s}
 .senarai-item:active{transform:scale(.97);background:rgba(255,255,255,.12)}
 
-/* ── Avatar ── */
 .avatar{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
 .avatar.g{background:rgba(0,200,83,.25)}
 .avatar.b{background:rgba(41,121,255,.25)}
@@ -143,7 +130,6 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
 .item-nama{font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff}
 .item-sub{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* ── Badge ── */
 .badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:800;white-space:nowrap}
 .badge.hijau{background:rgba(0,200,83,.25);color:#00E676;border:1px solid rgba(0,200,83,.4)}
 .badge.merah{background:rgba(255,23,68,.25);color:#FF5177;border:1px solid rgba(255,23,68,.4)}
@@ -152,7 +138,6 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
 .badge.kuning{background:rgba(255,215,0,.25);color:#FFE566;border:1px solid rgba(255,215,0,.4)}
 .badge.biru{background:rgba(41,121,255,.25);color:#448AFF;border:1px solid rgba(41,121,255,.4)}
 
-/* ── Butang ── */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:12px;font-family:var(--font-h);font-size:14px;transition:.1s;cursor:pointer;border:2px solid rgba(255,255,255,.3);border-bottom-width:4px;color:#fff}
 .btn:active{transform:translateY(3px);border-bottom-width:1px}
 .btn-pri{background:linear-gradient(160deg,#00E676,var(--c3));box-shadow:var(--c3s)}
@@ -162,7 +147,6 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
 .btn-fab{position:absolute;bottom:16px;right:16px;width:54px;height:54px;border-radius:14px;background:linear-gradient(135deg,#00E676,var(--c3));color:#fff;display:flex;align-items:center;justify-content:center;font-size:26px;box-shadow:var(--c3s);z-index:60;cursor:pointer;transition:.1s;border:2px solid rgba(255,255,255,.3);border-bottom-width:5px}
 .btn-fab:active{transform:translateY(4px);border-bottom-width:1px}
 
-/* ── Input ── */
 .form-kump{margin-bottom:12px}
 .form-label{display:block;font-size:11px;font-weight:800;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
 .form-input{width:100%;padding:11px 13px;border:2px solid rgba(255,255,255,.15);border-radius:10px;font-size:14px;font-weight:700;color:#fff;background:rgba(255,255,255,.08);outline:none;transition:.2s}
@@ -171,7 +155,6 @@ select.form-input option{background:#1A0A3E;color:#fff}
 select.form-input{appearance:none}
 .form-hint{font-size:11px;color:var(--muted);margin-top:4px}
 
-/* ── Modal ── */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:.25s;backdrop-filter:blur(6px)}
 .modal-bg.buka{opacity:1;pointer-events:all}
 .modal{background:linear-gradient(160deg,#1E0850,#0D0428);border:2px solid rgba(255,215,0,.3);border-radius:20px 20px 0 0;border-bottom:none;width:100%;max-height:92vh;overflow-y:auto;padding:20px 16px calc(16px + var(--bar));transform:translateY(100%);transition:.3s cubic-bezier(.4,0,.2,1)}
@@ -179,13 +162,11 @@ select.form-input{appearance:none}
 .modal-tajuk{font-family:var(--font-h);font-size:18px;color:#FFD700;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;text-shadow:0 0 10px rgba(255,215,0,.4)}
 .modal-tutup{width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.1);border:1.5px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:18px;color:var(--muted);cursor:pointer}
 
-/* ── Carian ── */
 .kotak-carian{position:relative;margin-bottom:12px}
 .kotak-carian i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#FFD700;font-size:18px}
 .kotak-carian input{width:100%;padding:11px 12px 11px 40px;border:2px solid rgba(255,215,0,.25);border-radius:10px;font-size:14px;font-weight:700;background:rgba(255,255,255,.08);color:#fff;outline:none;transition:.2s}
 .kotak-carian input:focus{border-color:rgba(255,215,0,.6)}
 
-/* ── Toggle Hadir ── */
 .toggle-hadir{width:46px;height:27px;border-radius:99px;background:rgba(255,255,255,.15);position:relative;cursor:pointer;transition:.2s;flex-shrink:0;border:2px solid rgba(255,255,255,.2)}
 .toggle-hadir.on{background:var(--c3);border-color:rgba(255,255,255,.4);box-shadow:0 0 10px rgba(0,200,83,.4)}
 .toggle-hadir::after{content:'';position:absolute;top:2px;left:2px;width:19px;height:19px;border-radius:50%;background:#fff;transition:.2s}
@@ -193,13 +174,11 @@ select.form-input{appearance:none}
 .item-kehadiran{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.08)}
 .item-kehadiran:last-child{border-bottom:none}
 
-/* ── Tarikh Bar ── */
 .tarikh-bar{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.08);border:2px solid rgba(255,215,0,.25);border-radius:10px;padding:10px 14px;margin-bottom:12px}
 .tarikh-bar i{color:#FFD700;font-size:20px}
 .tarikh-bar input{border:none;outline:none;font-size:14px;font-weight:800;color:#FFD700;flex:1;background:transparent}
 .tarikh-bar input::-webkit-calendar-picker-indicator{filter:invert(1) sepia(1) saturate(5) hue-rotate(10deg)}
 
-/* ── Profil Header ── */
 .profil-header{background:linear-gradient(135deg,#2979FF,#AA00FF);padding:20px;border-radius:16px;margin-bottom:12px;border:2px solid rgba(255,255,255,.2);box-shadow:0 8px 0 rgba(0,0,150,.4),0 12px 20px rgba(41,121,255,.3)}
 .profil-nama{font-family:var(--font-h);font-size:15px;color:#fff;margin-bottom:4px}
 .profil-id{font-size:11px;color:rgba(255,255,255,.75)}
@@ -210,7 +189,6 @@ select.form-input{appearance:none}
 .maklumat-baris .lbl{font-size:11px;color:var(--muted);margin-bottom:2px;font-weight:800;text-transform:uppercase}
 .maklumat-baris .val{font-size:14px;font-weight:800;color:#fff}
 
-/* ── Gred ── */
 .gred-item{display:flex;gap:12px}
 .gred-garis{display:flex;flex-direction:column;align-items:center}
 .gred-dot{width:12px;height:12px;border-radius:3px;background:#FFD700;flex-shrink:0;margin-top:4px;box-shadow:0 0 6px rgba(255,215,0,.5)}
@@ -219,7 +197,6 @@ select.form-input{appearance:none}
 .gred-bengkung{font-weight:800;font-size:14px;color:#fff}
 .gred-tarikh{font-size:12px;color:var(--muted);margin-top:2px}
 
-/* ── Loading & Empty ── */
 .muat{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 0;gap:12px;color:var(--muted)}
 .muat i{font-size:32px;animation:spin 1s linear infinite;color:#FFD700}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -227,7 +204,6 @@ select.form-input{appearance:none}
 .kosong i{font-size:48px}
 .kosong p{font-size:14px;font-weight:700}
 
-/* ── Toast Asal (Dikekalkan untuk backup) ── */
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:linear-gradient(135deg,#1E0850,#2D1060);border:2px solid rgba(255,215,0,.4);color:#FFD700;padding:10px 20px;border-radius:99px;font-size:13px;font-weight:800;z-index:999;opacity:0;transition:.3s;white-space:nowrap;max-width:90vw;box-shadow:0 8px 0 rgba(0,0,0,.3)}
 #toast.nampak{opacity:1;transform:translateX(-50%) translateY(0)}
 #toast.ok{border-color:rgba(0,200,83,.5);color:#00E676}
@@ -923,11 +899,22 @@ function renderSenaraiKehadiran() {
   kemaskiniJumHadir();
 }
 
+let rekodWujudHariIni = false;
 async function muatStatusHadir() {
   const tarikh = document.getElementById('inp-tarikh-hadir')?.value;
   if (!tarikh) return;
   try {
     const rekod = await api('kehadiran', {tarikh});
+    rekodWujudHariIni = rekod.length > 0;
+    const btnSimpan = document.getElementById('btn-simpan-hadir');
+    if (rekodWujudHariIni) {
+      // Amaran visual jika tarikh sudah wujud
+      btnSimpan.innerHTML = '<i class="ti ti-alert-triangle"></i> Tarikh Ini Telah Direkod (Simpan Lagi Untuk Tambah)';
+      btnSimpan.className = 'btn btn-blok btn-red';
+    } else {
+      btnSimpan.innerHTML = '<i class="ti ti-device-floppy"></i> Simpan Kehadiran';
+      btnSimpan.className = 'btn btn-pri btn-blok';
+    }
     rekod.forEach(r => { statusHadir[r.NO_KP] = r.STATUS_KEHADIRAN === 'HADIR'; });
     renderSenaraiKehadiran();
   } catch (e) { /* senyap */ }
@@ -977,6 +964,8 @@ async function simpanKehadiran() {
       background: isLight ? '#FFFFFF' : '#1E0850',
       color: isLight ? '#1A1A3E' : '#FFD700'
     });
+    // Kemaskini status butang selepas berjaya simpan
+    muatStatusHadir();
   } catch (e) {
     Swal.fire({
       title: 'Ralat!',
@@ -986,7 +975,7 @@ async function simpanKehadiran() {
       color: isLight ? '#1A1A3E' : '#FFD700'
     });
   } finally {
-    btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Simpan Kehadiran';
+    btn.disabled = false;
   }
 }
 
@@ -1028,7 +1017,7 @@ async function renderAnalisis() {
     </div>
   `;
 
-  // Tetapan asal carta (Kosmetik Top Notch)
+  // Tetapan asal carta (Kosmetik)
   Chart.defaults.color = '#C8AAFF';
   Chart.defaults.font.family = "'Nunito', sans-serif";
   Chart.defaults.plugins.legend.labels.font = { size: 11, family: "'Nunito', sans-serif", weight: 'bold' };
@@ -1043,15 +1032,35 @@ async function muatDataAnalisis() {
   document.getElementById('ana-loader').style.display = 'flex';
 
   try {
-    const [senarai, yuranData, hadirData] = await Promise.all([
+    const [senarai, yuranData, hadirDataAll] = await Promise.all([
       api('senarai_ahli', {status: 'AKTIF'}),
       api('status_yuran', {bulan, tahun}),
-      api('kehadiran', {bulan, tahun})
+      api('kehadiran', {tahun}) // Fetch semua untuk tahun tersebut supaya penapisan bulan tepat
     ]);
 
     plotChartBengkung(senarai);
     plotChartYuran(yuranData);
-    plotChartHadir(hadirData);
+
+    // Penapisan dan pengumpulan data kehadiran bulanan, pastikan Set() digunakan elak double entry
+    const BULAN_LIST = ['JANUARI','FEBRUARI','MAC','APRIL','MEI','JUN','JULAI','OGOS','SEPTEMBER','OKTOBER','NOVEMBER','DISEMBER'];
+    const targetMonth = BULAN_LIST.indexOf(bulan);
+    const kiraHadir = {};
+    
+    (hadirDataAll || []).forEach(r => {
+      if (r.STATUS_KEHADIRAN === 'HADIR') {
+        const d = new Date(r.TARIKH);
+        if (!isNaN(d.getTime()) && d.getMonth() === targetMonth && d.getFullYear() === parseInt(tahun)) {
+          const dayStr = String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
+          if(!kiraHadir[dayStr]) kiraHadir[dayStr] = new Set();
+          kiraHadir[dayStr].add(r.NO_KP); // Kira kepala murid sahaja (Unik)
+        }
+      }
+    });
+
+    const dates = Object.keys(kiraHadir).sort((a,b) => parseInt(a.split('/')[0]) - parseInt(b.split('/')[0]));
+    const values = dates.map(d => kiraHadir[d].size);
+
+    plotChartHadir(dates, values);
 
     document.getElementById('ana-loader').style.display = 'none';
     document.getElementById('ana-charts').style.display = 'block';
@@ -1110,28 +1119,17 @@ function plotChartYuran(yuranData) {
   });
 }
 
-function plotChartHadir(hadirData) {
+function plotChartHadir(dates, values) {
   const ctx = document.getElementById('chartHadirBulanan');
   if(!ctx) return;
   if(chartHadir) chartHadir.destroy();
-
-  const kiraHadir = {};
-  (hadirData || []).forEach(r => {
-    if (r.STATUS_KEHADIRAN === 'HADIR') {
-      const d = formatTarikh(r.TARIKH).substring(0,5); // ambil DD/MM
-      kiraHadir[d] = (kiraHadir[d] || 0) + 1;
-    }
-  });
-
-  const dates = Object.keys(kiraHadir).sort();
-  const values = dates.map(d => kiraHadir[d]);
 
   chartHadir = new Chart(ctx, {
     type: 'line',
     data: {
       labels: dates.length ? dates : ['Tiada Data'],
       datasets: [{
-        label: 'Jumlah Hadir',
+        label: 'Jumlah Hadir (Unik)',
         data: values.length ? values : [0],
         borderColor: '#FFD700',
         backgroundColor: 'rgba(255,215,0,0.2)',
@@ -1233,7 +1231,7 @@ function renderSenaraiYuran() {
   `).join('');
 }
 
-// ── HALAMAN: Profil Pesilat (Senarai Lengkap + BMI) ──────────
+// ── HAL halaman profil ──────────────────────────
 let dataPesilat = null;
 let carianPesilat = '';
 
