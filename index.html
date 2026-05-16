@@ -517,6 +517,24 @@ const NAMA_BULAN = ['JANUARI','FEBRUARI','MAC','APRIL','MEI','JUN','JULAI','OGOS
 const bulanSkrg  = NAMA_BULAN[new Date().getMonth()];
 const tahunSkrg  = new Date().getFullYear();
 
+// SENARAI BENGKUNG (Untuk menu Ahli Dropdown)
+const SENARAI_BENGKUNG_PENUH = [
+  'BENGKUNG HITAM KOSONG (AHLI BAHARU)',
+  'BENGKUNG HITAM CULA 1',
+  'BENGKUNG HITAM CULA 2',
+  'BENGKUNG HITAM CULA 3',
+  'BENGKUNG PUTIH',
+  'BENGKUNG PUTIH CULA BIRU',
+  'BENGKUNG BIRU',
+  'BENGKUNG BIRU CULA HIJAU',
+  'BENGKUNG HIJAU',
+  'BENGKUNG HIJAU CULA KUNING',
+  'BENGKUNG KUNING',
+  'BENGKUNG KUNING CULA HITAM (GURULATIH)',
+  'BENGKUNG MERAH',
+  'BENGKUNG MERAH CULA KUNING (JURULATIH)'
+];
+
 let halamanSkrg = 'dashboard';
 let halamanLepas = null;
 let dataAhliCache = null;
@@ -755,7 +773,7 @@ async function renderDashboard() {
   }
 }
 
-// ── HALAMAN: Senarai Ahli ────────────────────────────────────
+// ── HALAMAN: Senarai Ahli (Telah Ditambah Baik Dengan Dropdown Edit) ──
 async function renderSenaraiAhli() {
   const main = getMain();
   try {
@@ -768,19 +786,58 @@ async function renderSenaraiAhli() {
     main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p><button class="btn btn-outline" onclick="muatSemula()">Cuba Semula</button></div>`;
   }
 }
+
 function renderSenarai(senarai) {
   const el = document.getElementById('senarai-ahli');
   if (!el) return;
   if (!senarai.length) { el.innerHTML = '<div class="kosong"><i class="ti ti-user-off"></i><p>Tiada ahli dijumpai</p></div>'; return; }
   const warna = (k) => k.includes('RENDAH') ? 'hijau' : k.includes('MENENGAH') ? 'pur' : 'amb';
-  el.innerHTML = senarai.map(a => `
-    <div class="senarai-item" onclick="bukaProfilAhli('${a.no_kp}')">
+  
+  el.innerHTML = senarai.map(a => {
+    const bengkungSemasa = a.bengkung || 'BENGKUNG HITAM KOSONG (AHLI BAHARU)';
+    return `
+    <div class="senarai-item" style="flex-wrap:wrap; align-items:center" onclick="bukaProfilAhli('${a.no_kp}')">
       <div class="avatar ${warna(a.kategori||'')}">${(a.nama||'?')[0]}</div>
-      <div class="item-info"><div class="item-nama">${a.nama}</div><div class="item-sub">${a.id_ahli} · ${a.bengkung||'—'}</div></div>
+      <div class="item-info">
+        <div class="item-nama">${a.nama}</div>
+        <div class="item-sub">${a.id_ahli}</div>
+      </div>
       <span class="badge ${warna(a.kategori||'')}">${a.kategori?.includes('RENDAH')?'SR':a.kategori?.includes('MENENGAH')?'SM':'DWS'}</span>
+      
+      <div style="width:100%; margin-top:6px" onclick="event.stopPropagation()">
+        <select class="form-input" style="padding:6px 10px; font-size:12px; height:auto; border-color:rgba(255,255,255,0.15); background:rgba(0,0,0,0.3); color:#FFD700" data-asal="${bengkungSemasa}" onchange="tukarBengkungPantas('${a.no_kp}', this.value, this)">
+          ${SENARAI_BENGKUNG_PENUH.map(b => `<option value="${b}" ${b===bengkungSemasa?'selected':''}>${b}</option>`).join('')}
+        </select>
+      </div>
     </div>
-  `).join('');
+  `}).join('');
 }
+
+async function tukarBengkungPantas(no_kp, bengkung_baru, el) {
+  const sblm = el.getAttribute('data-asal');
+  if (bengkung_baru === sblm) return;
+  
+  el.disabled = true;
+  const asalColor = el.style.color;
+  el.style.color = '#888';
+  
+  try {
+    await apiPost({ tindakan: 'naik_gred', no_kp: no_kp, bengkung_baru: bengkung_baru, catatan: 'Kemaskini pantas dari senarai' });
+    tunjukToast('Bengkung dikemaskini!', 'ok');
+    el.setAttribute('data-asal', bengkung_baru);
+    if (dataAhliCache) {
+       const ahli = dataAhliCache.find(a => a.no_kp === no_kp);
+       if (ahli) ahli.bengkung = bengkung_baru;
+    }
+  } catch(e) {
+    tunjukToast('Gagal: ' + e.message, 'ralat');
+    el.value = sblm; // patah balik
+  } finally {
+    el.disabled = false;
+    el.style.color = asalColor;
+  }
+}
+
 let timerCarian;
 function tapis(q) {
   clearTimeout(timerCarian);
@@ -908,7 +965,6 @@ async function muatStatusHadir() {
     rekodWujudHariIni = rekod.length > 0;
     const btnSimpan = document.getElementById('btn-simpan-hadir');
     if (rekodWujudHariIni) {
-      // Amaran visual jika tarikh sudah wujud
       btnSimpan.innerHTML = '<i class="ti ti-alert-triangle"></i> Tarikh Ini Telah Direkod (Simpan Lagi Untuk Tambah)';
       btnSimpan.className = 'btn btn-blok btn-red';
     } else {
@@ -940,7 +996,6 @@ function kemaskiniJumHadir() {
   if (el) el.textContent = jum;
 }
 
-// SIMPAN KEHADIRAN & POPUP
 async function simpanKehadiran() {
   const tarikh = document.getElementById('inp-tarikh-hadir')?.value;
   const masa   = new Date().toTimeString().slice(0,5);
@@ -964,7 +1019,6 @@ async function simpanKehadiran() {
       background: isLight ? '#FFFFFF' : '#1E0850',
       color: isLight ? '#1A1A3E' : '#FFD700'
     });
-    // Kemaskini status butang selepas berjaya simpan
     muatStatusHadir();
   } catch (e) {
     Swal.fire({
@@ -979,7 +1033,7 @@ async function simpanKehadiran() {
   }
 }
 
-// ── HALAMAN: Analisis (BARU) ──────────────────────────────────
+// ── HALAMAN: Analisis ──────────────────────────────────
 let chartHadir, chartYuran, chartBengkung;
 
 async function renderAnalisis() {
@@ -1017,7 +1071,6 @@ async function renderAnalisis() {
     </div>
   `;
 
-  // Tetapan asal carta (Kosmetik)
   Chart.defaults.color = '#C8AAFF';
   Chart.defaults.font.family = "'Nunito', sans-serif";
   Chart.defaults.plugins.legend.labels.font = { size: 11, family: "'Nunito', sans-serif", weight: 'bold' };
@@ -1035,13 +1088,12 @@ async function muatDataAnalisis() {
     const [senarai, yuranData, hadirDataAll] = await Promise.all([
       api('senarai_ahli', {status: 'AKTIF'}),
       api('status_yuran', {bulan, tahun}),
-      api('kehadiran', {tahun}) // Fetch semua untuk tahun tersebut supaya penapisan bulan tepat
+      api('kehadiran', {tahun})
     ]);
 
     plotChartBengkung(senarai);
     plotChartYuran(yuranData);
 
-    // Penapisan dan pengumpulan data kehadiran bulanan, pastikan Set() digunakan elak double entry
     const BULAN_LIST = ['JANUARI','FEBRUARI','MAC','APRIL','MEI','JUN','JULAI','OGOS','SEPTEMBER','OKTOBER','NOVEMBER','DISEMBER'];
     const targetMonth = BULAN_LIST.indexOf(bulan);
     const kiraHadir = {};
@@ -1052,7 +1104,7 @@ async function muatDataAnalisis() {
         if (!isNaN(d.getTime()) && d.getMonth() === targetMonth && d.getFullYear() === parseInt(tahun)) {
           const dayStr = String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0');
           if(!kiraHadir[dayStr]) kiraHadir[dayStr] = new Set();
-          kiraHadir[dayStr].add(r.NO_KP); // Kira kepala murid sahaja (Unik)
+          kiraHadir[dayStr].add(r.NO_KP); 
         }
       }
     });
@@ -1073,13 +1125,11 @@ function plotChartBengkung(senarai) {
   const ctx = document.getElementById('chartTaburanBengkung');
   if(!ctx) return;
   if(chartBengkung) chartBengkung.destroy();
-
   const counts = {};
   senarai.forEach(a => {
     const b = (a.bengkung || 'TIADA BENGKUNG').replace('BENGKUNG ','');
     counts[b] = (counts[b] || 0) + 1;
   });
-
   chartBengkung = new Chart(ctx, {
     type: 'pie',
     data: {
@@ -1087,8 +1137,7 @@ function plotChartBengkung(senarai) {
       datasets: [{
         data: Object.values(counts),
         backgroundColor: ['#1A1A3E','#FFFFFF','#2979FF','#00C853','#FFD700','#FF1744','#CC44FF','#FF6B35','#00BCD4'],
-        borderWidth: 2,
-        borderColor: '#1E0850'
+        borderWidth: 2, borderColor: '#1E0850'
       }]
     },
     options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
@@ -1099,7 +1148,6 @@ function plotChartYuran(yuranData) {
   const ctx = document.getElementById('chartYuranBulanan');
   if(!ctx) return;
   if(chartYuran) chartYuran.destroy();
-
   chartYuran = new Chart(ctx, {
     type: 'doughnut',
     data: {
@@ -1107,15 +1155,10 @@ function plotChartYuran(yuranData) {
       datasets: [{
         data: [yuranData.sudah_bayar || 0, yuranData.belum_bayar || 0],
         backgroundColor: ['#00E676', '#FF1744'],
-        borderWidth: 0,
-        hoverOffset: 4
+        borderWidth: 0, hoverOffset: 4
       }]
     },
-    options: {
-      responsive: true,
-      cutout: '70%',
-      plugins: { legend: { position: 'bottom' } }
-    }
+    options: { responsive: true, cutout: '70%', plugins: { legend: { position: 'bottom' } } }
   });
 }
 
@@ -1123,7 +1166,6 @@ function plotChartHadir(dates, values) {
   const ctx = document.getElementById('chartHadirBulanan');
   if(!ctx) return;
   if(chartHadir) chartHadir.destroy();
-
   chartHadir = new Chart(ctx, {
     type: 'line',
     data: {
@@ -1131,20 +1173,13 @@ function plotChartHadir(dates, values) {
       datasets: [{
         label: 'Jumlah Hadir (Unik)',
         data: values.length ? values : [0],
-        borderColor: '#FFD700',
-        backgroundColor: 'rgba(255,215,0,0.2)',
-        borderWidth: 3,
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: '#FF6B35'
+        borderColor: '#FFD700', backgroundColor: 'rgba(255,215,0,0.2)',
+        borderWidth: 3, fill: true, tension: 0.4, pointBackgroundColor: '#FF6B35'
       }]
     },
     options: {
       responsive: true,
-      scales: {
-        y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' } },
-        x: { grid: { display: false } }
-      },
+      scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' } }, x: { grid: { display: false } } },
       plugins: { legend: { display: false } }
     }
   });
@@ -1231,7 +1266,7 @@ function renderSenaraiYuran() {
   `).join('');
 }
 
-// ── HAL halaman profil ──────────────────────────
+// ── HALAMAN: Profil Pesilat (Senarai Lengkap + BMI) ──────────
 let dataPesilat = null;
 let carianPesilat = '';
 
@@ -1515,7 +1550,7 @@ async function renderSejarahGred() {
   } catch (e) { main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p></div>`; }
 }
 
-// ── HALAMAN: Silibus (Admin) ─────────────────────────────────
+// ── HALAMAN: Silibus (Admin) (Telah Dibaiki Isu Buka Player) ──
 let modSilibus = 'lihat';
 let dataSilibus = [];
 const SENARAI_BENGKUNG_SILIBUS = ['BENGKUNG HITAM','BENGKUNG PUTIH','BENGKUNG BIRU','BENGKUNG HIJAU','BENGKUNG KUNING','BENGKUNG MERAH','SEMUA'];
@@ -1525,9 +1560,13 @@ async function renderSilibus() {
   const main = getMain(); main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan...</span></div>';
   try { dataSilibus = await api('silibus'); paparSilibus(); } catch(e) { main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p></div>`; }
 }
+
 function paparSilibus() {
   const main = getMain(); const isEdit = modSilibus === 'edit'; const kump = {};
   dataSilibus.forEach(s => { const k = s.KATEGORI || 'LAIN-LAIN'; if (!kump[k]) kump[k] = []; kump[k].push(s); });
+  
+  let vidCounter = 0; // PENYELESAIAN ISU ID PLAYER UNIK
+
   main.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
       <div style="font-size:13px;color:var(--muted)">${dataSilibus.length} item</div>
@@ -1539,9 +1578,11 @@ function paparSilibus() {
     ${Object.entries(kump).map(([kat, items]) => `
       <div class="seksyen-tajuk">${kat}</div>
       ${items.map(s => {
+        vidCounter++;
+        const uId = 'v_' + vidCounter; // Hasilkan ID unik untuk div html player
         const m = (s.LINK||'').match(/\/d\/([^\/\?&]+)/); const fid = m ? m[1] : ''; const thumb = fid ? 'https://lh3.googleusercontent.com/d/'+fid+'=w200' : '';
         return `
-        <div class="senarai-item" style="align-items:flex-start;cursor:${isEdit?'default':'pointer'}" ${!isEdit&&s.LINK?`onclick="mainVidAdmin('${s.ID}','${s.LINK}')"`:''}>
+        <div class="senarai-item" style="align-items:flex-start;cursor:${isEdit?'default':'pointer'}" ${!isEdit&&s.LINK?`onclick="mainVidAdmin('${uId}','${s.LINK}')"`:''}>
           <div style="width:56px;height:40px;border-radius:8px;overflow:hidden;background:linear-gradient(135deg,#085041,#1D9E75);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;color:rgba(255,255,255,.8)">
             ${thumb?`<img src="${thumb}" style="width:100%;height:100%;object-fit:cover" onerror="this.style.display='none'">`:``}${!thumb?'▶':''}
           </div>
@@ -1554,24 +1595,39 @@ function paparSilibus() {
           </div>
           ${isEdit?`
           <div style="display:flex;gap:6px;flex-shrink:0">
-            <button onclick="bukaEditSilibus('${s.ID}')" style="background:rgba(41,121,255,.2);border:1px solid rgba(41,121,255,.4);color:var(--c4);border-radius:8px;padding:5px 8px;font-size:11px;cursor:pointer">✏️</button>
-            <button onclick="padamSilabus('${s.ID}')" style="background:rgba(255,23,68,.2);border:1px solid rgba(255,23,68,.4);color:var(--c6);border-radius:8px;padding:5px 8px;font-size:11px;cursor:pointer">🗑️</button>
+            <button onclick="event.stopPropagation();bukaEditSilibus('${s.ID}')" style="background:rgba(41,121,255,.2);border:1px solid rgba(41,121,255,.4);color:var(--c4);border-radius:8px;padding:5px 8px;font-size:11px;cursor:pointer">✏️</button>
+            <button onclick="event.stopPropagation();padamSilabus('${s.ID}')" style="background:rgba(255,23,68,.2);border:1px solid rgba(255,23,68,.4);color:var(--c6);border-radius:8px;padding:5px 8px;font-size:11px;cursor:pointer">🗑️</button>
           </div>`:`<i class="ti ti-player-play" style="color:var(--c3);flex-shrink:0"></i>`}
         </div>
-        <div id="vplayer-${s.ID}" style="display:none;aspect-ratio:16/9;border-radius:10px;overflow:hidden;margin:-6px 0 8px">
-          <iframe id="vframe-${s.ID}" src="" style="width:100%;height:100%;border:none" allowfullscreen></iframe>
+        <div id="vplayer-${uId}" style="display:none;aspect-ratio:16/9;border-radius:10px;overflow:hidden;margin:-6px 0 8px; border:2px solid rgba(255,255,255,.1)">
+          <iframe id="vframe-${uId}" src="" style="width:100%;height:100%;border:none" allowfullscreen></iframe>
         </div>`;
       }).join('')}
     `).join('')}
   `;
 }
+
 function togModSilibus() { modSilibus = modSilibus==='lihat'?'edit':'lihat'; paparSilibus(); }
-function mainVidAdmin(id, link) {
-  const player = document.getElementById('vplayer-'+id); const frame = document.getElementById('vframe-'+id);
-  if (!player||!frame) return; const buka = player.style.display==='none'||!player.style.display;
-  const m = (link||'').match(/\/d\/([^\/\?&]+)/); const fid = m?m[1]:''; const url = fid?'https://drive.google.com/file/d/'+fid+'/preview':link;
-  if (buka) { player.style.display='block'; frame.src=url; player.scrollIntoView({behavior:'smooth',block:'nearest'}); } else { player.style.display='none'; frame.src=''; }
+
+function mainVidAdmin(uId, link) {
+  const player = document.getElementById('vplayer-'+uId); 
+  const frame = document.getElementById('vframe-'+uId);
+  if (!player||!frame) return; 
+  const buka = player.style.display==='none'||!player.style.display;
+  const m = (link||'').match(/\/d\/([^\/\?&]+)/); 
+  const fid = m?m[1]:''; 
+  const url = fid?'https://drive.google.com/file/d/'+fid+'/preview':link;
+  
+  if (buka) { 
+    player.style.display='block'; 
+    frame.src=url; 
+    player.scrollIntoView({behavior:'smooth',block:'center'}); 
+  } else { 
+    player.style.display='none'; 
+    frame.src=''; 
+  }
 }
+
 function bukaFormTambahSilibus() { bukaFormSilibus(null); }
 function bukaEditSilibus(id) { const item = dataSilibus.find(s=>s.ID===id||s.ID===parseInt(id)); bukaFormSilibus(item); }
 function bukaFormSilibus(item) {
@@ -1595,6 +1651,7 @@ function bukaFormSilibus(item) {
     </div>`;
   document.body.appendChild(modal);
 }
+
 async function simpanFormSilibus(id) {
   const tajuk = document.getElementById('sv-tajuk')?.value?.trim(); const link = document.getElementById('sv-link')?.value?.trim();
   const kat = document.getElementById('sv-kat')?.value; const tags = Array.from(document.querySelectorAll('.cb-bengkung:checked')).map(c=>c.value).join(',');
@@ -1606,6 +1663,7 @@ async function simpanFormSilibus(id) {
     dataSilibus = await api('silibus'); paparSilibus();
   } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
 }
+
 async function padamSilabus(id) {
   if (!confirm('Padam video ini dari senarai silibus?')) return;
   try { await apiPost({ tindakan:'padam_silibus', id }); tunjukToast('Video dipadamkan','ok'); dataSilibus = await api('silibus'); paparSilibus(); } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
