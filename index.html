@@ -708,6 +708,20 @@ function tutupPage() {
   loadDashboardStats();
 }
 
+
+// ── PDPA Utilities ────────────────────────────────────────────
+function maskKP(kp) {
+  if (!kp || kp.length < 6) return kp;
+  // Tunjuk 6 digit pertama + **** + 2 digit terakhir: 170614-****-15
+  const s = String(kp).replace(/\D/g, '');
+  if (s.length === 12) return s.slice(0,6) + '-****-' + s.slice(10);
+  return s.slice(0,6) + '******';
+}
+function maskTel(tel) {
+  if (!tel || tel.length < 6) return tel||'—';
+  return String(tel).slice(0,3) + '****' + String(tel).slice(-2);
+}
+
 function navigasi(halaman, simpanLepas = false) {
   if (halaman === 'dashboard') { tutupPage(); return; }
   const tajukPeta = {
@@ -1139,25 +1153,8 @@ async function renderYuran() {
         <i class="ti ti-currency-dollar"></i> 💰 Bayaran Pukal (Pilih & Edit Jumlah)
       </button>
 
-      <!-- Banner Dikecualikan / Butang Kecualikan -->
-      ${bulanDikecuali ? `
-      <div style="background:rgba(255,160,0,.12);border:2px solid rgba(255,160,0,.4);border-radius:12px;padding:12px 14px;margin-bottom:12px">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-          <span style="font-size:16px">🚫</span>
-          <div style="font-weight:700;color:#FFB300;font-size:13px">BULAN INI DIKECUALIKAN</div>
-        </div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${bulanDikecualiSebab || 'Tiada bayaran bulan ini'}</div>
-        <div style="font-size:11px;color:rgba(255,160,0,.8);background:rgba(255,160,0,.1);border-radius:6px;padding:6px 10px">
-          💡 Sebarang bayaran yang diterima bulan ini akan dijadikan <strong>carry forward</strong> ke bulan seterusnya secara automatik.
-        </div>
-        <button onclick="batalKecuali()" style="margin-top:8px;font-size:11px;color:var(--c6);background:transparent;border:1px solid var(--c6);border-radius:6px;padding:4px 10px;cursor:pointer">
-          ✕ Batalkan Pengecualian Bulan Ini
-        </button>
-      </div>` : `
-      <button onclick="bukaKecualiBulan()"
-        style="display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border-radius:12px;font-size:12px;background:rgba(255,255,255,.06);color:var(--muted);border:2px dashed rgba(255,255,255,.15);cursor:pointer;width:100%;margin-bottom:12px">
-        <i class="ti ti-calendar-off"></i> 🚫 Kecualikan Bulan Ini (Cuti Sekolah / Tanpa Yuran)
-      </button>`}
+            <!-- Banner Dikecualikan / Butang Kecualikan -->
+      ${janaHtmlKecuali(bulanDikecuali, bulanDikecualiSebab)}
 
       <!-- Filter -->
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
@@ -1778,8 +1775,25 @@ async function renderTetapan() {
         Untuk edit nama gelanggang, logo, dan maklumat lain — buka Google Sheet dan pergi ke tab <strong style="color:var(--gold)">TETAPAN</strong>.
       </div>
       <div class="kad" style="margin-top:0">
-        <div style="font-family:var(--font-h);font-size:14px;color:var(--gold);margin-bottom:6px">⚔️ SilatApp v1.2</div>
+        <div style="font-family:var(--font-h);font-size:14px;color:var(--gold);margin-bottom:6px">⚔️ SilatApp v1.3</div>
         <div style="font-size:12px;color:var(--muted)">Guru: ${t.NAMA_GURU||'Muhammad Hisyam'}<br>Tel: ${t.TELEFON_GURU||'—'}</div>
+      </div>
+
+      <div class="kad" style="border:1px solid rgba(0,200,150,.25);margin-top:12px">
+        <div class="kad-tajuk" style="color:var(--c3)">🔒 Pematuhan PDPA</div>
+        <div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:10px">
+          Sistem ini mematuhi <strong style="color:#fff">Akta Perlindungan Data Peribadi 2010</strong> Malaysia.
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+          <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:9px;font-size:11px">📋 <strong>Data dikumpul:</strong> Nama, No. KP, gambar, berat, tinggi, kehadiran & laporan</div>
+          <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:9px;font-size:11px">🎯 <strong>Tujuan:</strong> Pengurusan keahlian & rekod latihan sahaja</div>
+          <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:9px;font-size:11px">🔐 <strong>Keselamatan:</strong> Data dalam Google Drive peribadi. Tiada pihak ketiga.</div>
+          <div style="background:rgba(255,255,255,.05);border-radius:8px;padding:9px;font-size:11px">🗑️ <strong>Hak pemadaman:</strong> Ibu bapa boleh minta data anak dipadam</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button onclick="bukaModalPDPA()" class="btn btn-outline" style="flex:1;font-size:11px;padding:8px;border-color:var(--c3);color:var(--c3)">📄 Notis PDPA Penuh</button>
+          <button onclick="bukaHakPadam()" class="btn btn-outline" style="flex:1;font-size:11px;padding:8px;border-color:var(--c6);color:var(--c6)">🗑️ Padam Data Pesilat</button>
+        </div>
       </div>
     `;
   } catch(e) {
@@ -2156,11 +2170,39 @@ async function hantarGred(e) {
 // ── Pengecualian Yuran (Kecualikan Bulan) ─────────────────────
 const BULAN_URUTAN = ['JANUARI','FEBRUARI','MAC','APRIL','MEI','JUN','JULAI','OGOS','SEPTEMBER','OKTOBER','NOVEMBER','DISEMBER'];
 
+const SEBAB_KECUALI = [
+  {kod:'CUTI_1',    label:'🏫 Cuti Sekolah Penggal 1'},
+  {kod:'CUTI_2',    label:'🏫 Cuti Sekolah Penggal 2'},
+  {kod:'CUTI_3',    label:'🏫 Cuti Sekolah Penggal 3'},
+  {kod:'CUTI_UMUM', label:'🎉 Cuti Umum / Perayaan'},
+  {kod:'JURULATIH', label:'⚔️ Keputusan Jurulatih'},
+  {kod:'LAIN',      label:'📝 Lain-lain'},
+];
+
 function bulanSeterusnya(bulan, tahun) {
   const idx = BULAN_URUTAN.indexOf((bulan||'').toUpperCase());
   if (idx === -1) return { bulan: 'JANUARI', tahun: parseInt(tahun)+1 };
   if (idx === 11) return { bulan: 'JANUARI', tahun: parseInt(tahun)+1 };
   return { bulan: BULAN_URUTAN[idx+1], tahun: parseInt(tahun) };
+}
+
+
+// Jana HTML untuk banner/butang kecualikan - elak nested template literal
+function janaHtmlKecuali(dikecuali, sebab) {
+  if (dikecuali) {
+    return '<div style="background:rgba(255,160,0,.12);border:2px solid rgba(255,160,0,.4);border-radius:12px;padding:12px 14px;margin-bottom:12px">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+      '<span style="font-size:16px">🚫</span>' +
+      '<div style="font-weight:700;color:#FFB300;font-size:13px">BULAN INI DIKECUALIKAN</div></div>' +
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">' + (sebab||'Tiada bayaran bulan ini') + '</div>' +
+      '<div style="font-size:11px;color:rgba(255,160,0,.8);background:rgba(255,160,0,.1);border-radius:6px;padding:6px 10px">' +
+      '💡 Bayaran bulan ini akan auto carry forward ke bulan seterusnya.</div>' +
+      '<button onclick="batalKecuali()" style="margin-top:8px;font-size:11px;color:var(--c6);background:transparent;border:1px solid var(--c6);border-radius:6px;padding:4px 10px;cursor:pointer">' +
+      '✕ Batalkan Pengecualian</button></div>';
+  }
+  return '<button onclick="bukaKecualiBulan()" ' +
+    'style="display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;border-radius:12px;font-size:12px;background:rgba(255,255,255,.06);color:var(--muted);border:2px dashed rgba(255,255,255,.15);cursor:pointer;width:100%;margin-bottom:12px">' +
+    '<i class="ti ti-calendar-off"></i> 🚫 Kecualikan Bulan Ini (Cuti Sekolah / Tanpa Yuran)</button>';
 }
 
 function bukaKecualiBulan() {
@@ -2245,10 +2287,7 @@ async function batalKecuali() {
   const tahun = parseInt(yuranTahunPilih || tahunSkrg);
   if (!confirm('Batalkan pengecualian untuk ' + bulan + ' ' + tahun + '?\n\nBulan ini akan kembali memerlukan bayaran yuran.')) return;
   try {
-    await apiPost({
-      tindakan: 'tambah_yuran', no_kp: 'SEDEKAH', jenis_yuran: 'AKTIF_SEMULA',
-      bulan, tahun, jumlah: 0, catatan: 'Pengecualian dibatalkan'
-    });
+    await apiPost({ tindakan: 'batal_kecuali', bulan, tahun });
     tunjukToast('✅ Pengecualian dibatalkan. Bulan ' + bulan + ' aktif semula.', 'ok');
     bulanDikecuali = false;
     bulanDikecualiSebab = '';
@@ -2377,6 +2416,65 @@ document.addEventListener('click', e => {
     if (dd) dd.style.display = 'none';
   }
 });
+
+
+// ── Modal PDPA ────────────────────────────────────────────────
+function bukaModalPDPA() {
+  const m = document.createElement('div');
+  m.className = 'modal-bg'; m.id = 'modal-pdpa';
+  let h = '<div class="modal" style="max-height:85vh;overflow-y:auto">';
+  h += '<div class="modal-tajuk">🔒 Notis PDPA<div class="modal-tutup" onclick="document.getElementById(&quot;modal-pdpa&quot;).remove()"><i class="ti ti-x"></i></div></div>';
+  h += '<div style="font-size:13px;font-weight:700;color:#FFD700;margin-bottom:12px">Akta Perlindungan Data Peribadi 2010</div>';
+  const seksyen = [
+    ['1. Pengumpulan Data', 'Gelanggang ini mengumpul nama penuh, nombor kad pengenalan, tarikh lahir, alamat, nombor telefon, gambar, data kesihatan (berat & tinggi), dan rekod latihan anda bagi tujuan pengurusan keahlian.'],
+    ['2. Tujuan Penggunaan', 'Data digunakan HANYA untuk: (a) Pengurusan keahlian gelanggang, (b) Rekod kehadiran & latihan, (c) Laporan penilaian bengkung, (d) Komunikasi dengan waris/ibu bapa, (e) Pengurusan yuran.'],
+    ['3. Penyimpanan Data', 'Data disimpan dalam Google Drive peribadi jurulatih. Tiada data dikongsi dengan pihak ketiga. Data keahlian yang tamat aktif disimpan sehingga 3 tahun untuk rujukan.'],
+    ['4. Keselamatan', 'Akses sistem dilindungi. Portal ibu bapa memerlukan No. KP untuk akses. No. KP dipaparkan dalam bentuk bertopeng (masked) dalam senarai umum.'],
+    ['5. Hak Anda', 'Anda berhak untuk: (a) Mengakses data anda, (b) Membetulkan data yang tidak tepat, (c) Meminta pemadaman data, (d) Membantah pemprosesan data. Hubungi jurulatih untuk mengemukakan permintaan.'],
+    ['6. Kanak-kanak', 'Data kanak-kanak di bawah umur 18 tahun diuruskan dengan keizinan ibu bapa/penjaga. Ibu bapa bertanggungjawab memastikan maklumat yang diberikan adalah tepat.'],
+    ['7. Perubahan Notis', 'Notis ini boleh dikemaskini dari semasa ke semasa. Perubahan ketara akan dimaklumkan kepada ahli.'],
+  ];
+  seksyen.forEach(([tajuk, teks]) => {
+    h += '<div style="margin-bottom:12px"><div style="font-size:12px;font-weight:700;color:var(--c3);margin-bottom:4px">' + tajuk + '</div>';
+    h += '<div style="font-size:11px;color:var(--muted);line-height:1.6">' + teks + '</div></div>';
+  });
+  h += '<div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:8px;border-top:1px solid rgba(255,255,255,.1);padding-top:8px">Kemaskini terakhir: Mei 2026 | Gelanggang Seri Mutiara Gegak Gempita</div>';
+  h += '</div>';
+  m.innerHTML = h;
+  document.body.appendChild(m);
+}
+
+function bukaHakPadam() {
+  const m = document.createElement('div');
+  m.className = 'modal-bg'; m.id = 'modal-hak-padam';
+  let h = '<div class="modal">';
+  h += '<div class="modal-tajuk">🗑️ Padam Data Pesilat<div class="modal-tutup" onclick="document.getElementById(&quot;modal-hak-padam&quot;).remove()"><i class="ti ti-x"></i></div></div>';
+  h += '<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Proses hak pemadaman data peribadi mengikut PDPA</div>';
+  h += '<div style="background:rgba(255,50,50,.1);border:1px solid rgba(255,50,50,.3);border-radius:8px;padding:10px;font-size:11px;color:rgba(255,100,100,.9);margin-bottom:12px">⚠️ Tindakan ini akan membuang foto, no. telefon dan data sensitif. Data rekod (kehadiran, yuran, laporan) dikekalkan untuk keperluan rekod gelanggang.</div>';
+  h += '<div style="margin-bottom:10px"><label style="font-size:11px;font-weight:700;color:var(--c3);display:block;margin-bottom:6px">No. KP Pesilat</label>';
+  h += '<input id="pdpa-kp" type="number" class="form-input" placeholder="12 digit No. KP" style="width:100%"></div>';
+  h += '<div style="margin-bottom:10px"><label style="font-size:11px;font-weight:700;color:var(--c3);display:block;margin-bottom:6px">Sebab Pemadaman</label>';
+  h += '<select id="pdpa-sebab" class="form-input" style="width:100%"><option value="">-- Pilih sebab --</option><option value="Permintaan ibu bapa/penjaga">Permintaan ibu bapa/penjaga</option><option value="Pesilat berhenti aktif">Pesilat berhenti aktif</option><option value="Permintaan pesilat dewasa">Permintaan pesilat dewasa</option><option value="Lain-lain">Lain-lain</option></select></div>';
+  h += '<div style="margin-bottom:14px;display:flex;align-items:center;gap:8px"><input type="checkbox" id="pdpa-kontak" style="width:16px;height:16px"><label for="pdpa-kontak" style="font-size:12px;color:var(--muted)">Padam nombor telefon juga</label></div>';
+  h += '<button onclick="prosesHakPadam()" class="btn btn-pri btn-blok" style="background:linear-gradient(135deg,#C62828,#E53935)">🗑️ Proses Pemadaman Data Sensitif</button>';
+  h += '</div>';
+  m.innerHTML = h;
+  document.body.appendChild(m);
+}
+
+async function prosesHakPadam() {
+  const kp = document.getElementById('pdpa-kp')?.value?.trim();
+  const sebab = document.getElementById('pdpa-sebab')?.value;
+  const padamKontak = document.getElementById('pdpa-kontak')?.checked;
+  if (!kp || kp.length !== 12) { tunjukToast('Sila masukkan No. KP yang sah (12 digit)', 'ralat'); return; }
+  if (!sebab) { tunjukToast('Sila pilih sebab pemadaman', 'ralat'); return; }
+  if (!confirm('Sahkan pemadaman data sensitif untuk No. KP ' + maskKP(kp) + '?\n\nTindakan ini tidak boleh dibatalkan.')) return;
+  try {
+    const r = await apiPost({ tindakan:'padam_data_ahli', no_kp:kp, sebab, padam_kontak:padamKontak, diproses_oleh:'Admin' });
+    document.getElementById('modal-hak-padam')?.remove();
+    tunjukToast('✅ ' + (r.mesej||'Data sensitif dipadam. Log disimpan.'), 'ok');
+  } catch(e) { tunjukToast('Gagal: ' + e.message, 'ralat'); }
+}
 
 // ── FAB ──────────────────────────────────────────────────────
 function tambahFab(onClick) { const f=document.getElementById('fab-utama'); if(f){f.style.display='flex';f.onclick=onClick;} }
