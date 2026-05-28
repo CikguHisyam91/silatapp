@@ -402,12 +402,13 @@ async function muatYuranParent() {
       const bP=BULAN_P[i];
       if(i>bSkrg){html+=`<div class="ybk akan"><div class="ybk-bulan">${b}</div><div class="ybk-ikon">·</div></div>`;return;}
       const bayar=rekod.find(r=>(r.BULAN||'').toUpperCase()===bP&&String(r.TAHUN)===String(tahun)&&r.STATUS_PENGESAHAN==='SELESAI');
-      const tiada=rekod.find(r=>(r.BULAN||'').toUpperCase()===bP&&String(r.TAHUN)===String(tahun)&&(r.JENIS_YURAN==='TIADA_BAYARAN'||r.JENIS_YURAN==='SEDEKAH'));
-      if(tiada) html+=`<div class="ybk tiada"><div class="ybk-bulan">${b}</div><div class="ybk-ikon">📵</div><div class="ybk-rm">Tiada</div></div>`;
+      const tiada=rekod.find(r=>(r.BULAN||'').toUpperCase()===bP&&String(r.TAHUN)===String(tahun)&&(r.JENIS_YURAN==='TIADA_BAYARAN'||r.JENIS_YURAN==='SEDEKAH'||r.JENIS_YURAN==='DIKECUALIKAN'));
+      const dikecuali=tiada&&r=>r.JENIS_YURAN==='DIKECUALIKAN';
+      if(tiada) html+=`<div class="ybk tiada" title="${tiada.CATATAN||'Tiada kutipan'}"><div class="ybk-bulan">${b}</div><div class="ybk-ikon">${tiada.JENIS_YURAN==='DIKECUALIKAN'?'🚫':'📵'}</div><div class="ybk-rm">${tiada.JENIS_YURAN==='DIKECUALIKAN'?'Kecuali':'Tiada'}</div></div>`;
       else if(bayar) html+=`<div class="ybk bayar"><div class="ybk-bulan">${b}</div><div class="ybk-ikon">✅</div><div class="ybk-rm">RM${parseFloat(bayar.JUMLAH_BAYARAN||0).toFixed(0)}</div></div>`;
       else html+=`<div class="ybk belum"><div class="ybk-bulan">${b}</div><div class="ybk-ikon">❌</div><div class="ybk-rm">Belum</div></div>`;
     });
-    html+='</div><div class="yuran-legend"><span>✅ Bayar</span><span>❌ Belum</span><span>📵 Dikecualikan</span></div>';
+    html+='</div><div class="yuran-legend"><span>✅ Bayar</span><span>❌ Belum</span><span>📵 Tiada kutipan</span><span>🚫 Dikecualikan</span></div>';
     el.innerHTML=html;
   }catch(e){if(el)el.innerHTML='<div style="font-size:12px;color:#aaa;padding:8px">Gagal muatkan status yuran</div>';}
 }
