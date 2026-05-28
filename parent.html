@@ -158,6 +158,14 @@ button{cursor:pointer;border:none;font-family:inherit}input,select,textarea{font
     <div class="login-tajuk">Portal Ibu Bapa</div>
     <div class="login-sub">Gelanggang Seri Mutiara Gegak Gempita</div>
     <input class="login-inp" id="inp-kp" type="number" inputmode="numeric" maxlength="12" placeholder="No. Kad Pengenalan Anak" onkeypress="if(event.key==='Enter')login()">
+    <div id="pdpa-wrap" style="text-align:left;margin-bottom:12px">
+      <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer">
+        <input type="checkbox" id="pdpa-agree" style="margin-top:3px;width:14px;height:14px;flex-shrink:0"
+          onchange="if(this.checked)localStorage.setItem('pdpa_setuju','1')">
+        <span style="font-size:11px;color:#666;line-height:1.5">Saya bersetuju data peribadi anak saya digunakan oleh Gelanggang Seri Mutiara untuk tujuan pengurusan keahlian mengikut <span onclick="bukaPdpaParent()" style="color:#085041;font-weight:700;cursor:pointer;text-decoration:underline">Notis PDPA</span>.</span>
+      </label>
+    </div>
+
     <button class="login-btn" onclick="login()">Masuk →</button>
     <div class="login-error" id="login-error"></div>
   </div>
@@ -225,9 +233,20 @@ function toast(msg,ok=true) {
   toastT=setTimeout(()=>el.classList.remove('nampak'),3000);
 }
 
+// Semak PDPA consent dari localStorage masa page load
+(function() {
+  if(localStorage.getItem('pdpa_setuju')==='1') {
+    const wrap = document.getElementById('pdpa-wrap');
+    const cb   = document.getElementById('pdpa-agree');
+    if(wrap) wrap.style.display = 'none';
+    if(cb)   cb.checked = true;
+  }
+})();
+
 async function login() {
   const kp=document.getElementById('inp-kp').value.trim();
   const err=document.getElementById('login-error');
+  if(!document.getElementById('pdpa-agree')?.checked){err.textContent='Sila bersetuju dengan Notis PDPA terlebih dahulu';return;}
   if(kp.length!==12){err.textContent='No. KP mesti 12 digit';return;}
   err.textContent='Memeriksa...';
   try {
@@ -403,8 +422,7 @@ async function muatYuranParent() {
       if(i>bSkrg){html+=`<div class="ybk akan"><div class="ybk-bulan">${b}</div><div class="ybk-ikon">·</div></div>`;return;}
       const bayar=rekod.find(r=>(r.BULAN||'').toUpperCase()===bP&&String(r.TAHUN)===String(tahun)&&r.STATUS_PENGESAHAN==='SELESAI');
       const tiada=rekod.find(r=>(r.BULAN||'').toUpperCase()===bP&&String(r.TAHUN)===String(tahun)&&(r.JENIS_YURAN==='TIADA_BAYARAN'||r.JENIS_YURAN==='SEDEKAH'||r.JENIS_YURAN==='DIKECUALIKAN'));
-      const dikecuali=tiada&&r=>r.JENIS_YURAN==='DIKECUALIKAN';
-      if(tiada) html+=`<div class="ybk tiada" title="${tiada.CATATAN||'Tiada kutipan'}"><div class="ybk-bulan">${b}</div><div class="ybk-ikon">${tiada.JENIS_YURAN==='DIKECUALIKAN'?'🚫':'📵'}</div><div class="ybk-rm">${tiada.JENIS_YURAN==='DIKECUALIKAN'?'Kecuali':'Tiada'}</div></div>`;
+      if(tiada) html+=`<div class="ybk tiada"><div class="ybk-bulan">${b}</div><div class="ybk-ikon">${tiada.JENIS_YURAN==='DIKECUALIKAN'?'🚫':'📵'}</div><div class="ybk-rm">${tiada.JENIS_YURAN==='DIKECUALIKAN'?'Kecuali':'Tiada'}</div></div>`;
       else if(bayar) html+=`<div class="ybk bayar"><div class="ybk-bulan">${b}</div><div class="ybk-ikon">✅</div><div class="ybk-rm">RM${parseFloat(bayar.JUMLAH_BAYARAN||0).toFixed(0)}</div></div>`;
       else html+=`<div class="ybk belum"><div class="ybk-bulan">${b}</div><div class="ybk-ikon">❌</div><div class="ybk-rm">Belum</div></div>`;
     });
@@ -744,6 +762,30 @@ function mainVid(id,link) {
     embed.style.display='block';
     embed.scrollIntoView({behavior:'smooth',block:'nearest'});
   }
+}
+
+
+function bukaPdpaParent() {
+  const m = document.createElement('div');
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;display:flex;align-items:flex-end';
+  let h = '<div style="background:#fff;border-radius:20px 20px 0 0;width:100%;padding:24px;max-height:85vh;overflow-y:auto;max-width:500px;margin:0 auto">';
+  h += '<div style="font-size:16px;font-weight:700;color:#085041;margin-bottom:4px">🔒 Notis PDPA</div>';
+  h += '<div style="font-size:11px;color:#888;margin-bottom:16px">Akta Perlindungan Data Peribadi 2010</div>';
+  const pts = [
+    ['Data yang dikumpul','Nama, No. KP, tarikh lahir, alamat, no. telefon, gambar, berat, tinggi dan rekod latihan anak anda.'],
+    ['Tujuan penggunaan','Data digunakan HANYA untuk pengurusan keahlian gelanggang, rekod latihan, laporan bengkung dan komunikasi dengan waris.'],
+    ['Keselamatan','Data disimpan dalam Google Drive peribadi jurulatih. Tiada perkongsian dengan pihak ketiga.'],
+    ['Hak anda','Anda berhak mengakses, membetulkan atau meminta pemadaman data. Hubungi jurulatih untuk kemukakan permintaan.'],
+    ['Kanak-kanak','Data kanak-kanak diuruskan dengan keizinan ibu bapa/penjaga yang bertanggungjawab.'],
+  ];
+  pts.forEach(([t,d])=>{
+    h+='<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:700;color:#085041;margin-bottom:3px">'+t+'</div>';
+    h+='<div style="font-size:11px;color:#666;line-height:1.5">'+d+'</div></div>';
+  });
+  h += '<button onclick="this.parentElement.parentElement.remove()" style="width:100%;padding:12px;background:linear-gradient(135deg,#085041,#1D9E75);color:#fff;border-radius:10px;font-size:14px;font-weight:700;border:none;cursor:pointer;margin-top:8px">Faham & Tutup</button>';
+  h += '</div>';
+  m.innerHTML = h;
+  document.body.appendChild(m);
 }
 
 function keluar() {
