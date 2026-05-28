@@ -2173,7 +2173,7 @@ function bukaKecualiBulan() {
   modal.className = 'modal-bg';
   let html = '<div class="modal">';
   html += '<div class="modal-tajuk">🚫 Kecualikan Yuran Bulan';
-  html += '<div class="modal-tutup" onclick="document.getElementById('modal-kecuali').remove()"><i class="ti ti-x"></i></div></div>';
+  html += '<div class="modal-tutup" onclick="document.getElementById(&quot;modal-kecuali&quot;).remove()"><i class="ti ti-x"></i></div></div>';
   html += '<div style="font-size:14px;font-weight:700;color:#FFD700;margin-bottom:4px">' + bulan + ' ' + tahun + '</div>';
   html += '<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Carry forward ke: <strong style="color:#00E676">' + next.bulan + ' ' + next.tahun + '</strong></div>';
   if (sudahBayar.length > 0) {
