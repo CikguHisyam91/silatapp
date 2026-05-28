@@ -1054,8 +1054,32 @@ async function renderYuran() {
   const BULAN_LIST = ['JANUARI','FEBRUARI','MAC','APRIL','MEI','JUN','JULAI','OGOS','SEPTEMBER','OKTOBER','NOVEMBER','DISEMBER'];
 
   try {
-    const data = await api('status_yuran', {bulan: yuranBulanPilih, tahun: yuranTahunPilih});
-    const pct  = data.senarai?.length > 0 ? Math.round(data.sudah_bayar / data.senarai.length * 100) : 0;
+    // Ambil status yuran DAN senarai ahli serentak
+    const [data, senaraiAhli] = await Promise.all([
+      api('status_yuran', {bulan: yuranBulanPilih, tahun: yuranTahunPilih}),
+      api('senarai_ahli', {status:'AKTIF'})
+    ]);
+    // Sync: pastikan semua ahli aktif ada dalam senarai yuran
+    const senaraiYuran = data.senarai || [];
+    senaraiAhli.forEach(a => {
+      const ada = senaraiYuran.find(y => String(y.no_kp) === String(a.NO_KP));
+      if (!ada) {
+        senaraiYuran.push({
+          no_kp: a.NO_KP,
+          nama: a.NAMA_PENUH,
+          kategori: a.KATEGORI,
+          bengkung: a.BENGKUNG_SEMASA,
+          sudah_bayar: false,
+          jumlah: 0,
+          tarikh_bayar: null
+        });
+      }
+    });
+    senaraiYuran.sort((a,b) => (a.nama||'').localeCompare(b.nama||''));
+    data.senarai = senaraiYuran;
+    const jumlahTotal = senaraiYuran.length;
+    const jumlahBayar = senaraiYuran.filter(a => a.sudah_bayar).length;
+    const pct  = jumlahTotal > 0 ? Math.round(jumlahBayar / jumlahTotal * 100) : 0;
 
     main.innerHTML = `
       <!-- Selector Bulan/Tahun -->
@@ -1076,10 +1100,10 @@ async function renderYuran() {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
           <div>
             <div style="font-weight:700;font-size:16px;color:#FFD700">${data.bulan} ${data.tahun}</div>
-            <div style="font-size:13px;color:var(--muted);margin-top:2px">${data.sudah_bayar} / ${data.senarai?.length||0} orang bayar</div>
+            <div class="stat-bayar-count" style="font-size:13px;color:var(--muted);margin-top:2px">${jumlahBayar} / ${jumlahTotal} orang bayar</div>
           </div>
           <div style="text-align:right">
-            <div style="font-size:22px;font-weight:700;color:#00E676">RM${(data.jumlah_kutipan||0).toFixed(2)}</div>
+            <div class="stat-kutipan" style="font-size:22px;font-weight:700;color:#00E676">RM${(data.jumlah_kutipan||0).toFixed(2)}</div>
             <div style="font-size:11px;color:var(--muted)">Jumlah kutipan</div>
           </div>
         </div>
@@ -1088,7 +1112,7 @@ async function renderYuran() {
         </div>
         <div style="display:flex;justify-content:space-between;margin-top:6px;font-size:11px;color:var(--muted)">
           <span>${pct}% pembayaran</span>
-          <span style="color:var(--c6)">${data.belum_bayar} belum bayar</span>
+          <span class="stat-belum-count" style="color:var(--c6)">${jumlahTotal - jumlahBayar} belum bayar</span>
         </div>
       </div>
 
@@ -1105,9 +1129,15 @@ async function renderYuran() {
 
       <!-- Filter -->
       <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-        <button class="btn ${tapisBayar==='semua'?'btn-pri':'btn-outline'}" style="font-size:12px;padding:7px 12px" onclick="tapYuran('semua')">Semua (${data.senarai?.length||0})</button>
-        <button class="btn btn-outline" style="font-size:12px;padding:7px 12px;border-color:var(--c6);color:${tapisBayar==='belum'?'#fff':'var(--c6)'};background:${tapisBayar==='belum'?'var(--c6)':'transparent'}" onclick="tapYuran('belum')">❌ Belum (${data.belum_bayar})</button>
-        <button class="btn btn-outline" style="font-size:12px;padding:7px 12px;border-color:var(--c3);color:${tapisBayar==='dah'?'#fff':'var(--c3)'};background:${tapisBayar==='dah'?'var(--c3)':'transparent'}" onclick="tapYuran('dah')">✅ Sudah (${data.sudah_bayar})</button>
+        <button class="btn btn-filter-yuran" data-jenis="semua"
+          style="font-size:12px;padding:7px 12px;background:${tapisBayar==='semua'?'var(--c1)':'transparent'};color:${tapisBayar==='semua'?'#fff':'var(--muted)'};border:1px solid rgba(255,255,255,.2);border-radius:8px"
+          onclick="tapYuran('semua')">Semua (${jumlahTotal})</button>
+        <button class="btn btn-filter-yuran" data-jenis="belum"
+          style="font-size:12px;padding:7px 12px;background:${tapisBayar==='belum'?'var(--c6)':'transparent'};color:${tapisBayar==='belum'?'#fff':'var(--c6)'};border:1px solid var(--c6);border-radius:8px"
+          onclick="tapYuran('belum')">❌ Belum (${jumlahTotal - jumlahBayar})</button>
+        <button class="btn btn-filter-yuran" data-jenis="dah"
+          style="font-size:12px;padding:7px 12px;background:${tapisBayar==='dah'?'var(--c3)':'transparent'};color:${tapisBayar==='dah'?'#fff':'var(--c3)'};border:1px solid var(--c3);border-radius:8px"
+          onclick="tapYuran('dah')">✅ Sudah (${jumlahBayar})</button>
       </div>
 
       <div id="senarai-yuran"></div>
@@ -1130,7 +1160,14 @@ function tukarBulanYuran() {
 
 function tapYuran(jenis) {
   tapisBayar = jenis;
-  renderYuran();
+  // Kemaskini warna butang filter sahaja
+  const btns = document.querySelectorAll('.btn-filter-yuran');
+  btns.forEach(b => {
+    const j = b.dataset.jenis;
+    b.style.background = j === jenis ? (j==='belum'?'var(--c6)':j==='dah'?'var(--c3)':'var(--c1)') : 'transparent';
+    b.style.color = j === jenis ? '#fff' : (j==='belum'?'var(--c6)':j==='dah'?'var(--c3)':'var(--muted)');
+  });
+  renderSenaraiYuran();
 }
 
 function renderSenaraiYuran() {
@@ -1140,16 +1177,110 @@ function renderSenaraiYuran() {
   if (tapisBayar === 'belum') senarai = senarai.filter(a => !a.sudah_bayar);
   if (tapisBayar === 'dah')   senarai = senarai.filter(a => a.sudah_bayar);
   if (!senarai.length) { el.innerHTML = '<div class="kosong"><i class="ti ti-check"></i><p>Tiada rekod dalam kategori ini</p></div>'; return; }
-  el.innerHTML = senarai.map(a => `
-    <div class="senarai-item" onclick="${!a.sudah_bayar?`bukaModalYuran('${a.no_kp}','${a.nama}')`:''}" style="${a.sudah_bayar?'cursor:default':''}">
-      <div class="avatar ${a.sudah_bayar?'':'merah'}">${(a.nama||'?')[0]}</div>
-      <div class="item-info">
-        <div class="item-nama">${a.nama}</div>
-        <div class="item-sub">${a.kategori?.includes('RENDAH')?'Sekolah Rendah':a.kategori?.includes('MENENGAH')?'Sekolah Menengah':'Dewasa'}</div>
-      </div>
-      <span class="badge ${a.sudah_bayar?'hijau':'merah'}">${a.sudah_bayar?'RM'+a.jumlah:'BELUM'}</span>
-    </div>
-  `).join('');
+  el.innerHTML = senarai.map(a => {
+    const kat = a.kategori?.includes('RENDAH')?'Sekolah Rendah':a.kategori?.includes('MENENGAH')?'Sekolah Menengah':'Dewasa';
+    const safeKp = (a.no_kp||'').toString();
+    const safeNama = (a.nama||'').replace(/'/g,"\'");
+    if (a.sudah_bayar) {
+      return `<div class="senarai-item" style="cursor:default;border-left:3px solid var(--c3)">
+        <div class="avatar" style="background:rgba(0,200,83,.2);color:var(--c3)">${(a.nama||'?')[0]}</div>
+        <div class="item-info">
+          <div class="item-nama">${a.nama}</div>
+          <div class="item-sub">${kat}</div>
+        </div>
+        <div style="text-align:right">
+          <span class="badge hijau">✅ RM${parseFloat(a.jumlah||0).toFixed(0)}</span>
+          ${a.tarikh_bayar?`<div style="font-size:9px;color:var(--muted);margin-top:3px">${a.tarikh_bayar}</div>`:''}
+        </div>
+      </div>`;
+    } else {
+      return `<div style="background:rgba(255,255,255,.04);border-radius:12px;margin-bottom:6px;overflow:hidden;border:1px solid rgba(255,255,255,.08)">
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px">
+          <div class="avatar merah">${(a.nama||'?')[0]}</div>
+          <div class="item-info" style="flex:1">
+            <div class="item-nama">${a.nama}</div>
+            <div class="item-sub">${kat}</div>
+          </div>
+          <span class="badge merah" style="margin-right:6px">BELUM</span>
+          <button onclick="bukaBayarInline('${safeKp}')"
+            style="background:linear-gradient(135deg,var(--c2),var(--c3));color:#fff;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;white-space:nowrap;border:none;cursor:pointer">
+            💰 Rekod
+          </button>
+        </div>
+        <div id="inline-${safeKp}" style="display:none;padding:10px 14px;background:rgba(255,255,255,.06);border-top:1px solid rgba(255,255,255,.08)">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Rekod bayaran untuk <strong>${a.nama}</strong></div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <div style="display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.08);border-radius:8px;padding:6px 10px">
+              <span style="font-size:11px;color:var(--muted)">RM</span>
+              <input type="number" id="jml-${safeKp}" value="30" min="0" step="0.01"
+                style="width:60px;background:transparent;border:none;color:#fff;font-size:14px;font-weight:700;outline:none;text-align:center">
+            </div>
+            <select id="kaedah-${safeKp}" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.2);border-radius:8px;color:#fff;padding:7px 10px;font-size:12px;outline:none;cursor:pointer">
+              <option value="TUNAI">💵 Tunai</option>
+              <option value="TRANSFER">📲 Transfer</option>
+              <option value="LAIN-LAIN">Lain-lain</option>
+            </select>
+            <button onclick="hantarBayarInline('${safeKp}','${safeNama}')"
+              style="background:var(--c3);color:#fff;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;border:none;cursor:pointer;flex:1">
+              ✅ Simpan
+            </button>
+            <button onclick="bukaBayarInline('${safeKp}')"
+              style="background:rgba(255,255,255,.08);color:var(--muted);border-radius:8px;padding:7px 10px;font-size:12px;border:none;cursor:pointer">
+              Batal
+            </button>
+          </div>
+        </div>
+      </div>`;
+    }
+  }).join('');
+}
+
+function bukaBayarInline(kp) {
+  const el = document.getElementById('inline-'+kp);
+  if (!el) return;
+  const buka = el.style.display === 'none';
+  // Tutup semua inline form lain
+  document.querySelectorAll('[id^="inline-"]').forEach(e => e.style.display = 'none');
+  if (buka) el.style.display = 'block';
+}
+
+async function hantarBayarInline(kp, nama) {
+  const jumlah = parseFloat(document.getElementById('jml-'+kp)?.value) || 0;
+  const kaedah = document.getElementById('kaedah-'+kp)?.value || 'TUNAI';
+  if (!jumlah) { tunjukToast('Sila masukkan jumlah bayaran!', 'ralat'); return; }
+  const btn = document.querySelector(`#inline-${kp} button`);
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Menyimpan...'; }
+  try {
+    await apiPost({
+      tindakan: 'tambah_yuran',
+      no_kp: kp,
+      jenis_yuran: 'BULANAN',
+      bulan: yuranBulanPilih || bulanSkrg,
+      tahun: yuranTahunPilih || tahunSkrg,
+      jumlah, kaedah_bayar: kaedah,
+      tarikh_bayar: new Date().toISOString().split('T')[0]
+    });
+    tunjukToast('✅ Bayaran ' + nama.split(' ')[0] + ' direkod! RM' + jumlah.toFixed(2), 'ok');
+    // Kemaskini cache tanpa reload penuh
+    const idx = dataYuranCache.findIndex(a => String(a.no_kp) === String(kp));
+    if (idx !== -1) {
+      dataYuranCache[idx].sudah_bayar = true;
+      dataYuranCache[idx].jumlah = jumlah;
+      dataYuranCache[idx].tarikh_bayar = new Date().toLocaleDateString('ms-MY');
+    }
+    renderSenaraiYuran();
+    // Kemaskini stats ringkasan
+    const bayar = dataYuranCache.filter(a => a.sudah_bayar).length;
+    const total = dataYuranCache.length;
+    const pctBaru = total > 0 ? Math.round(bayar/total*100) : 0;
+    const kutipan = dataYuranCache.filter(a=>a.sudah_bayar).reduce((s,a)=>s+(parseFloat(a.jumlah)||0),0);
+    document.querySelectorAll('.stat-bayar-count').forEach(e => e.textContent = bayar + ' / ' + total + ' orang bayar');
+    document.querySelectorAll('.stat-kutipan').forEach(e => e.textContent = 'RM' + kutipan.toFixed(2));
+    document.querySelectorAll('.stat-belum-count').forEach(e => e.textContent = (total-bayar) + ' belum bayar');
+  } catch(e) {
+    tunjukToast('Gagal: ' + e.message, 'ralat');
+    if (btn) { btn.disabled = false; btn.textContent = '✅ Simpan'; }
+  }
 }
 
 // ── HALAMAN: Lagi ────────────────────────────────────────────
