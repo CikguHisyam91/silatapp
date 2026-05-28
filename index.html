@@ -1073,8 +1073,13 @@ async function renderYuran() {
     bulanDikecuali = !!rekodBulanIni;
     bulanDikecualiSebab = rekodBulanIni ? (rekodBulanIni.CATATAN || 'Dikecualikan') : '';
     // Sync: pastikan semua ahli aktif ada dalam senarai yuran
-    const senaraiYuran = data.senarai || [];
+    // Exclude rekod SEDEKAH/sistem dari senarai pesilat
+    const senaraiYuran = (data.senarai || []).filter(y =>
+      y.no_kp && y.no_kp !== 'SEDEKAH' && y.no_kp !== 'DIKECUALIKAN' &&
+      y.nama && y.nama !== 'undefined' && y.nama.trim() !== ''
+    );
     senaraiAhli.forEach(a => {
+      if (!a.NO_KP || !a.NAMA_PENUH || a.NO_KP === 'SEDEKAH') return;
       const ada = senaraiYuran.find(y => String(y.no_kp) === String(a.NO_KP));
       if (!ada) {
         senaraiYuran.push({
@@ -2160,49 +2165,77 @@ function bulanSeterusnya(bulan, tahun) {
 
 function bukaKecualiBulan() {
   const bulan = yuranBulanPilih || bulanSkrg;
-  const tahun = yuranTahunPilih || tahunSkrg;
+  const tahun = parseInt(yuranTahunPilih || tahunSkrg);
+  const next = bulanSeterusnya(bulan, tahun);
+  const sudahBayar = (dataYuranCache||[]).filter(a => a.sudah_bayar);
   const modal = document.createElement('div');
   modal.id = 'modal-kecuali';
   modal.className = 'modal-bg';
-  modal.innerHTML = `<div class="modal">
-    <div class="modal-tajuk">
-      🚫 Kecualikan Yuran Bulan
-      <div class="modal-tutup" onclick="document.getElementById('modal-kecuali').remove()"><i class="ti ti-x"></i></div>
-    </div>
-    <div style="font-size:14px;font-weight:700;color:#FFD700;margin-bottom:12px">${bulan} ${tahun}</div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Pilih sebab pengecualian:</div>
-    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
-      ${[
-        ['CUTI_SEKOLAH_1','🏫 Cuti Sekolah Penggal 1'],
-        ['CUTI_SEKOLAH_2','🏫 Cuti Sekolah Penggal 2'],
-        ['CUTI_SEKOLAH_3','🏫 Cuti Sekolah Penggal 3'],
-        ['CUTI_UMUM','🎉 Cuti Umum / Perayaan'],
-        ['KEPUTUSAN_JURULATIH','⚔️ Keputusan Jurulatih'],
-        ['LAIN_LAIN','📝 Lain-lain'],
-      ].map(([val, lbl]) => `<button onclick="sahkanKecualiBulan('${val}','${lbl.replace(/'/g,"\\'")}','${bulan}',${tahun})"
-        style="padding:11px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:#fff;font-size:13px;text-align:left;cursor:pointer;transition:.1s">
-        ${lbl}
-      </button>`).join('')}
-    </div>
-    <div style="font-size:11px;color:rgba(255,160,0,.8);background:rgba(255,160,0,.08);border-radius:8px;padding:10px;border:1px solid rgba(255,160,0,.2)">
-      💡 Selepas dikecualikan, sebarang bayaran yang diterima bulan ini akan dijadikan <strong>carry forward</strong> ke bulan seterusnya secara automatik.
-    </div>
-  </div>`;
+  let html = '<div class="modal">';
+  html += '<div class="modal-tajuk">🚫 Kecualikan Yuran Bulan';
+  html += '<div class="modal-tutup" onclick="document.getElementById('modal-kecuali').remove()"><i class="ti ti-x"></i></div></div>';
+  html += '<div style="font-size:14px;font-weight:700;color:#FFD700;margin-bottom:4px">' + bulan + ' ' + tahun + '</div>';
+  html += '<div style="font-size:11px;color:var(--muted);margin-bottom:10px">Carry forward ke: <strong style="color:#00E676">' + next.bulan + ' ' + next.tahun + '</strong></div>';
+  if (sudahBayar.length > 0) {
+    html += '<div style="background:rgba(255,193,7,.1);border:1px solid rgba(255,193,7,.3);border-radius:8px;padding:10px;margin-bottom:12px;font-size:11px;color:#FFD700">';
+    html += '⚠️ <strong>' + sudahBayar.length + ' orang</strong> telah bayar bulan ini. Akan auto carry forward ke <strong>' + next.bulan + ' ' + next.tahun + '</strong>.</div>';
+  }
+  html += '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">Pilih sebab pengecualian:</div>';
+  html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">';
+  SEBAB_KECUALI.forEach(function(s, idx) {
+    html += '<button onclick="sahkanKecualiBulan(' + idx + ')" style="padding:11px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);border-radius:10px;color:#fff;font-size:13px;text-align:left;cursor:pointer">' + s.label + '</button>';
+  });
+  html += '</div>';
+  html += '<div style="font-size:11px;color:rgba(255,160,0,.8);background:rgba(255,160,0,.08);border-radius:8px;padding:10px;border:1px solid rgba(255,160,0,.2)">💡 Bayaran baru & sedia ada akan auto carry forward ke bulan seterusnya.</div>';
+  html += '</div>';
+  modal.innerHTML = html;
   document.body.appendChild(modal);
 }
 
-async function sahkanKecualiBulan(sebabKod, sebabLabel, bulan, tahun) {
+async function sahkanKecualiBulan(idx) {
+  const s = SEBAB_KECUALI[idx];
+  if (!s) return;
+  const bulan = yuranBulanPilih || bulanSkrg;
+  const tahun = parseInt(yuranTahunPilih || tahunSkrg);
+  const next   = bulanSeterusnya(bulan, tahun);
   document.getElementById('modal-kecuali')?.remove();
-  const next = bulanSeterusnya(bulan, tahun);
+
   try {
+    // Rekod pengecualian bulan
     await apiPost({
       tindakan: 'tambah_yuran', no_kp: 'SEDEKAH', jenis_yuran: 'DIKECUALIKAN',
       bulan, tahun, jumlah: 0,
-      catatan: sebabLabel + ' — Carry forward ke ' + next.bulan + ' ' + next.tahun
+      catatan: s.label + ' — Carry forward ke ' + next.bulan + ' ' + next.tahun
     });
-    tunjukToast('🚫 ' + bulan + ' ' + tahun + ' dikecualikan (' + sebabLabel.split(' ').slice(1).join(' ') + ')', 'ok');
+
+    // Auto carry forward untuk yang dah bayar bulan ini
+    const sudahBayar = (dataYuranCache||[]).filter(a => a.sudah_bayar);
+    if (sudahBayar.length > 0) {
+      tunjukToast('⏳ Auto carry forward ' + sudahBayar.length + ' bayaran...', 'ok');
+      let cfBerjaya = 0;
+      for (const a of sudahBayar) {
+        try {
+          await apiPost({
+            tindakan: 'tambah_yuran',
+            no_kp: a.no_kp,
+            jenis_yuran: 'BULANAN',
+            bulan: next.bulan,
+            tahun: next.tahun,
+            jumlah: a.jumlah,
+            kaedah_bayar: 'CARRY_FORWARD',
+            tarikh_bayar: new Date().toISOString().split('T')[0],
+            catatan: 'Auto carry forward dari ' + bulan + ' ' + tahun + ' (' + s.label.split(' ').slice(1).join(' ') + ')'
+          });
+          cfBerjaya++;
+        } catch(e2) {}
+      }
+      tunjukToast('✅ ' + bulan + ' dikecualikan. ' + cfBerjaya + ' bayaran carry forward → ' + next.bulan + ' ' + next.tahun, 'ok');
+    } else {
+      tunjukToast('🚫 ' + bulan + ' ' + tahun + ' dikecualikan (' + s.label.split(' ').slice(1).join(' ') + ')', 'ok');
+    }
+
     bulanDikecuali = true;
-    bulanDikecualiSebab = sebabLabel;
+    bulanDikecualiSebab = s.label;
     renderYuran();
   } catch(e) { tunjukToast('Gagal: ' + e.message, 'ralat'); }
 }
