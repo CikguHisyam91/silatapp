@@ -932,37 +932,27 @@ async function simpanYuranPendaftaran(noKp) {
 }
 
 // ── Isu 6: Tunggakan dalam Dashboard ─────────────────────────
+async function muatTunggakanDash() { return muatTunggakan(); }
 async function muatTunggakan() {
-  const el = document.getElementById('seksyen-tunggakan');
-  if(!el) return;
+  // Versi ringan — 1 API call sahaja (bulan semasa)
+  const el = document.getElementById('seksyen-tunggakan') || document.getElementById('seksyen-tunggakan-dash');
+  if (!el) return;
   try {
-    const [senaraiAhli, statusYuran] = await Promise.all([
-      apiC('senarai_ahli',{status:'AKTIF'},300),
-      apiC('status_yuran',{bulan:bulanSkrg,tahun:tahunSkrg},60)
-    ]);
-    const BULAN_SEMUA = ['JANUARI','FEBRUARI','MAC','APRIL','MEI','JUN','JULAI','OGOS','SEPTEMBER','OKTOBER','NOVEMBER','DISEMBER'];
-    const bulanLalu = BULAN_SEMUA.slice(0, new Date().getMonth());
-    if(!bulanLalu.length){ el.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">Belum ada data tahun ini</div>'; return; }
-    // Kira tunggakan per ahli (bulan Jan sehingga bulan sebelum ini)
-    const tunggakan = [];
-    for(const a of senaraiAhli.slice(0,15)) {
-      let bilBelum = 0;
-      for(const bln of bulanLalu) {
-        const sv = await apiC('status_yuran',{bulan:bln,tahun:tahunSkrg},300);
-        const rec = (sv.senarai||[]).find(r=>String(r.no_kp)===String(a.NO_KP||a.no_kp));
-        if(rec&&!rec.sudah_bayar) bilBelum++;
-      }
-      if(bilBelum>0) tunggakan.push({nama:a.NAMA_PENUH||a.nama, bilBelum, no_kp:a.NO_KP||a.no_kp});
+    const sv = await apiC('status_yuran',{bulan:bulanSkrg,tahun:tahunSkrg},120);
+    const belum = (sv.senarai||[])
+      .filter(a => !a.sudah_bayar && a.no_kp !== 'SEDEKAH' && a.nama)
+      .slice(0,5);
+    if (!belum.length) {
+      el.innerHTML = '<div style="font-size:12px;color:var(--c3);text-align:center;padding:10px">✅ Semua dah bayar ' + bulanSkrg + '!</div>';
+      return;
     }
-    tunggakan.sort((a,b)=>b.bilBelum-a.bilBelum);
-    const top5 = tunggakan.slice(0,5);
-    if(!top5.length){ el.innerHTML='<div style="font-size:12px;color:var(--c3);text-align:center;padding:10px">✅ Semua ahli tiada tunggakan!</div>'; return; }
-    el.innerHTML = top5.map(t=>`
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">
-        <div style="flex:1;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.nama}</div>
-        <span style="background:rgba(255,23,68,.2);color:var(--c6);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;flex-shrink:0">${t.bilBelum} bulan</span>
-      </div>`).join('');
-  } catch(e){ if(el) el.innerHTML='<div style="font-size:11px;color:var(--muted);padding:8px">Gagal muatkan</div>'; }
+    el.innerHTML = belum.map(a =>
+      '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">' +
+      '<div style="flex:1;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (a.nama||'—') + '</div>' +
+      '<span style="background:rgba(255,23,68,.2);color:var(--c6);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700">Belum</span>' +
+      '</div>'
+    ).join('') + '<div style="font-size:10px;color:var(--muted);margin-top:6px;text-align:right">' + bulanSkrg + ' ' + tahunSkrg + '</div>';
+  } catch(e){ if(el) el.innerHTML='<div style="font-size:11px;color:var(--muted);padding:8px">Gagal</div>'; }
 }
 
 // ── Isu 11: Carian Global ─────────────────────────────────────
