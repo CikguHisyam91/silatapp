@@ -709,6 +709,295 @@ function tutupPage() {
 }
 
 
+
+
+// ── Isu 3: ANALISIS ──────────────────────────────────────────
+async function renderAnalisis() {
+  const main = document.getElementById('main');
+  const subHeader = document.getElementById('sub-header-title');
+  if(subHeader) subHeader.textContent='📊 Analisis';
+  main.innerHTML = '<div class="muat"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Memuatkan data...</div>';
+  try {
+    const [dash, senaraiAhli, yuranData] = await Promise.all([
+      apiC('dashboard'),
+      apiC('senarai_ahli',{status:'AKTIF'},300),
+      apiC('ringkasan_kewangan',{tahun:new Date().getFullYear()},120)
+    ]);
+    const tahun = new Date().getFullYear();
+    const BULAN_S = ['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogs','Sep','Okt','Nov','Dis'];
+
+    // Pecahan bengkung
+    const bengkungMap = {};
+    senaraiAhli.forEach(a=>{
+      const b = a.bengkung||a.BENGKUNG_SEMASA||'—';
+      bengkungMap[b] = (bengkungMap[b]||0)+1;
+    });
+    const topBengkung = Object.entries(bengkungMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
+
+    // Warna
+    const WARNA = ['#6C63FF','#FF6584','#43BEF0','#FFD700','#00E676','#FF9100','#AB47BC','#26C6DA'];
+
+    // Graf yuran bulanan dari ringkasan_kewangan
+    const kutiranBulan = yuranData?.kutipan_bulanan || [];
+
+    main.innerHTML = `
+      <div style="padding:12px">
+        <!-- Stats row -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+          <div style="background:rgba(108,99,255,.15);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(108,99,255,.3)">
+            <div style="font-size:24px;font-weight:800;color:#6C63FF">${senaraiAhli.length}</div>
+            <div style="font-size:10px;color:var(--muted)">Ahli Aktif</div>
+          </div>
+          <div style="background:rgba(0,230,118,.15);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(0,230,118,.3)">
+            <div style="font-size:24px;font-weight:800;color:#00E676">${senaraiAhli.filter(a=>(a.kategori||a.KATEGORI||'').includes('RENDAH')).length}</div>
+            <div style="font-size:10px;color:var(--muted)">Sekolah Rendah</div>
+          </div>
+          <div style="background:rgba(255,160,0,.15);border-radius:12px;padding:12px;text-align:center;border:1px solid rgba(255,160,0,.3)">
+            <div style="font-size:24px;font-weight:800;color:#FFB300">${senaraiAhli.filter(a=>(a.kategori||a.KATEGORI||'').includes('MENENGAH')).length + senaraiAhli.filter(a=>(a.kategori||a.KATEGORI||'').includes('DEWASA')).length}</div>
+            <div style="font-size:10px;color:var(--muted)">SM & Dewasa</div>
+          </div>
+        </div>
+
+        <!-- Pecahan Bengkung -->
+        <div class="kad" style="margin-bottom:12px">
+          <div class="kad-tajuk">🥋 Pecahan Bengkung</div>
+          ${topBengkung.map(([b,count],i)=>`
+            <div style="margin-bottom:8px">
+              <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+                <span style="color:#ddd;font-weight:600">${b}</span>
+                <span style="color:${WARNA[i%WARNA.length]};font-weight:700">${count} orang</span>
+              </div>
+              <div style="height:8px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden">
+                <div style="height:100%;border-radius:99px;background:${WARNA[i%WARNA.length]};width:${Math.round(count/senaraiAhli.length*100)}%"></div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Pecahan Jantina -->
+        <div class="kad" style="margin-bottom:12px">
+          <div class="kad-tajuk">👥 Jantina</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            ${['LELAKI','PEREMPUAN'].map((j,i)=>{
+              const bil = senaraiAhli.filter(a=>(a.jantina||a.JANTINA||'').includes(j)).length;
+              const pct = senaraiAhli.length ? Math.round(bil/senaraiAhli.length*100) : 0;
+              const w = i===0?'#43BEF0':'#FF6584';
+              return `<div style="background:rgba(255,255,255,.05);border-radius:10px;padding:12px;text-align:center;border:1px solid rgba(255,255,255,.1)">
+                <div style="font-size:20px;font-weight:800;color:${w}">${bil}</div>
+                <div style="font-size:11px;color:var(--muted)">${j==='LELAKI'?'Lelaki':'Perempuan'}</div>
+                <div style="font-size:10px;color:${w};margin-top:2px">${pct}%</div>
+              </div>`;
+            }).join('')}
+          </div>
+        </div>
+
+        <!-- Kutipan Yuran Tahun Ini -->
+        <div class="kad" style="margin-bottom:12px">
+          <div class="kad-tajuk">💰 Kutipan Yuran ${tahun}</div>
+          <div id="chart-yuran" style="display:flex;align-items:flex-end;gap:3px;height:80px;padding-bottom:4px">
+            <div style="color:var(--muted);font-size:11px;padding:20px">Memuatkan...</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px" id="label-yuran"></div>
+        </div>
+
+        <!-- Hadir Trend -->
+        <div class="kad" style="margin-bottom:12px">
+          <div class="kad-tajuk">⚔️ Trend Kehadiran ${tahun}</div>
+          <div id="chart-hadir" style="display:flex;align-items:flex-end;gap:3px;height:80px;padding-bottom:4px">
+            <div style="color:var(--muted);font-size:11px;padding:20px">Memuatkan...</div>
+          </div>
+        </div>
+      </div>
+    `;
+    // Load yuran chart selepas render
+    muatChartYuran(BULAN_S, tahun);
+    muatChartHadir(BULAN_S, tahun);
+  } catch(e) {
+    main.innerHTML = '<div class="kosong"><i class="ti ti-alert-circle"></i><p>Gagal muatkan analisis: '+e.message+'</p></div>';
+  }
+}
+
+async function muatChartYuran(BULAN_S, tahun) {
+  const el = document.getElementById('chart-yuran');
+  const elLabel = document.getElementById('label-yuran');
+  if(!el) return;
+  try {
+    const data = await apiC('ringkasan_kewangan',{tahun});
+    const bulanData = data?.kutipan_bulanan || [];
+    const maxVal = Math.max(...bulanData.map(b=>b.jumlah||0), 1);
+    el.innerHTML = BULAN_S.map((b,i)=>{
+      const rec = bulanData.find(r=>r.bulan_idx===i+1||r.bulan===b);
+      const val = rec?.jumlah||0;
+      const h = Math.max(4, Math.round((val/maxVal)*76));
+      const w = i<=new Date().getMonth() ? '#00E676' : 'rgba(255,255,255,.1)';
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+        <div style="font-size:8px;color:var(--muted)">${val>0?'RM'+(val/1000).toFixed(0)+'k':''}</div>
+        <div style="width:100%;height:${h}px;background:${w};border-radius:3px 3px 0 0" title="${b}: RM${val}"></div>
+        <div style="font-size:8px;color:var(--muted)">${b}</div>
+      </div>`;
+    }).join('');
+    if(elLabel) elLabel.innerHTML = '<span style="font-size:10px;color:#00E676">■</span><span style="font-size:10px;color:var(--muted)">Kutipan bulanan</span>';
+  } catch(e){ if(el) el.innerHTML='<div style="font-size:11px;color:var(--muted);padding:10px">Gagal muatkan data</div>'; }
+}
+
+async function muatChartHadir(BULAN_S, tahun) {
+  const el = document.getElementById('chart-hadir');
+  if(!el) return;
+  try {
+    const data = await apiC('statistik_kehadiran',{tahun});
+    const bulanData = data?.ikut_bulan || {};
+    el.innerHTML = BULAN_S.map((b,i)=>{
+      const pct = bulanData[i+1]?.peratus || 0;
+      const h = Math.max(4, Math.round(pct*0.76));
+      const w = pct>=80?'#00E676':pct>=60?'#FFD700':'#FF4444';
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+        <div style="font-size:8px;color:var(--muted)">${pct>0?pct+'%':''}</div>
+        <div style="width:100%;height:${h}px;background:${w};border-radius:3px 3px 0 0" title="${b}: ${pct}%"></div>
+        <div style="font-size:8px;color:var(--muted)">${b}</div>
+      </div>`;
+    }).join('');
+  } catch(e){ if(el) el.innerHTML='<div style="font-size:11px;color:var(--muted);padding:10px">Gagal muatkan data</div>'; }
+}
+
+
+// ── Isu 4: Edit Kehadiran Lepas ──────────────────────────────
+async function editKehadiran(noKp, nama, tarikh, statusLama) {
+  const statusBaru = statusLama === 'HADIR' ? 'TIDAK HADIR' : 'HADIR';
+  if(!confirm('Tukar kehadiran ' + nama.split(' ')[0] + '\n' + tarikh + '\n' + statusLama + ' → ' + statusBaru + '?')) return;
+  try {
+    await apiPost({
+      tindakan: 'rekod_kehadiran',
+      rekod: [{no_kp:noKp, nama, tarikh, status:statusBaru, masa:'20:00'}],
+      edit_mode: true
+    });
+    clearApiCache('kehadiran');
+    tunjukToast('✅ Kehadiran dikemaskini → ' + statusBaru, 'ok');
+    clearApiCache('kehadiran');
+    navigasi('kehadiran');
+  } catch(e) { tunjukToast('Gagal: ' + e.message, 'ralat'); }
+}
+
+// ── Isu 5: Auto Rekod Yuran Pendaftaran ──────────────────────
+function tawarYuranPendaftaran(noKp, nama) {
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg'; modal.id = 'modal-yuran-daftar';
+  let h = '<div class="modal">';
+  h += '<div class="modal-tajuk">💰 Yuran Pendaftaran<div class="modal-tutup" onclick="document.getElementById(&quot;modal-yuran-daftar&quot;).remove()"><i class="ti ti-x"></i></div></div>';
+  h += '<div style="font-size:13px;color:var(--muted);margin-bottom:14px">Rekod yuran pendaftaran untuk <strong style="color:#fff">' + nama + '</strong>?</div>';
+  h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;background:rgba(255,255,255,.06);border-radius:10px;padding:10px 12px">';
+  h += '<span style="font-size:12px;color:var(--muted)">Jumlah: RM</span>';
+  h += '<input type="number" id="jml-daftar" value="30" style="background:transparent;border:none;color:#fff;font-size:20px;font-weight:700;width:70px;outline:none">';
+  h += '</div>';
+  h += '<div style="display:flex;gap:8px">';
+  h += '<button onclick="document.getElementById(&quot;modal-yuran-daftar&quot;).remove()" style="flex:1;padding:11px;background:rgba(255,255,255,.08);border:none;border-radius:10px;color:var(--muted);font-size:13px;cursor:pointer">Kemudian</button>';
+    window._noKpPendaftar = noKp;
+  h += '<button onclick="simpanYuranPendaftaran()" style="flex:2;padding:11px;background:linear-gradient(135deg,var(--c2),var(--c3));border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer">✅ Rekod Sekarang</button>';;
+  h += '</div></div>';
+  modal.innerHTML = h;
+  document.body.appendChild(modal);
+}
+
+async function simpanYuranPendaftaran(noKp) {
+  noKp = noKp || window._noKpPendaftar || '';
+  const jml = parseFloat(document.getElementById('jml-daftar')?.value)||30;
+  document.getElementById('modal-yuran-daftar')?.remove();
+  try {
+    await apiPost({
+      tindakan: 'tambah_yuran', no_kp: noKp, jenis_yuran: 'PENDAFTARAN',
+      bulan: bulanSkrg, tahun: tahunSkrg, jumlah: jml,
+      kaedah_bayar: 'TUNAI', tarikh_bayar: new Date().toISOString().split('T')[0],
+      catatan: 'Yuran pendaftaran ahli baru'
+    });
+    clearApiCache('yuran'); clearApiCache('dashboard');
+    tunjukToast('✅ Yuran pendaftaran RM' + jml + ' direkod!', 'ok');
+  } catch(e) { tunjukToast('Gagal rekod yuran: ' + e.message, 'ralat'); }
+}
+
+// ── Isu 6: Tunggakan dalam Dashboard ─────────────────────────
+async function muatTunggakan() {
+  const el = document.getElementById('seksyen-tunggakan');
+  if(!el) return;
+  try {
+    const [senaraiAhli, statusYuran] = await Promise.all([
+      apiC('senarai_ahli',{status:'AKTIF'},300),
+      apiC('status_yuran',{bulan:bulanSkrg,tahun:tahunSkrg},60)
+    ]);
+    const BULAN_SEMUA = ['JANUARI','FEBRUARI','MAC','APRIL','MEI','JUN','JULAI','OGOS','SEPTEMBER','OKTOBER','NOVEMBER','DISEMBER'];
+    const bulanLalu = BULAN_SEMUA.slice(0, new Date().getMonth());
+    if(!bulanLalu.length){ el.innerHTML='<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">Belum ada data tahun ini</div>'; return; }
+    // Kira tunggakan per ahli (bulan Jan sehingga bulan sebelum ini)
+    const tunggakan = [];
+    for(const a of senaraiAhli.slice(0,15)) {
+      let bilBelum = 0;
+      for(const bln of bulanLalu) {
+        const sv = await apiC('status_yuran',{bulan:bln,tahun:tahunSkrg},300);
+        const rec = (sv.senarai||[]).find(r=>String(r.no_kp)===String(a.NO_KP||a.no_kp));
+        if(rec&&!rec.sudah_bayar) bilBelum++;
+      }
+      if(bilBelum>0) tunggakan.push({nama:a.NAMA_PENUH||a.nama, bilBelum, no_kp:a.NO_KP||a.no_kp});
+    }
+    tunggakan.sort((a,b)=>b.bilBelum-a.bilBelum);
+    const top5 = tunggakan.slice(0,5);
+    if(!top5.length){ el.innerHTML='<div style="font-size:12px;color:var(--c3);text-align:center;padding:10px">✅ Semua ahli tiada tunggakan!</div>'; return; }
+    el.innerHTML = top5.map(t=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+        <div style="flex:1;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.nama}</div>
+        <span style="background:rgba(255,23,68,.2);color:var(--c6);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;flex-shrink:0">${t.bilBelum} bulan</span>
+      </div>`).join('');
+  } catch(e){ if(el) el.innerHTML='<div style="font-size:11px;color:var(--muted);padding:8px">Gagal muatkan</div>'; }
+}
+
+// ── Isu 11: Carian Global ─────────────────────────────────────
+function bukaCarian() {
+  const sedia = document.getElementById('panel-carian-global');
+  if(sedia) { sedia.remove(); return; }
+  const panel = document.createElement('div');
+  panel.id = 'panel-carian-global';
+  panel.style.cssText = 'position:fixed;top:56px;left:0;right:0;background:#1A0A4A;border-bottom:2px solid var(--c1);z-index:150;padding:12px 16px;box-shadow:0 8px 24px rgba(0,0,0,.4)';
+  panel.innerHTML = '<input id="inp-carian-global" class="form-input" type="text" placeholder="🔍 Cari nama atau No. KP..." style="width:100%;font-size:14px" oninput="jalanCarian(this.value)" autofocus><div id="hasil-carian" style="max-height:50vh;overflow-y:auto;margin-top:8px"></div>';
+  document.body.appendChild(panel);
+  setTimeout(()=>document.getElementById('inp-carian-global')?.focus(),100);
+}
+
+async function jalanCarian(q) {
+  const el = document.getElementById('hasil-carian');
+  if(!el||q.length<2) { if(el) el.innerHTML=''; return; }
+  el.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px">Mencari...</div>';
+  try {
+    const hasil = await api('cari_ahli',{q});
+    if(!hasil.length){ el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px">Tiada hasil</div>'; return; }
+    el.innerHTML = hasil.slice(0,8).map(a=>`
+      <div onclick="document.getElementById('panel-carian-global').remove();navigasi('pesilat');setTimeout(()=>bukaProfil('${a.no_kp}'),600)"
+        style="display:flex;align-items:center;gap:10px;padding:10px;background:rgba(255,255,255,.05);border-radius:10px;margin-bottom:6px;cursor:pointer;border:1px solid rgba(255,255,255,.08)">
+        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--c1),var(--c2));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">${(a.nama||'?')[0]}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.nama}</div>
+          <div style="font-size:10px;color:var(--muted)">${a.bengkung||'—'} · ${a.no_kp}</div>
+        </div>
+        <span style="font-size:10px;color:var(--muted);background:rgba(255,255,255,.08);padding:2px 6px;border-radius:4px">${a.kategori?.includes('RENDAH')?'SR':a.kategori?.includes('MENENGAH')?'SM':'DWS'}</span>
+      </div>`).join('');
+  } catch(e){ if(el) el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px">Gagal mencari</div>'; }
+}
+
+// Tutup carian bila klik luar
+document.addEventListener('click', e=>{
+  if(!e.target.closest('#panel-carian-global')&&!e.target.closest('#btn-carian'))
+    document.getElementById('panel-carian-global')?.remove();
+});
+
+// ── Isu 2: Cache API ─────────────────────────────────────────
+const _apiCache = {};
+async function apiC(tindakan, params={}, ttl=180) {
+  const k = tindakan+'|'+JSON.stringify(params);
+  if(_apiCache[k] && Date.now()-_apiCache[k].ts < ttl*1000) return _apiCache[k].data;
+  const data = await api(tindakan, params);
+  _apiCache[k] = {data, ts:Date.now()};
+  return data;
+}
+function clearApiCache(prefix='') {
+  Object.keys(_apiCache).forEach(k=>{ if(!prefix||k.startsWith(prefix)) delete _apiCache[k]; });
+}
+
 // ── PDPA Utilities ────────────────────────────────────────────
 function maskKP(kp) {
   if (!kp || kp.length < 6) return kp;
@@ -763,6 +1052,7 @@ function renderHalamanPage(halaman) {
     case 'yuran'         : renderYuran();          break;
     case 'lagi'          : renderTetapan();        break;
     case 'tetapan'       : renderTetapan();        break;
+    case 'analisis'      : renderAnalisis();       break;
     case 'kewangan'      : renderKewangan();       break;
     case 'latihan'       : renderLatihanKendiri(); break;
     case 'sejarah_gred'  : renderSejarahGred();    break;
@@ -829,8 +1119,14 @@ async function renderDashboard() {
         </div>
         <div style="font-size:12px;color:var(--muted);margin-top:6px">${d.jumlah_ahli_aktif>0?Math.round(d.sudah_bayar/d.jumlah_ahli_aktif*100):0}% pembayaran diterima</div>
       </div>
+
+      <div class="seksyen-tajuk">Tunggakan Tertinggi</div>
+      <div class="kad" id="seksyen-tunggakan">
+        <div style="font-size:11px;color:var(--muted);text-align:center;padding:8px">Mengira...</div>
+      </div>
     `;
     tambahFab(() => bukaModal('modal-daftar'));
+    setTimeout(muatTunggakan, 1000);
   } catch (e) {
     main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>Gagal memuatkan data.<br>${e.message}</p><button class="btn btn-outline" onclick="muatSemula()">Cuba Semula</button></div>`;
   }
@@ -2127,6 +2423,8 @@ async function hantarDaftar(e) {
     const hasil = await apiPost(data);
     tunjukToast('✓ ' + hasil.nama + ' berjaya didaftarkan!', 'ok');
     tutupModal('modal-daftar');
+    clearApiCache();
+    setTimeout(()=>tawarYuranPendaftaran(hasil.no_kp||'', hasil.nama||''), 500);
     e.target.reset();
     dataAhliCache = null;
     if (halamanSkrg === 'ahli') renderSenaraiAhli();
