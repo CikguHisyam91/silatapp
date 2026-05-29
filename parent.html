@@ -258,6 +258,8 @@ async function login() {
     document.getElementById('login-screen').style.display='none';
     document.getElementById('portal-screen').style.display='block';
     renderTab('profil');err.textContent='';
+    // Isu 8: Semak tunggakan yuran selepas login
+    setTimeout(()=>semakTunggakanParent(),800);
   }catch(e){err.textContent=e.message==='Ahli tidak dijumpai'?'No. KP tidak dijumpai. Semak semula.':'Gagal sambung. Cuba lagi.';}
 }
 
@@ -297,11 +299,26 @@ function labelBMI(b){if(!b)return'—';if(b<18.5)return'Kurus';if(b<23)return'No
 function pctBMI(b){if(!b)return 0;const mn=10,mx=40;return Math.min(100,Math.max(0,Math.round((b-mn)/(mx-mn)*100)));}
 function wPct(p){return p>=90?'#085041':p>=75?'#1D9E75':p>=60?'#FF9100':'#C62828';}
 function fmtT(val){
-  if(!val||val==='undefined'||val==='') return '—';
-  const d=new Date(val);
-  if(!isNaN(d.getTime())) return d.getDate().toString().padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
-  if(/^\d{4}-\d{2}-\d{2}/.test(val)){const p=val.substring(0,10).split('-');return p[2]+'/'+p[1]+'/'+p[0];}
-  return String(val);
+  if(!val||val==='undefined'||val===''||val===null) return '—';
+  // Handle format panjang dari Google Sheets: "Fri May 15 2026 00:00:00 GMT+0800..."
+  let d = new Date(val);
+  if(!isNaN(d.getTime())){
+    // Elak timezone shift — ambil tarikh UTC
+    const offset = d.getTimezoneOffset();
+    d = new Date(d.getTime() - offset * 60000);
+    const dd=d.getUTCDate().toString().padStart(2,'0');
+    const mm=String(d.getUTCMonth()+1).padStart(2,'0');
+    const yy=d.getUTCFullYear();
+    return dd+'/'+mm+'/'+yy;
+  }
+  // Format YYYY-MM-DD
+  if(/^\d{4}-\d{2}-\d{2}/.test(String(val))){
+    const p=String(val).substring(0,10).split('-');
+    return p[2]+'/'+p[1]+'/'+p[0];
+  }
+  // Dah dalam format DD/MM/YYYY
+  if(/^\d{2}\/\d{2}\/\d{4}/.test(String(val))) return String(val).substring(0,10);
+  return String(val).substring(0,10);
 }
 
 // ── PROFIL ────────────────────────────────────────────────────
@@ -591,11 +608,11 @@ async function muatPDF(idLaporan) {
   toast('⏳ Menjana PDF...');
   try {
     const data=await api('laporan_pesilat',{id_laporan:idLaporan});
-    janaPDF(data,data.detail||[]);
+    await janaPDF(data,data.detail||[]);
   }catch(e){toast('Gagal jana PDF: '+e.message,false);}
 }
 
-function janaPDF(l,items) {
+async function janaPDF(l,items) {
   const {jsPDF}=window.jspdf;
   const doc=new jsPDF('p','mm','a4');
   const W=210;
@@ -769,6 +786,33 @@ function mainVid(id,link) {
   }
 }
 
+
+
+// ── Isu 8: Notifikasi Tunggakan ──────────────────────────────
+async function semakTunggakanParent() {
+  if(!dataAnak) return;
+  try {
+    const rekod = await api('yuran',{no_kp:dataAnak.NO_KP});
+    const [rekodSistem] = await Promise.all([api('yuran',{no_kp:'SEDEKAH'})]);
+    const tahun = new Date().getFullYear();
+    const bulanSkrg = new Date().getMonth();
+    const belumBayar = [];
+    BULAN_P.forEach((bP,i)=>{
+      if(i>bulanSkrg) return;
+      const bayar = rekod.find(r=>(r.BULAN||'').toUpperCase()===bP&&String(r.TAHUN)===String(tahun)&&r.STATUS_PENGESAHAN==='SELESAI');
+      const dikecuali = (rekodSistem||[]).find(r=>(r.BULAN||'').toUpperCase()===bP&&String(r.TAHUN)===String(tahun));
+      if(!bayar&&!dikecuali) belumBayar.push(BULAN_S[i]);
+    });
+    if(belumBayar.length===0) return;
+    // Papar notifikasi
+    const notif = document.createElement('div');
+    notif.style.cssText='position:fixed;top:0;left:0;right:0;z-index:200;background:#C62828;color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.3)';
+    notif.innerHTML='<span>⚠️ Yuran belum bayar: <strong>'+belumBayar.join(', ')+'</strong></span>'+
+      '<button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:12px">✕</button>';
+    document.body.appendChild(notif);
+    setTimeout(()=>notif?.remove(),8000);
+  } catch(e){}
+}
 
 function bukaPdpaParent() {
   const m = document.createElement('div');
