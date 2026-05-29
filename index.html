@@ -2259,36 +2259,32 @@ async function sahkanKecualiBulan(idx) {
     // Auto carry forward untuk yang dah bayar bulan ini
     const sudahBayar = (dataYuranCache||[]).filter(a => a.sudah_bayar);
     if (sudahBayar.length > 0) {
-      tunjukToast('⏳ Memindahkan ' + sudahBayar.length + ' bayaran ke ' + next.bulan + '...', 'ok');
-      let cfBerjaya = 0;
+      tunjukToast('⏳ Carry forward ' + sudahBayar.length + ' bayaran ke ' + next.bulan + '...', 'ok');
+      let cfBerjaya = 0, cfGagal = 0;
       for (const a of sudahBayar) {
-        // Normalize no_kp — handle uppercase atau lowercase dari API
-        const kp = a.no_kp || a.NO_KP || a.nok_p || '';
-        if (!kp) { tunjukToast('⚠️ No. KP tidak jumpa untuk ' + (a.nama||a.NAMA||'?'), 'ralat'); continue; }
+        const kp = String(a.no_kp || a.NO_KP || '').trim();
+        const jml = parseFloat(a.jumlah || a.JUMLAH || 0) || 30;
+        if (!kp) continue;
         try {
-          // Langkah 1: Padam rekod asal dari bulan yang dikecualikan
-          await apiPost({
-            tindakan: 'padam_yuran_bulan',
-            no_kp: kp, bulan, tahun
-          });
-          // Langkah 2: Cipta rekod baharu untuk bulan seterusnya
           await apiPost({
             tindakan: 'tambah_yuran',
             no_kp: kp,
             jenis_yuran: 'BULANAN',
             bulan: next.bulan,
-            tahun: next.tahun,
-            jumlah: a.jumlah || a.JUMLAH || a.jumlah_bayar || 30,
+            tahun: String(next.tahun),
+            jumlah: jml,
             kaedah_bayar: 'CARRY_FORWARD',
             tarikh_bayar: new Date().toISOString().split('T')[0],
-            catatan: 'Carry forward dari ' + bulan + ' ' + tahun + ' — ' + s.label.split(' ').slice(1).join(' ')
+            catatan: 'CF dari ' + bulan + ' ' + tahun + ' (' + s.label.split(' ').slice(1).join(' ') + ')'
           });
           cfBerjaya++;
-        } catch(e2) {
-          tunjukToast('⚠️ Gagal carry forward ' + kp + ': ' + (e2.message||''), 'ralat');
-        }
+        } catch(e2) { cfGagal++; }
       }
-      tunjukToast('✅ ' + cfBerjaya + ' bayaran dipindahkan: ' + bulan + ' → ' + next.bulan + ' ' + next.tahun, 'ok');
+      if (cfBerjaya > 0) {
+        tunjukToast('✅ ' + bulan + ' dikecualikan. ' + cfBerjaya + ' bayaran → ' + next.bulan + ' ' + next.tahun, 'ok');
+      } else {
+        tunjukToast('🚫 ' + bulan + ' dikecualikan. Carry forward gagal — rekod April perlu ditambah manual.', 'ralat');
+      }
     } else {
       tunjukToast('🚫 ' + bulan + ' ' + tahun + ' dikecualikan — ' + s.label.split(' ').slice(1).join(' '), 'ok');
     }
