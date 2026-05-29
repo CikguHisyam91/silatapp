@@ -2251,8 +2251,9 @@ async function sahkanKecualiBulan(idx) {
     // Rekod pengecualian bulan
     await apiPost({
       tindakan: 'tambah_yuran', no_kp: 'SEDEKAH', jenis_yuran: 'DIKECUALIKAN',
-      bulan, tahun, jumlah: 0,
-      catatan: s.label + ' — Carry forward ke ' + next.bulan + ' ' + next.tahun
+      bulan, tahun: String(tahun), jumlah: 0, jumlah_bayar: 0,
+      catatan: s.label + ' — Carry forward ke ' + next.bulan + ' ' + next.tahun,
+      kaedah_bayar: 'SISTEM', tarikh_bayar: new Date().toISOString().split('T')[0]
     });
 
     // Auto carry forward untuk yang dah bayar bulan ini
