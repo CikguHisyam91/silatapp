@@ -414,15 +414,20 @@ async function muatYuranParent() {
   if(!el||!dataAnak)return;
   const tahun=new Date().getFullYear(),bSkrg=new Date().getMonth();
   try {
-    const rekod=await api('yuran',{no_kp:dataAnak.NO_KP});
+    // Ambil rekod yuran anak DAN rekod sistem (SEDEKAH/DIKECUALIKAN) serentak
+    const [rekod, rekodSistem] = await Promise.all([
+      api('yuran',{no_kp:dataAnak.NO_KP}),
+      api('yuran',{no_kp:'SEDEKAH'})
+    ]);
     dataYuran=rekod;
     let html='<div class="yuran-bulan-grid">';
     BULAN_S.forEach((b,i)=>{
       const bP=BULAN_P[i];
       if(i>bSkrg){html+=`<div class="ybk akan"><div class="ybk-bulan">${b}</div><div class="ybk-ikon">·</div></div>`;return;}
       const bayar=rekod.find(r=>(r.BULAN||'').toUpperCase()===bP&&String(r.TAHUN)===String(tahun)&&r.STATUS_PENGESAHAN==='SELESAI');
-      const tiada=rekod.find(r=>(r.BULAN||'').toUpperCase()===bP&&String(r.TAHUN)===String(tahun)&&(r.JENIS_YURAN==='TIADA_BAYARAN'||r.JENIS_YURAN==='SEDEKAH'||r.JENIS_YURAN==='DIKECUALIKAN'));
-      if(tiada) html+=`<div class="ybk tiada"><div class="ybk-bulan">${b}</div><div class="ybk-ikon">${tiada.JENIS_YURAN==='DIKECUALIKAN'?'🚫':'📵'}</div><div class="ybk-rm">${tiada.JENIS_YURAN==='DIKECUALIKAN'?'Kecuali':'Tiada'}</div></div>`;
+      // Semak rekod dikecualikan dari rekod sistem (NO_KP=SEDEKAH)
+      const dikecuali=(rekodSistem||[]).find(r=>(r.BULAN||'').toUpperCase()===bP&&String(r.TAHUN)===String(tahun)&&(r.JENIS_YURAN==='DIKECUALIKAN'||r.JENIS_YURAN==='TIADA_BAYARAN'||r.JENIS_YURAN==='SEDEKAH'));
+      if(dikecuali) html+=`<div class="ybk tiada"><div class="ybk-bulan">${b}</div><div class="ybk-ikon">${dikecuali.JENIS_YURAN==='DIKECUALIKAN'?'🚫':'📵'}</div><div class="ybk-rm">${dikecuali.JENIS_YURAN==='DIKECUALIKAN'?'Kecuali':'Tiada'}</div></div>`;
       else if(bayar) html+=`<div class="ybk bayar"><div class="ybk-bulan">${b}</div><div class="ybk-ikon">✅</div><div class="ybk-rm">RM${parseFloat(bayar.JUMLAH_BAYARAN||0).toFixed(0)}</div></div>`;
       else html+=`<div class="ybk belum"><div class="ybk-bulan">${b}</div><div class="ybk-ikon">❌</div><div class="ybk-rm">Belum</div></div>`;
     });
