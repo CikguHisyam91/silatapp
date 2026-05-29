@@ -1793,7 +1793,7 @@ function renderSenaraiYuran() {
     const safeNama = (a.nama||'').replace(/'/g,"\'");
     if (a.sudah_bayar) {
       const nmSudah = String(a.nama||'—');
-      const tBayar = a.tarikh_bayar ? fmtT(a.tarikh_bayar) : '—';
+      const tBayar = a.tarikh_bayar ? formatTarikh(a.tarikh_bayar) : '—';
       return '<div class="senarai-item" style="cursor:default;border-left:3px solid var(--c3)">' +
         '<div class="avatar" style="background:rgba(0,200,83,.2);color:var(--c3)">' + nmSudah[0] + '</div>' +
         '<div class="item-info" style="flex:1;min-width:0">' +
