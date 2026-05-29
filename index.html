@@ -1280,6 +1280,9 @@ async function hantarBayarInline(kp, nama) {
   const btn = document.querySelector(`#inline-${kp} button`);
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Menyimpan...'; }
 
+  // Normalize kp (parameter)
+  kp = String(kp||'').trim();
+  if (!kp) { tunjukToast('No. KP tidak sah!', 'ralat'); return; }
   // Cek carry forward jika bulan dikecualikan
   let bulanRekod = yuranBulanPilih || bulanSkrg;
   let tahunRekod = parseInt(yuranTahunPilih || tahunSkrg);
@@ -2258,28 +2261,30 @@ async function sahkanKecualiBulan(idx) {
       tunjukToast('⏳ Memindahkan ' + sudahBayar.length + ' bayaran ke ' + next.bulan + '...', 'ok');
       let cfBerjaya = 0;
       for (const a of sudahBayar) {
+        // Normalize no_kp — handle uppercase atau lowercase dari API
+        const kp = a.no_kp || a.NO_KP || a.nok_p || '';
+        if (!kp) { tunjukToast('⚠️ No. KP tidak jumpa untuk ' + (a.nama||a.NAMA||'?'), 'ralat'); continue; }
         try {
           // Langkah 1: Padam rekod asal dari bulan yang dikecualikan
           await apiPost({
             tindakan: 'padam_yuran_bulan',
-            no_kp: a.no_kp,
-            bulan, tahun
+            no_kp: kp, bulan, tahun
           });
           // Langkah 2: Cipta rekod baharu untuk bulan seterusnya
           await apiPost({
             tindakan: 'tambah_yuran',
-            no_kp: a.no_kp,
+            no_kp: kp,
             jenis_yuran: 'BULANAN',
             bulan: next.bulan,
             tahun: next.tahun,
-            jumlah: a.jumlah,
+            jumlah: a.jumlah || a.JUMLAH || a.jumlah_bayar || 30,
             kaedah_bayar: 'CARRY_FORWARD',
             tarikh_bayar: new Date().toISOString().split('T')[0],
             catatan: 'Carry forward dari ' + bulan + ' ' + tahun + ' — ' + s.label.split(' ').slice(1).join(' ')
           });
           cfBerjaya++;
         } catch(e2) {
-          tunjukToast('⚠️ Gagal carry forward: ' + (e2.message||''), 'ralat');
+          tunjukToast('⚠️ Gagal carry forward ' + kp + ': ' + (e2.message||''), 'ralat');
         }
       }
       tunjukToast('✅ ' + cfBerjaya + ' bayaran dipindahkan: ' + bulan + ' → ' + next.bulan + ' ' + next.tahun, 'ok');
