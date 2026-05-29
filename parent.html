@@ -336,6 +336,12 @@ async function renderProfil() {
   const tinggi=parseFloat(a.TINGGI_CM)||0;
   const bmi=(berat>0&&tinggi>0)?Math.round(berat/Math.pow(tinggi/100,2)*10)/10:null;
   const kUs=usia?katUsia(usia):'—';
+  // Kira kelas berat untuk papar dalam kad
+  const _kUsFull = usia ? katUsiaP(usia) : null;
+  const _kelasObj = _kUsFull ? cariKelasP(_kUsFull.label, berat) : null;
+  const _kelasLabel = _kelasObj
+    ? 'Kelas ' + _kelasObj.kelas + ' · ' + _kelasObj.mn + '–' + _kelasObj.mx + 'kg'
+    : (berat ? 'Kelas tidak dijumpai' : 'Isi berat dahulu');
   const fotoSrc=a.FOTO_BASE64&&a.FOTO_BASE64.length>10
     ?`<img class="foto-bulat" src="${a.FOTO_BASE64}" alt="Gambar">`
     :`<div class="foto-default">${a.NAMA_PENUH?a.NAMA_PENUH[0]:'?'}</div>`;
@@ -362,9 +368,33 @@ async function renderProfil() {
         <div class="stat-note">${kUs.includes('(')?kUs.split('(')[1]?.replace(')',''):'—'}</div>
       </div>
       <div class="stat-kad biru"><div class="stat-ikon">${(a.JANTINA||'').includes('LELAKI')?'♂️':'♀️'}</div><div class="stat-nilai" style="font-size:13px;padding-top:6px">${a.JANTINA||'—'}</div><div class="stat-lbl" style="margin-top:6px">Jantina</div><div class="stat-note">${a.KATEGORI?.includes('RENDAH')?'Sekolah Rendah':a.KATEGORI?.includes('MENENGAH')?'Sekolah Menengah':'Dewasa'}</div></div>
-      <div class="stat-kad oren"><div class="stat-ikon">⚖️</div><div class="stat-nilai">${berat||'—'}</div><div class="stat-unit">KG · Berat Badan</div><div class="stat-lbl" style="margin-top:4px;font-size:10px;color:#085041;font-weight:600">${berat?'Dikemaskini':'Belum diisi'}</div></div>
+      <div class="stat-kad oren"><div class="stat-ikon">⚖️</div><div class="stat-nilai">${berat||'—'}</div><div class="stat-unit">KG · Berat Badan</div><div style="margin-top:4px;font-size:10px;font-weight:700;color:${_kelasObj?'#E65100':'#aaa'}">${_kelasLabel}</div></div>
       <div class="stat-kad ungu"><div class="stat-ikon">📏</div><div class="stat-nilai">${tinggi||'—'}</div><div class="stat-unit">CM · Tinggi Badan</div><div class="stat-lbl" style="margin-top:4px;font-size:10px">${bmi?'BMI: '+bmi+' ('+labelBMI(bmi)+')':'Belum diisi'}</div></div>
     </div>
+    <!-- Kad Info Pertandingan -->
+    <div style="background:linear-gradient(135deg,#1A0050,#2D0070);border-radius:16px;padding:16px;margin-bottom:12px;border:1px solid rgba(255,215,0,.3)">
+      <div style="font-size:11px;font-weight:700;color:#FFD700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">🏆 Info Pertandingan</div>
+      ${_kUsFull && _kelasObj ? `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div style="background:rgba(108,99,255,.2);border:1px solid rgba(108,99,255,.4);border-radius:12px;padding:12px;text-align:center">
+          <div style="font-size:10px;color:rgba(255,255,255,.6);margin-bottom:4px">KATEGORI USIA</div>
+          <div style="font-size:18px;font-weight:900;color:#A78BFA">${_kUsFull.label}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:3px">${_kUsFull.had}</div>
+        </div>
+        <div style="background:rgba(255,160,0,.2);border:1px solid rgba(255,160,0,.4);border-radius:12px;padding:12px;text-align:center">
+          <div style="font-size:10px;color:rgba(255,255,255,.6);margin-bottom:4px">KELAS BERAT</div>
+          <div style="font-size:28px;font-weight:900;color:#FFD700">${_kelasObj.kelas}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:3px">${_kelasObj.mn} – ${_kelasObj.mx} kg</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;background:rgba(255,215,0,.08);border-radius:8px;padding:8px 12px;font-size:11px;color:rgba(255,255,255,.7);text-align:center">
+        📋 Sesuai didaftarkan dalam kategori <strong style="color:#FFD700">${_kUsFull.label} · Kelas ${_kelasObj.kelas}</strong>
+      </div>` : `
+      <div style="text-align:center;padding:12px;color:rgba(255,255,255,.4);font-size:12px">
+        ${!berat ? '⚠️ Isi berat anak terlebih dahulu untuk dapatkan kelas pertandingan' : '❓ Kelas pertandingan tidak dijumpai — semak berat semula'}
+      </div>`}
+    </div>
+
     <div class="kad">
       <div class="kad-tajuk">📊 Indeks Jisim Badan (BMI)</div>
       ${bmi?`<div style="display:flex;align-items:center;gap:16px;margin-bottom:10px">
