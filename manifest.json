@@ -1,16 +1,35 @@
 {
-  "name": "SilatApp — Sri Gayong Panglima Ulung",
-  "short_name": "SilatApp",
-  "description": "Sistem Pengurusan Gelanggang Sri Gayong Panglima Ulung",
-  "start_url": "./index.html",
+  "name": "Seri Mutiara App",
+  "short_name": "SeriMutiara",
+  "description": "Sistem Pengurusan Gelanggang Seri Mutiara Gegak Gempita",
+  "start_url": "/silatapp/",
+  "scope": "/silatapp/",
   "display": "standalone",
-  "background_color": "#085041",
-  "theme_color": "#1D9E75",
-  "orientation": "portrait-primary",
+  "orientation": "portrait",
+  "background_color": "#0D0528",
+  "theme_color": "#0D0528",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
-  ],
-  "categories": ["education", "productivity"],
-  "lang": "ms"
+    {
+      "src": "favicon-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "apple-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
