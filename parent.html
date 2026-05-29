@@ -795,6 +795,44 @@ function mainVid(id,link) {
 
 
 
+
+// ── Data Kelas Berat Standard ─────────────────────────────────
+// Data TEPAT dari Sheet RUJUKAN — dikemaskini terus dari Google Sheets
+const RUJUKAN_BERAT_P = [
+  // PRA TUNAS (5-6 TAHUN)
+  {kat:'PRA TUNAS',mn:15,mx:18,kelas:'A'},{kat:'PRA TUNAS',mn:18,mx:21,kelas:'B'},{kat:'PRA TUNAS',mn:21,mx:24,kelas:'C'},
+  // TUNAS (7-8 TAHUN)
+  {kat:'TUNAS',mn:16,mx:19,kelas:'A'},{kat:'TUNAS',mn:19,mx:22,kelas:'B'},{kat:'TUNAS',mn:22,mx:25,kelas:'C'},{kat:'TUNAS',mn:25,mx:28,kelas:'D'},{kat:'TUNAS',mn:28,mx:31,kelas:'E'},{kat:'TUNAS',mn:31,mx:999,kelas:'BEBAS'},
+  // PRA DINI (9-10 TAHUN)
+  {kat:'PRA DINI',mn:18,mx:21,kelas:'A'},{kat:'PRA DINI',mn:21,mx:24,kelas:'B'},{kat:'PRA DINI',mn:24,mx:27,kelas:'C'},{kat:'PRA DINI',mn:27,mx:30,kelas:'E'},{kat:'PRA DINI',mn:30,mx:33,kelas:'F'},{kat:'PRA DINI',mn:33,mx:999,kelas:'BEBAS'},
+  // DINI (11-12 TAHUN)
+  {kat:'DINI',mn:24,mx:28,kelas:'A'},{kat:'DINI',mn:28,mx:32,kelas:'B'},{kat:'DINI',mn:32,mx:36,kelas:'C'},{kat:'DINI',mn:36,mx:40,kelas:'D'},{kat:'DINI',mn:40,mx:44,kelas:'E'},{kat:'DINI',mn:44,mx:48,kelas:'F'},{kat:'DINI',mn:48,mx:52,kelas:'G'},{kat:'DINI',mn:52,mx:56,kelas:'H'},{kat:'DINI',mn:56,mx:60,kelas:'I'},{kat:'DINI',mn:60,mx:999,kelas:'BEBAS'},
+  // PRA REMAJA (13-14 TAHUN)
+  {kat:'PRA REMAJA',mn:33,mx:37,kelas:'A'},{kat:'PRA REMAJA',mn:37,mx:41,kelas:'B'},{kat:'PRA REMAJA',mn:41,mx:45,kelas:'C'},{kat:'PRA REMAJA',mn:45,mx:49,kelas:'D'},{kat:'PRA REMAJA',mn:49,mx:53,kelas:'E'},{kat:'PRA REMAJA',mn:53,mx:57,kelas:'F'},{kat:'PRA REMAJA',mn:57,mx:61,kelas:'G'},{kat:'PRA REMAJA',mn:61,mx:65,kelas:'H'},{kat:'PRA REMAJA',mn:65,mx:999,kelas:'BEBAS'},
+  // REMAJA (15-16 TAHUN)
+  {kat:'REMAJA',mn:39,mx:43,kelas:'A'},{kat:'REMAJA',mn:43,mx:47,kelas:'B'},{kat:'REMAJA',mn:47,mx:51,kelas:'C'},{kat:'REMAJA',mn:51,mx:55,kelas:'D'},{kat:'REMAJA',mn:55,mx:59,kelas:'E'},{kat:'REMAJA',mn:59,mx:63,kelas:'F'},{kat:'REMAJA',mn:63,mx:67,kelas:'G'},{kat:'REMAJA',mn:67,mx:71,kelas:'H'},{kat:'REMAJA',mn:71,mx:75,kelas:'I'},{kat:'REMAJA',mn:75,mx:999,kelas:'BEBAS'},
+  // SUKMA (16-20 TAHUN)
+  {kat:'SUKMA',mn:45,mx:50,kelas:'A'},{kat:'SUKMA',mn:50,mx:55,kelas:'B'},{kat:'SUKMA',mn:55,mx:60,kelas:'C'},{kat:'SUKMA',mn:60,mx:65,kelas:'D'},{kat:'SUKMA',mn:65,mx:70,kelas:'E'},{kat:'SUKMA',mn:70,mx:75,kelas:'F'},{kat:'SUKMA',mn:75,mx:80,kelas:'G'},{kat:'SUKMA',mn:80,mx:85,kelas:'H'},{kat:'SUKMA',mn:85,mx:999,kelas:'BEBAS'},
+  // TERBUKA (21-35 TAHUN)
+  {kat:'TERBUKA',mn:45,mx:50,kelas:'A'},{kat:'TERBUKA',mn:50,mx:55,kelas:'B'},{kat:'TERBUKA',mn:55,mx:60,kelas:'C'},{kat:'TERBUKA',mn:60,mx:65,kelas:'D'},{kat:'TERBUKA',mn:65,mx:70,kelas:'E'},{kat:'TERBUKA',mn:70,mx:75,kelas:'F'},{kat:'TERBUKA',mn:75,mx:80,kelas:'G'},{kat:'TERBUKA',mn:80,mx:85,kelas:'H'},{kat:'TERBUKA',mn:85,mx:999,kelas:'BEBAS'},
+  // MASTER 2 (35-45 TAHUN)
+  {kat:'MASTER 2',mn:45,mx:50,kelas:'A'},{kat:'MASTER 2',mn:50,mx:55,kelas:'B'},{kat:'MASTER 2',mn:55,mx:60,kelas:'C'},{kat:'MASTER 2',mn:60,mx:65,kelas:'D'},{kat:'MASTER 2',mn:65,mx:70,kelas:'E'},{kat:'MASTER 2',mn:70,mx:75,kelas:'F'},{kat:'MASTER 2',mn:75,mx:80,kelas:'G'},{kat:'MASTER 2',mn:80,mx:85,kelas:'H'},{kat:'MASTER 2',mn:85,mx:90,kelas:'I'},{kat:'MASTER 2',mn:90,mx:95,kelas:'J'},{kat:'MASTER 2',mn:95,mx:999,kelas:'BEBAS'},
+  // MASTER 1 (45 TAHUN KE ATAS)
+  {kat:'MASTER 1',mn:45,mx:50,kelas:'A'},{kat:'MASTER 1',mn:50,mx:55,kelas:'B'},{kat:'MASTER 1',mn:55,mx:60,kelas:'C'},{kat:'MASTER 1',mn:60,mx:65,kelas:'D'},{kat:'MASTER 1',mn:65,mx:70,kelas:'E'},{kat:'MASTER 1',mn:70,mx:75,kelas:'F'},{kat:'MASTER 1',mn:75,mx:80,kelas:'G'},{kat:'MASTER 1',mn:80,mx:85,kelas:'H'},{kat:'MASTER 1',mn:85,mx:90,kelas:'I'},{kat:'MASTER 1',mn:90,mx:95,kelas:'J'},{kat:'MASTER 1',mn:95,mx:999,kelas:'BEBAS'},
+];
+function cariKelasP(katLabel, berat) {
+  const b=parseFloat(berat)||0; if(!b||!katLabel) return null;
+  return RUJUKAN_BERAT_P.find(r=>r.kat===katLabel&&b>=r.mn&&b<r.mx)||null;
+}
+function katUsiaP(u) {
+  if(!u) return null;
+  if(u<=6) return {label:'PRA TUNAS',had:'5-6 tahun'};if(u<=8) return {label:'TUNAS',had:'7-8 tahun'};
+  if(u<=10) return {label:'PRA DINI',had:'9-10 tahun'};if(u<=12) return {label:'DINI',had:'11-12 tahun'};
+  if(u<=14) return {label:'PRA REMAJA',had:'13-14 tahun'};if(u<=16) return {label:'REMAJA',had:'15-16 tahun'};
+  if(u<=20) return {label:'SUKMA',had:'16-20 tahun'};if(u<=35) return {label:'TERBUKA',had:'21-35 tahun'};
+  return {label:'MASTER',had:'35+ tahun'};
+}
+
 // ── Isu 8: Notifikasi Tunggakan ──────────────────────────────
 async function semakTunggakanParent() {
   if(!dataAnak) return;
