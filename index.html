@@ -717,7 +717,7 @@ function tutupPage() {
 
 // ── Isu 3: ANALISIS ──────────────────────────────────────────
 async function renderAnalisis() {
-  const main = document.getElementById('main');
+  const main = getMain();
   const subHeader = document.getElementById('sub-header-title');
   if(subHeader) subHeader.textContent='📊 Analisis';
   main.innerHTML = '<div class="muat"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Memuatkan data...</div>';
@@ -811,11 +811,25 @@ async function renderAnalisis() {
             <div style="color:var(--muted);font-size:11px;padding:20px">Memuatkan...</div>
           </div>
         </div>
+
+        <!-- Senarai Kelas Berat -->
+        <div class="kad" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div class="kad-tajuk" style="margin-bottom:0">🏆 Senarai Kelas Berat Pesilat</div>
+            <button onclick="muatTurunSenaraiBeratPDF()" style="background:linear-gradient(135deg,var(--c1),var(--c2));border:none;color:#fff;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px">
+              <i class="ti ti-download"></i> PDF
+            </button>
+          </div>
+          <div id="senarai-kelas-berat">
+            <div style="color:var(--muted);font-size:12px;text-align:center;padding:10px"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Memuatkan...</div>
+          </div>
+        </div>
       </div>
     `;
-    // Load yuran chart selepas render
+    // Load charts selepas render
     muatChartYuran(BULAN_S, tahun);
     muatChartHadir(BULAN_S, tahun);
+    setTimeout(muatSenaraiKelasBerat, 800);
   } catch(e) {
     main.innerHTML = '<div class="kosong"><i class="ti ti-alert-circle"></i><p>Gagal muatkan analisis: '+e.message+'</p></div>';
   }
@@ -989,6 +1003,80 @@ document.addEventListener('click', e=>{
     document.getElementById('panel-carian-global')?.remove();
 });
 
+
+// ── Utiliti Kelas Berat & Kategori ───────────────────────────
+function kiraUsiaDariTarikh(tarikh, noKp) {
+  let tL = null;
+  if (tarikh && tarikh.length >= 6) tL = new Date(tarikh);
+  else if (noKp && noKp.length >= 12) {
+    const yy=parseInt(noKp.substring(0,2));
+    tL = new Date((yy<=30?2000+yy:1900+yy)+'-'+noKp.substring(2,4)+'-'+noKp.substring(4,6));
+  }
+  if (!tL || isNaN(tL)) return null;
+  const now = new Date();
+  let u = now.getFullYear() - tL.getFullYear();
+  if (now.getMonth()<tL.getMonth()||(now.getMonth()===tL.getMonth()&&now.getDate()<tL.getDate())) u--;
+  return u;
+}
+function katUsiaLabel(usia) {
+  if (!usia) return null;
+  if (usia<=6)  return {label:'PRA TUNAS',  had:'5-6 tahun'};
+  if (usia<=8)  return {label:'TUNAS',       had:'7-8 tahun'};
+  if (usia<=10) return {label:'PRA DINI',    had:'9-10 tahun'};
+  if (usia<=12) return {label:'DINI',        had:'11-12 tahun'};
+  if (usia<=14) return {label:'PRA REMAJA',  had:'13-14 tahun'};
+  if (usia<=16) return {label:'REMAJA',      had:'15-16 tahun'};
+  if (usia<=20) return {label:'SUKMA',       had:'16-20 tahun'};
+  if (usia<=35) return {label:'TERBUKA',     had:'21-35 tahun'};
+  if (usia<=45) return {label:'MASTER 2',    had:'35-45 tahun'};
+  return          {label:'MASTER 1',          had:'45+ tahun'};
+}
+function warnaBMIAdmin(b) {
+  if(!b) return '#9E9E9E';
+  if(b<18.5) return '#2979FF'; if(b<23) return '#00E676';
+  if(b<27.5) return '#FF9100'; return '#FF1744';
+}
+function labelBMIAdmin(b) {
+  if(!b) return '—';
+  if(b<18.5) return 'Kurus'; if(b<23) return 'Normal (Sihat)';
+  if(b<27.5) return 'Berat Berlebihan'; return 'Obes';
+}
+
+
+function janaHtmlFizikal(tarikh, noKp, beratRaw, tinggiRaw) {
+  const usia  = kiraUsiaDariTarikh(tarikh, noKp);
+  const katU  = katUsiaLabel(usia);
+  const berat = parseFloat(beratRaw)||0;
+  const tinggi= parseFloat(tinggiRaw)||0;
+  const bmi   = (berat&&tinggi) ? Math.round(berat/Math.pow(tinggi/100,2)*10)/10 : null;
+  const wBMI  = warnaBMIAdmin(bmi);
+  let h = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
+  h += '<div style="background:rgba(108,99,255,.12);border:1px solid rgba(108,99,255,.3);border-radius:12px;padding:12px;text-align:center">';
+  h += '<div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px">KATEGORI USIA</div>';
+  h += '<div style="font-size:16px;font-weight:800;color:#6C63FF">' + (katU?.label||'—') + '</div>';
+  h += '<div style="font-size:10px;color:var(--muted);margin-top:2px">' + (usia||'?') + ' tahun (' + (katU?.had||'—') + ')</div></div>';
+  h += '<div style="background:rgba(255,160,0,.12);border:1px solid rgba(255,160,0,.3);border-radius:12px;padding:12px;text-align:center">';
+  h += '<div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px">BERAT &amp; TINGGI</div>';
+  h += '<div style="font-size:16px;font-weight:800;color:#FFB300">' + (berat||'—') + ' kg</div>';
+  h += '<div style="font-size:10px;color:var(--muted);margin-top:2px">Tinggi: ' + (tinggi||'—') + ' cm</div></div>';
+  h += '<div style="background:rgba(0,230,118,.12);border:1px solid rgba(0,230,118,.3);border-radius:12px;padding:12px;grid-column:1/-1">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
+  h += '<div><div style="font-size:10px;color:var(--muted);font-weight:600">BMI (INDEKS JISIM BADAN)</div>';
+  h += '<div style="font-size:22px;font-weight:800;color:' + wBMI + '">' + (bmi||'—') + '</div>';
+  h += '<div style="font-size:11px;color:' + wBMI + '">' + labelBMIAdmin(bmi) + '</div></div>';
+  h += '<div style="text-align:right"><div style="font-size:10px;color:var(--muted)">Formula: berat/(tinggi/100)²</div></div></div>';
+  if (bmi) {
+    h += '<div style="height:8px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden">';
+    h += '<div style="height:100%;border-radius:99px;background:' + wBMI + ';width:' + Math.min(100,Math.round(bmi/40*100)) + '%"></div></div>';
+    h += '<div style="display:flex;justify-content:space-between;font-size:9px;color:rgba(255,255,255,.3);margin-top:4px">';
+    h += '<span>Kurus</span><span>Normal</span><span>Lebih</span><span>Obes</span></div>';
+  } else {
+    h += '<div style="font-size:11px;color:var(--muted)">Kemaskini berat &amp; tinggi untuk kira BMI</div>';
+  }
+  h += '</div></div>';
+  return h;
+}
+
 // ── Isu 2: Cache API ─────────────────────────────────────────
 const _apiCache = {};
 async function apiC(tindakan, params={}, ttl=180) {
@@ -1000,6 +1088,131 @@ async function apiC(tindakan, params={}, ttl=180) {
 }
 function clearApiCache(prefix='') {
   Object.keys(_apiCache).forEach(k=>{ if(!prefix||k.startsWith(prefix)) delete _apiCache[k]; });
+}
+
+
+async function muatSenaraiKelasBerat() {
+  const el = document.getElementById('senarai-kelas-berat');
+  if (!el) return;
+  try {
+    const [ahli, rujukan] = await Promise.all([
+      apiC('senarai_ahli_bmi',{},180),
+      apiC('silibus_rujukan',{},600)
+    ]);
+    // Kumpul ikut kategori usia
+    const kumpulan = {};
+    ahli.forEach(a=>{
+      const usia = kiraUsiaDariTarikh(a.TARIKH_LAHIR||a.tarikh_lahir, a.NO_KP||a.no_kp);
+      const katU = katUsiaLabel(usia);
+      if (!katU) return;
+      const berat = parseFloat(a.BERAT_KG||a.berat_kg)||0;
+      const tinggi = parseFloat(a.TINGGI_CM||a.tinggi_cm)||0;
+      const bmi = (berat&&tinggi)?Math.round(berat/Math.pow(tinggi/100,2)*10)/10:null;
+      // Cari kelas
+      let kelas='—';
+      for(const r of rujukan){
+        if(!(r.KATEGORI_USIA||'').toUpperCase().includes(katU.label)) continue;
+        const mn=parseFloat(r['BERAT_MIN_(KG)']||r.BERAT_MIN||0);
+        const mx=parseFloat(r['BERAT_MAX_(KG)']||r.BERAT_MAX||999);
+        if(berat>=mn&&berat<mx){kelas=r.KELAS;break;}
+      }
+      const k = katU.label;
+      if (!kumpulan[k]) kumpulan[k]={had:katU.had, ahli:[]};
+      kumpulan[k].ahli.push({nama:a.NAMA_PENUH||a.nama, berat, tinggi, bmi, kelas, wBMI:warnaBMIAdmin(bmi)});
+    });
+    let html = '';
+    Object.entries(kumpulan).forEach(([kat,{had,ahli:list}])=>{
+      html += '<div style="margin-bottom:12px">';
+      html += '<div style="font-size:11px;font-weight:700;color:#FFD700;text-transform:uppercase;margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid rgba(255,215,0,.2)">'+kat+' ('+had+')</div>';
+      html += '<div style="display:grid;gap:4px">';
+      list.sort((a,b)=>(a.berat||0)-(b.berat||0)).forEach(p=>{
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;background:rgba(255,255,255,.04);border-radius:8px">';
+        html += '<div style="flex:1;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.nama+'</div>';
+        html += '<div style="font-size:11px;color:var(--muted);flex-shrink:0">'+(p.berat||'—')+'kg</div>';
+        html += '<div style="font-size:11px;color:'+(p.wBMI||'#888')+';flex-shrink:0">'+(p.bmi||'—')+'</div>';
+        html += '<div style="background:rgba(255,215,0,.15);border:1px solid rgba(255,215,0,.3);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;color:#FFD700;flex-shrink:0">'+p.kelas+'</div>';
+        html += '</div>';
+      });
+      html += '</div></div>';
+    });
+    el.innerHTML = html || '<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">Tiada data berat pesilat</div>';
+  } catch(e){if(el)el.innerHTML='<div style="font-size:11px;color:var(--muted);padding:8px">Gagal: '+e.message+'</div>';}
+}
+
+async function muatTurunSenaraiBeratPDF() {
+  tunjukToast('⏳ Menjana PDF senarai berat...', 'ok');
+  try {
+    const {jsPDF} = window.jspdf;
+    const doc = new jsPDF('p','mm','a4');
+    const W=210;
+    // Muat data
+    const [ahli, rujukan] = await Promise.all([
+      apiC('senarai_ahli_bmi',{},180),
+      apiC('silibus_rujukan',{},600)
+    ]);
+    // Header
+    doc.setFillColor(8,80,65);doc.rect(0,0,W,38,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFontSize(14);doc.setFont('helvetica','bold');
+    doc.text('SENARAI KELAS BERAT PESILAT',W/2,16,{align:'center'});
+    doc.setFontSize(9);doc.setFont('helvetica','normal');
+    doc.text('Gelanggang Seri Mutiara Gegak Gempita',W/2,24,{align:'center'});
+    doc.text('Dijana: '+new Date().toLocaleDateString('ms-MY'),W/2,30,{align:'center'});
+    doc.setFillColor(29,158,117);doc.rect(0,36,W,3,'F');
+    // Kumpul data
+    const kumpulan={};
+    ahli.forEach(a=>{
+      const usia=kiraUsiaDariTarikh(a.TARIKH_LAHIR||a.tarikh_lahir,a.NO_KP||a.no_kp);
+      const katU=katUsiaLabel(usia);
+      if(!katU)return;
+      const berat=parseFloat(a.BERAT_KG||a.berat_kg)||0;
+      const tinggi=parseFloat(a.TINGGI_CM||a.tinggi_cm)||0;
+      const bmi=(berat&&tinggi)?Math.round(berat/Math.pow(tinggi/100,2)*10)/10:null;
+      let kelas='—';
+      for(const r of rujukan){
+        if(!(r.KATEGORI_USIA||'').toUpperCase().includes(katU.label))continue;
+        const mn=parseFloat(r['BERAT_MIN_(KG)']||r.BERAT_MIN||0);
+        const mx=parseFloat(r['BERAT_MAX_(KG)']||r.BERAT_MAX||999);
+        if(berat>=mn&&berat<mx){kelas=r.KELAS;break;}
+      }
+      const k=katU.label;
+      if(!kumpulan[k])kumpulan[k]={had:katU.had,ahli:[]};
+      kumpulan[k].ahli.push({nama:a.NAMA_PENUH||a.nama,berat,bmi,kelas});
+    });
+    let y=46;
+    Object.entries(kumpulan).forEach(([kat,{had,ahli:list}])=>{
+      if(y>260){doc.addPage();y=20;}
+      // Header kategori
+      doc.setFillColor(8,80,65);doc.roundedRect(10,y,W-20,8,2,2,'F');
+      doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont('helvetica','bold');
+      doc.text(kat+' ('+had+')',14,y+5.5);y+=12;
+      // Header jadual
+      doc.setFillColor(240,249,246);doc.rect(10,y,W-20,6,'F');
+      doc.setTextColor(8,80,65);doc.setFontSize(7.5);doc.setFont('helvetica','bold');
+      doc.text('BIL',13,y+4.5);doc.text('NAMA PESILAT',22,y+4.5);
+      doc.text('BERAT',130,y+4.5);doc.text('BMI',148,y+4.5);doc.text('KELAS',162,y+4.5);y+=8;
+      // Data
+      list.sort((a,b)=>(a.berat||0)-(b.berat||0)).forEach((p,i)=>{
+        if(y>278){doc.addPage();y=20;}
+        if(i%2===0){doc.setFillColor(250,250,250);doc.rect(10,y,W-20,6,'F');}
+        doc.setTextColor(40,40,40);doc.setFont('helvetica','normal');doc.setFontSize(7.5);
+        doc.text(String(i+1),13,y+4.5);
+        doc.text(doc.splitTextToSize(p.nama,100)[0]||p.nama,22,y+4.5);
+        doc.text(p.berat?p.berat+'kg':'—',130,y+4.5);
+        doc.text(p.bmi?String(p.bmi):'—',148,y+4.5);
+        doc.setFont('helvetica','bold');doc.setTextColor(8,80,65);
+        doc.text(p.kelas,162,y+4.5);y+=6;
+      });
+      y+=6;
+    });
+    // Footer
+    const yF=H=doc.internal.pageSize.height-12;
+    doc.setFillColor(8,80,65);doc.rect(0,yF,W,12,'F');
+    doc.setTextColor(255,255,255);doc.setFontSize(7);doc.setFont('helvetica','normal');
+    doc.text('Seri Mutiara Apps · Ilmu · Adab · Keberanian · Petua · Persilatan · Warisan',W/2,yF+8,{align:'center'});
+    doc.save('SenaraiBerat_SeriMutiara_'+new Date().getFullYear()+'.pdf');
+    tunjukToast('✅ PDF senarai berat dimuat turun!','ok');
+  }catch(e){tunjukToast('Gagal jana PDF: '+e.message,'ralat');}
 }
 
 // ── PDPA Utilities ────────────────────────────────────────────
@@ -1216,6 +1429,14 @@ async function renderProfilAhli() {
       </div>
 
       <div class="kad">
+        <div class="seksyen-tajuk" style="margin-top:0">⚖️ Info Fizikal & Pertandingan</div>
+        ${janaHtmlFizikal(a.TARIKH_LAHIR, a.NO_KP, a.BERAT_KG, a.TINGGI_CM)}
+        <div id="info-kelas-berat" style="background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);border-radius:10px;padding:10px;font-size:12px;color:var(--muted)">
+          <i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Mencari kelas pertandingan...
+        </div>
+      </div>
+
+      <div class="kad">
         <div class="seksyen-tajuk" style="margin-top:0">Kehadiran ${tahunSkrg}</div>
         <div class="kad-row" style="margin-bottom:0">
           <div class="stat-kad g"><div class="stat-num" style="color:var(--pri)">${stat.hadir}</div><div class="stat-lbl">Hadir</div></div>
@@ -1243,10 +1464,48 @@ async function renderProfilAhli() {
         <button class="btn btn-outline" style="grid-column:1/-1;border-color:var(--c2);color:var(--c2)" onclick="bukaModalBerat('${a.NO_KP}','${a.NAMA_PENUH}','${a.BERAT_KG||''}','${a.TINGGI_CM||''}',${`kiraUsiaDariKP('${a.TARIKH_LAHIR}','${a.NO_KP}')`})"><i class="ti ti-weight"></i> Kemaskini Berat & Tinggi</button>
       </div>
     `;
+    // Load kelas berat selepas render
+    setTimeout(()=>loadKelasBeratProfil(a.TARIKH_LAHIR, a.NO_KP, a.BERAT_KG), 400);
   } catch (e) {
     main.innerHTML = `<div class="kosong"><i class="ti ti-alert-circle"></i><p>${e.message}</p><button class="btn btn-outline" onclick="kembali()">Kembali</button></div>`;
   }
 }
+
+async function loadKelasBeratProfil(tarikh, noKp, berat) {
+  const el = document.getElementById('info-kelas-berat');
+  if (!el) return;
+  const usia = kiraUsiaDariTarikh(tarikh, noKp);
+  const katU = katUsiaLabel(usia);
+  const beratKg = parseFloat(berat)||0;
+  if (!katU || !beratKg) {
+    el.innerHTML = '<span style="color:var(--c4)">⚠️ Kemaskini berat untuk dapatkan kelas pertandingan.</span>';
+    return;
+  }
+  try {
+    const rujukan = await apiC('silibus_rujukan',{},600);
+    let kelasFound = null;
+    for (const r of rujukan) {
+      if (!(r.KATEGORI_USIA||'').toUpperCase().includes(katU.label)) continue;
+      const mn = parseFloat(r['BERAT_MIN_(KG)']||r.BERAT_MIN||0);
+      const mx = parseFloat(r['BERAT_MAX_(KG)']||r.BERAT_MAX||999);
+      if (beratKg>=mn && beratKg<mx) { kelasFound=r; break; }
+    }
+    if (kelasFound) {
+      const mn = parseFloat(kelasFound['BERAT_MIN_(KG)']||kelasFound.BERAT_MIN||0);
+      const mx = parseFloat(kelasFound['BERAT_MAX_(KG)']||kelasFound.BERAT_MAX||999);
+      el.innerHTML = '<div style="display:flex;align-items:center;gap:14px">' +
+        '<div style="font-size:32px;font-weight:900;color:#FFD700;background:rgba(255,215,0,.1);border-radius:10px;padding:6px 16px;border:2px solid rgba(255,215,0,.3)">' + kelasFound.KELAS + '</div>' +
+        '<div><div style="font-size:12px;color:#FFD700;font-weight:700;margin-bottom:2px">🏆 KELAS PERTANDINGAN</div>' +
+        '<div style="font-size:13px;font-weight:600;color:#fff">' + katU.label + ' · ' + mn + 'kg – ' + (mx>=900?'Terbuka':mx+'kg') + '</div>' +
+        '<div style="font-size:10px;color:var(--muted);margin-top:2px">Sesuai didaftarkan dalam kategori ini</div></div></div>';
+    } else {
+      el.innerHTML = '<span style="font-size:12px;color:var(--muted)">Kategori: ' + katU.label + ' · Kelas tidak dijumpai. Semak berat semula.</span>';
+    }
+  } catch(e2) { el.innerHTML='<span style="font-size:11px;color:var(--muted)">Gagal muatkan rujukan kelas</span>'; }
+}
+
+// Tambah loadKelasBeratProfil selepas render renderProfilAhli
+// (dipanggil dari setTimeout dalam renderProfilAhli)
 
 // ── HALAMAN: Kehadiran ───────────────────────────────────────
 async function renderKehadiran() {
