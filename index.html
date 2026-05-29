@@ -848,11 +848,12 @@ async function muatChartYuran(BULAN_S, tahun) {
   if(!el) return;
   try {
     const data = await apiC('ringkasan_kewangan',{tahun});
-    const bulanData = data?.kutipan_bulanan || [];
-    const maxVal = Math.max(...bulanData.map(b=>b.jumlah||0), 1);
+    // Sokong format lama (ikut_bulan) dan baru (kutipan_bulanan)
+    const bulanData = data?.kutipan_bulanan || data?.ikut_bulan || [];
+    const maxVal = Math.max(...bulanData.map(b=>b.jumlah||b.masuk||0), 1);
     el.innerHTML = BULAN_S.map((b,i)=>{
-      const rec = bulanData.find(r=>r.bulan_idx===i+1||r.bulan===b);
-      const val = rec?.jumlah||0;
+      const rec = bulanData.find(r=>(r.bulan_idx===i+1)||(r.bulan===b)||(r.bulan_idx===i+1));
+      const val = rec ? (rec.jumlah||rec.masuk||0) : 0;
       const h = Math.max(4, Math.round((val/maxVal)*76));
       const w = i<=new Date().getMonth() ? '#00E676' : 'rgba(255,255,255,.1)';
       return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
@@ -870,9 +871,12 @@ async function muatChartHadir(BULAN_S, tahun) {
   if(!el) return;
   try {
     const data = await apiC('statistik_kehadiran',{tahun});
-    const bulanData = data?.ikut_bulan || {};
+    // ikut_bulan boleh jadi object atau array
+    const bulanRaw = data?.ikut_bulan || {};
+    const getBulan = (i) => Array.isArray(bulanRaw) ? bulanRaw[i] : bulanRaw[i+1];
     el.innerHTML = BULAN_S.map((b,i)=>{
-      const pct = bulanData[i+1]?.peratus || 0;
+      const rec = getBulan(i);
+      const pct = rec?.peratus || 0;
       const h = Math.max(4, Math.round(pct*0.76));
       const w = pct>=80?'#00E676':pct>=60?'#FFD700':'#FF4444';
       return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
@@ -1136,17 +1140,19 @@ async function muatSenaraiKelasBerat() {
     // Kumpul ikut kategori usia - guna hardcode berat
     const kumpulan = {};
     ahli.forEach(a=>{
-      const usia = kiraUsiaDariTarikh(a.TARIKH_LAHIR||a.tarikh_lahir, a.NO_KP||a.no_kp);
+      const usia = kiraUsiaDariTarikh(a.TARIKH_LAHIR||a.tarikh_lahir||a.tarikh_daftar, a.NO_KP||a.no_kp);
       const katU = katUsiaLabel(usia);
       if (!katU) return;
-      const berat = parseFloat(a.BERAT_KG||a.berat_kg||a['BERAT KG'])||0;
-      const tinggi = parseFloat(a.TINGGI_CM||a.tinggi_cm||a['TINGGI CM'])||0;
+      // Handle semua format field name dari API
+      const berat  = parseFloat(a.BERAT_KG||a.berat_kg||a.berat||a.BERAT||0)||0;
+      const tinggi = parseFloat(a.TINGGI_CM||a.tinggi_cm||a.tinggi||a.TINGGI||0)||0;
       const bmi = (berat&&tinggi)?Math.round(berat/Math.pow(tinggi/100,2)*10)/10:null;
       const kelasDapat = cariKelasBeratHardcode(katU.label, berat);
       const kelas = kelasDapat ? kelasDapat.kelas : (berat ? '?' : '—');
+      const nmA = a.NAMA_PENUH||a.nama_penuh||a.nama||a.NAMA||'—';
       const k = katU.label;
       if (!kumpulan[k]) kumpulan[k]={had:katU.had, ahli:[]};
-      kumpulan[k].ahli.push({nama:a.NAMA_PENUH||a.nama||a.NAMA, berat, tinggi, bmi, kelas, wBMI:warnaBMIAdmin(bmi)});
+      kumpulan[k].ahli.push({nama:nmA, berat, tinggi, bmi, kelas, wBMI:warnaBMIAdmin(bmi)});
     });
     let html = '';
     Object.entries(kumpulan).forEach(([kat,{had,ahli:list}])=>{
@@ -1786,17 +1792,19 @@ function renderSenaraiYuran() {
     const safeKp = (a.no_kp||'').toString();
     const safeNama = (a.nama||'').replace(/'/g,"\'");
     if (a.sudah_bayar) {
-      return `<div class="senarai-item" style="cursor:default;border-left:3px solid var(--c3)">
-        <div class="avatar" style="background:rgba(0,200,83,.2);color:var(--c3)">${(a.nama||'?')[0]}</div>
-        <div class="item-info">
-          <div class="item-nama">${a.nama}</div>
-          <div class="item-sub">${kat}</div>
-        </div>
-        <div style="text-align:right">
-          <span class="badge hijau">✅ RM${parseFloat(a.jumlah||0).toFixed(0)}</span>
-          ${a.tarikh_bayar?`<div style="font-size:9px;color:var(--muted);margin-top:3px">${a.tarikh_bayar}</div>`:''}
-        </div>
-      </div>`;
+      const nmSudah = String(a.nama||'—');
+      const tBayar = a.tarikh_bayar ? fmtTarikh(a.tarikh_bayar) : '—';
+      return '<div class="senarai-item" style="cursor:default;border-left:3px solid var(--c3)">' +
+        '<div class="avatar" style="background:rgba(0,200,83,.2);color:var(--c3)">' + nmSudah[0] + '</div>' +
+        '<div class="item-info" style="flex:1;min-width:0">' +
+          '<div class="item-nama" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + nmSudah + '</div>' +
+          '<div class="item-sub">' + kat + '</div>' +
+        '</div>' +
+        '<div style="text-align:right;flex-shrink:0">' +
+          '<span class="badge hijau">✅ RM' + parseFloat(a.jumlah||0).toFixed(0) + '</span>' +
+          '<div style="font-size:10px;color:var(--muted);margin-top:3px">' + tBayar + '</div>' +
+        '</div>' +
+      '</div>';
     } else {
       return `<div style="background:rgba(255,255,255,.04);border-radius:12px;margin-bottom:6px;overflow:hidden;border:1px solid rgba(255,255,255,.08)">
         <div style="display:flex;align-items:center;gap:10px;padding:12px 14px">
