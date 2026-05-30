@@ -2681,25 +2681,30 @@ async function simpanEditAhli(noKp) {
 async function padamAhliKonfirm(noKp, nama) {
   const sebab = prompt(
     '⚠️ PADAM PESILAT\n\n' + nama + '\n\n' +
-    'Masukkan sebab pemadaman:\n' +
-    '(cth: Berpindah, Berhenti, Tamat keahlian)',
+    'Masukkan sebab:\n(cth: Berpindah, Berhenti)',
     'Berpindah tempat tinggal'
   );
   if (!sebab) return;
-  if (!confirm('Sahkan padam ' + nama + '?\n\nSebab: ' + sebab + '\n\nPersilat akan diset sebagai TIDAK AKTIF.')) return;
+  if (!confirm('Sahkan padam ' + nama + '?\nSebab: ' + sebab)) return;
+  tunjukToast('⏳ Memproses...', 'ok');
   try {
-    // Guna kemaskini_ahli (endpoint sedia ada) — set STATUS = TIDAK AKTIF
-    await apiPost({
-      tindakan: 'kemaskini_ahli',
-      no_kp: noKp,
-      STATUS: 'TIDAK AKTIF',
-      CATATAN: '[BERHENTI ' + new Date().toLocaleDateString('ms-MY') + ': ' + sebab + ']'
-    });
-    tunjukToast('✅ ' + nama.split(' ')[0] + ' telah dipadamkan dari senarai aktif', 'ok');
+    // Guna GET request (api biasa) — lebih selamat dari apiPost
+    await api('set_tidak_aktif', {no_kp: noKp, sebab: encodeURIComponent(sebab)});
+    tunjukToast('✅ ' + nama.split(' ')[0] + ' dipadamkan dari senarai aktif', 'ok');
     dataAhliCache = null;
     clearApiCache();
-    tutupPage();
-  } catch(e) { tunjukToast('Gagal: ' + e.message, 'ralat'); }
+    setTimeout(tutupPage, 1000);
+  } catch(e) {
+    // Cuba kaedah alternatif jika GET gagal
+    try {
+      await apiPost({tindakan:'berhenti_ahli', no_kp: noKp, sebab});
+      tunjukToast('✅ ' + nama.split(' ')[0] + ' dipindah ke arkib', 'ok');
+      dataAhliCache = null; clearApiCache();
+      setTimeout(tutupPage, 1000);
+    } catch(e2) {
+      tunjukToast('Ralat: ' + e2.message, 'ralat');
+    }
+  }
 }
 
 // ── Modal Berat & Tinggi ──────────────────────────────────────
