@@ -2688,7 +2688,13 @@ async function padamAhliKonfirm(noKp, nama) {
   if (!sebab) return;
   if (!confirm('Sahkan padam ' + nama + '?\n\nSebab: ' + sebab + '\n\nPersilat akan diset sebagai TIDAK AKTIF.')) return;
   try {
-    await apiPost({ tindakan: 'padam_ahli', no_kp: noKp, sebab });
+    // Guna kemaskini_ahli (endpoint sedia ada) — set STATUS = TIDAK AKTIF
+    await apiPost({
+      tindakan: 'kemaskini_ahli',
+      no_kp: noKp,
+      STATUS: 'TIDAK AKTIF',
+      CATATAN: '[BERHENTI ' + new Date().toLocaleDateString('ms-MY') + ': ' + sebab + ']'
+    });
     tunjukToast('✅ ' + nama.split(' ')[0] + ' telah dipadamkan dari senarai aktif', 'ok');
     dataAhliCache = null;
     clearApiCache();
