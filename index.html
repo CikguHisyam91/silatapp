@@ -1394,9 +1394,76 @@ async function renderSenaraiAhli() {
     `;
     renderSenarai(ahli);
     tambahFab(() => bukaModal('modal-daftar'));
+    // Semak ada pendaftaran menunggu
+    semakPendaftaranBaru();
   } catch (e) {
     main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p><button class="btn btn-outline" onclick="muatSemula()">Cuba Semula</button></div>`;
   }
+}
+
+async function semakPendaftaranBaru() {
+  try {
+    const senarai = await api('senarai_pendaftaran');
+    if (!senarai.length) return;
+    const el = document.getElementById('senarai-ahli');
+    if (!el) return;
+    const banner = document.createElement('div');
+    banner.style.cssText = 'background:linear-gradient(135deg,rgba(255,160,0,.2),rgba(255,215,0,.1));border:2px solid rgba(255,215,0,.4);border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;cursor:pointer';
+    banner.innerHTML = '<span style="font-size:20px">📋</span>' +
+      '<div style="flex:1"><div style="font-weight:700;color:#FFD700;font-size:13px">'+senarai.length+' Permohonan Baharu Menunggu Semak</div>' +
+      '<div style="font-size:11px;color:var(--muted)">Klik untuk semak dan luluskan</div></div>' +
+      '<i class="ti ti-chevron-right" style="color:#FFD700"></i>';
+    banner.onclick = () => renderSemakPendaftaran(senarai);
+    el.insertBefore(banner, el.firstChild);
+  } catch(e) {}
+}
+
+async function renderSemakPendaftaran(senarai) {
+  const main = getMain();
+  if (!senarai) {
+    main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i></div>';
+    senarai = await api('senarai_pendaftaran');
+  }
+  if (!senarai.length) {
+    tunjukToast('Tiada permohonan menunggu', 'ok');
+    renderSenaraiAhli(); return;
+  }
+  let html = '<div style="margin-bottom:12px"><button class="btn btn-outline" style="font-size:12px;padding:7px 12px" onclick="renderSenaraiAhli()"><i class="ti ti-arrow-left"></i> Kembali</button></div>';
+  html += '<div class="seksyen-tajuk" style="color:#FFD700">📋 Permohonan Pendaftaran Baharu</div>';
+  senarai.forEach(p => {
+    html += '<div class="kad" style="border-color:rgba(255,215,0,.3);margin-bottom:10px">';
+    html += '<div style="font-weight:800;font-size:14px;margin-bottom:4px">' + (p.NAMA_PENUH||'—') + '</div>';
+    html += '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">No. KP: ' + (p.NO_KP||'—') + ' · ' + (p.KATEGORI||'—') + ' · ' + (p.TARIKH_HANTAR||'—') + '</div>';
+    html += '<div style="font-size:12px;margin-bottom:8px">📞 ' + (p.NO_TEL_WARIS||'—') + ' · Waris: ' + (p.NAMA_WARIS||'—') + '</div>';
+    html += '<div style="display:flex;gap:8px">';
+    html += '<button onclick="lulusPendaftaranAdmin(\'' + p.ID + '\')" style="flex:2;padding:9px;background:linear-gradient(135deg,var(--c3),#00C853);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer"><i class="ti ti-check"></i> Luluskan</button>';
+    html += '<button onclick="tolakPendaftaranAdmin(\'' + p.ID + '\')" style="flex:1;padding:9px;background:rgba(255,23,68,.15);border:1px solid rgba(255,23,68,.3);border-radius:8px;color:var(--c6);font-size:12px;font-weight:700;cursor:pointer">Tolak</button>';
+    html += '</div></div>';
+  });
+  main.innerHTML = html;
+}
+
+async function lulusPendaftaranAdmin(id) {
+  if (!confirm('Luluskan permohonan ini? Ahli akan terus didaftarkan.')) return;
+  try {
+    const r = await apiPost({tindakan:'lulus_pendaftaran', id});
+    tunjukToast('✅ ' + r.nama + ' berjaya didaftarkan! (' + r.id_ahli + ')', 'ok');
+    dataAhliCache = null; clearApiCache();
+    const senarai = await api('senarai_pendaftaran');
+    if (senarai.length) renderSemakPendaftaran(senarai);
+    else renderSenaraiAhli();
+  } catch(e) { tunjukToast('Gagal: ' + e.message, 'ralat'); }
+}
+
+async function tolakPendaftaranAdmin(id) {
+  const sebab = prompt('Sebab penolakan:','Maklumat tidak lengkap');
+  if (!sebab) return;
+  try {
+    await apiPost({tindakan:'tolak_pendaftaran', id, sebab});
+    tunjukToast('Permohonan ditolak', 'ok');
+    const senarai = await api('senarai_pendaftaran');
+    renderSemakPendaftaran(senarai);
+  } catch(e) { tunjukToast('Gagal: ' + e.message, 'ralat'); }
 }
 
 function renderSenarai(senarai) {
@@ -2659,23 +2726,31 @@ async function simpanEditAhli(noKp) {
   const jantina = document.getElementById('ea-jantina')?.value;
   const kat     = document.getElementById('ea-kat')?.value;
   const bengkung= document.getElementById('ea-bengkung')?.value;
-  const alamat  = document.getElementById('ea-alamat')?.value;
-  const waris   = document.getElementById('ea-waris')?.value?.trim().toUpperCase();
-  const tel     = document.getElementById('ea-tel')?.value;
-  const catatan = document.getElementById('ea-catatan')?.value;
+  const alamat  = document.getElementById('ea-alamat')?.value||'';
+  const waris   = document.getElementById('ea-waris')?.value?.trim().toUpperCase()||'';
+  const tel     = document.getElementById('ea-tel')?.value||'';
+  const catatan = document.getElementById('ea-catatan')?.value||'';
   if (!nama) { tunjukToast('Nama tidak boleh kosong!', 'ralat'); return; }
+  tunjukToast('⏳ Menyimpan...', 'ok');
   try {
-    await apiPost({
-      tindakan: 'kemaskini_ahli', no_kp: noKp,
-      nama_penuh: nama, jantina, kategori: kat, bengkung_semasa: bengkung,
-      alamat, nama_waris: waris, no_tel_waris: tel, catatan
+    // Guna GET request (lebih selamat)
+    await api('kemaskini_ahli_get', {
+      no_kp    : noKp,
+      nama_penuh : nama,
+      jantina,
+      kategori : kat,
+      bengkung,
+      alamat   : encodeURIComponent(alamat),
+      nama_waris: waris,
+      no_tel   : tel,
+      catatan  : encodeURIComponent(catatan)
     });
     document.getElementById('modal-edit-ahli')?.remove();
     tunjukToast('✅ Maklumat ' + nama.split(' ')[0] + ' dikemaskini!', 'ok');
     dataAhliCache = null;
     clearApiCache();
     renderProfilAhli();
-  } catch(e) { tunjukToast('Gagal: ' + e.message, 'ralat'); }
+  } catch(e) { tunjukToast('Gagal edit: ' + e.message, 'ralat'); }
 }
 
 async function padamAhliKonfirm(noKp, nama) {
