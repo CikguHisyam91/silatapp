@@ -1494,7 +1494,9 @@ async function renderProfilAhli() {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
         <button class="btn btn-pri" onclick="bukaModalYuran('${a.NO_KP}','${a.NAMA_PENUH}')"><i class="ti ti-coin"></i> Rekod Yuran</button>
         <button class="btn btn-outline" onclick="bukaModalGred('${a.NO_KP}','${a.NAMA_PENUH}')"><i class="ti ti-award"></i> Naik Gred</button>
-        <button class="btn btn-outline" style="grid-column:1/-1;border-color:var(--c2);color:var(--c2)" onclick="bukaModalBerat('${a.NO_KP}','${a.NAMA_PENUH}','${a.BERAT_KG||''}','${a.TINGGI_CM||''}',${`kiraUsiaDariKP('${a.TARIKH_LAHIR}','${a.NO_KP}')`})"><i class="ti ti-weight"></i> Kemaskini Berat & Tinggi</button>
+        <button class="btn btn-outline" style="grid-column:1/-1;border-color:var(--c2);color:var(--c2)" onclick="bukaModalBerat('${a.NO_KP}','${a.NAMA_PENUH}','${a.BERAT_KG||''}','${a.TINGGI_CM||''}',kiraUsiaDariKP('${a.TARIKH_LAHIR}','${a.NO_KP}'))"><i class="ti ti-weight"></i> Kemaskini Berat & Tinggi</button>
+        <button class="btn btn-outline" style="border-color:var(--c7);color:var(--c7)" onclick="bukaEditAhli('${a.NO_KP}')"><i class="ti ti-pencil"></i> Edit Maklumat</button>
+        <button class="btn btn-outline" style="border-color:var(--c6);color:var(--c6)" onclick="padamAhliKonfirm('${a.NO_KP}','${a.NAMA_PENUH}')"><i class="ti ti-user-off"></i> Padam Pesilat</button>
       </div>
     `;
     // Load kelas berat selepas render
@@ -2612,6 +2614,86 @@ async function padamSilabus(id) {
     dataSilibus = await api('silibus');
     paparSilibus();
   } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
+}
+
+
+// ── Edit Maklumat Ahli ────────────────────────────────────────
+async function bukaEditAhli(noKp) {
+  try {
+    const a = await api('profil_ahli', {no_kp: noKp});
+    const modal = document.createElement('div');
+    modal.className = 'modal-bg'; modal.id = 'modal-edit-ahli';
+    const BENGKUNG_LIST = ['BENGKUNG HITAM KOSONG (AHLI BAHARU)','BENGKUNG HITAM CULA 1','BENGKUNG HITAM CULA 2','BENGKUNG HITAM CULA 3','BENGKUNG PUTIH','BENGKUNG PUTIH CULA BIRU','BENGKUNG BIRU','BENGKUNG HIJAU','BENGKUNG KUNING','BENGKUNG KUNING CULA HITAM (GURULATIH)','BENGKUNG MERAH','BENGKUNG MERAH CULA KUNING (JURULATIH)'];
+    const KAT_LIST = ['SEKOLAH RENDAH (12 TAHUN KE BAWAH)','SEKOLAH MENENGAH (17 TAHUN KE BAWAH)','DEWASA (18 TAHUN KE ATAS)'];
+    let h = '<div class="modal" style="max-height:92vh;overflow-y:auto">';
+    h += '<div class="modal-tajuk">✏️ Edit Maklumat<div class="modal-tutup" onclick="document.getElementById(&quot;modal-edit-ahli&quot;).remove()"><i class="ti ti-x"></i></div></div>';
+    h += '<div style="font-size:12px;color:var(--muted);margin-bottom:14px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 12px">' + a.NAMA_PENUH + ' · ' + a.NO_KP + '</div>';
+    // Nama
+    h += '<div class="form-kump"><label class="form-label">Nama Penuh</label><input class="form-input" id="ea-nama" type="text" value="' + (a.NAMA_PENUH||'') + '" style="text-transform:uppercase"></div>';
+    // Jantina
+    h += '<div class="form-kump"><label class="form-label">Jantina</label><select class="form-input" id="ea-jantina"><option value="LELAKI"' + (a.JANTINA==='LELAKI'?' selected':'') + '>LELAKI</option><option value="PEREMPUAN"' + (a.JANTINA==='PEREMPUAN'?' selected':'') + '>PEREMPUAN</option></select></div>';
+    // Kategori
+    h += '<div class="form-kump"><label class="form-label">Kategori</label><select class="form-input" id="ea-kat">' + KAT_LIST.map(k=>'<option' + ((a.KATEGORI||'').includes(k.split(' ')[0])?' selected':'') + '>' + k + '</option>').join('') + '</select></div>';
+    // Bengkung
+    h += '<div class="form-kump"><label class="form-label">Bengkung Semasa</label><select class="form-input" id="ea-bengkung">' + BENGKUNG_LIST.map(b=>'<option' + (a.BENGKUNG_SEMASA===b?' selected':'') + '>' + b + '</option>').join('') + '</select></div>';
+    // Alamat
+    h += '<div class="form-kump"><label class="form-label">Alamat</label><textarea class="form-input" id="ea-alamat" rows="2">' + (a.ALAMAT||'') + '</textarea></div>';
+    // Waris
+    h += '<div class="form-kump"><label class="form-label">Nama Waris / Penjaga</label><input class="form-input" id="ea-waris" type="text" value="' + (a.NAMA_WARIS||'') + '" style="text-transform:uppercase"></div>';
+    // Tel
+    h += '<div class="form-kump"><label class="form-label">No. Tel Waris</label><input class="form-input" id="ea-tel" type="tel" value="' + (a.NO_TEL_WARIS||'') + '"></div>';
+    // Catatan
+    h += '<div class="form-kump"><label class="form-label">Catatan</label><input class="form-input" id="ea-catatan" type="text" value="' + (a.CATATAN||'') + '"></div>';
+    h += '<button onclick="simpanEditAhli(\'' + noKp + '\')" class="btn btn-pri btn-blok"><i class="ti ti-device-floppy"></i> Simpan Perubahan</button>';
+    h += '</div>';
+    modal.innerHTML = h;
+    document.body.appendChild(modal);
+    // Show modal
+    requestAnimationFrame(() => modal.classList.add('buka'));
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  } catch(e) { tunjukToast('Gagal muatkan maklumat: ' + e.message, 'ralat'); }
+}
+
+async function simpanEditAhli(noKp) {
+  const nama    = document.getElementById('ea-nama')?.value?.trim().toUpperCase();
+  const jantina = document.getElementById('ea-jantina')?.value;
+  const kat     = document.getElementById('ea-kat')?.value;
+  const bengkung= document.getElementById('ea-bengkung')?.value;
+  const alamat  = document.getElementById('ea-alamat')?.value;
+  const waris   = document.getElementById('ea-waris')?.value?.trim().toUpperCase();
+  const tel     = document.getElementById('ea-tel')?.value;
+  const catatan = document.getElementById('ea-catatan')?.value;
+  if (!nama) { tunjukToast('Nama tidak boleh kosong!', 'ralat'); return; }
+  try {
+    await apiPost({
+      tindakan: 'kemaskini_ahli', no_kp: noKp,
+      nama_penuh: nama, jantina, kategori: kat, bengkung_semasa: bengkung,
+      alamat, nama_waris: waris, no_tel_waris: tel, catatan
+    });
+    document.getElementById('modal-edit-ahli')?.remove();
+    tunjukToast('✅ Maklumat ' + nama.split(' ')[0] + ' dikemaskini!', 'ok');
+    dataAhliCache = null;
+    clearApiCache();
+    renderProfilAhli();
+  } catch(e) { tunjukToast('Gagal: ' + e.message, 'ralat'); }
+}
+
+async function padamAhliKonfirm(noKp, nama) {
+  const sebab = prompt(
+    '⚠️ PADAM PESILAT\n\n' + nama + '\n\n' +
+    'Masukkan sebab pemadaman:\n' +
+    '(cth: Berpindah, Berhenti, Tamat keahlian)',
+    'Berpindah tempat tinggal'
+  );
+  if (!sebab) return;
+  if (!confirm('Sahkan padam ' + nama + '?\n\nSebab: ' + sebab + '\n\nPersilat akan diset sebagai TIDAK AKTIF.')) return;
+  try {
+    await apiPost({ tindakan: 'padam_ahli', no_kp: noKp, sebab });
+    tunjukToast('✅ ' + nama.split(' ')[0] + ' telah dipadamkan dari senarai aktif', 'ok');
+    dataAhliCache = null;
+    clearApiCache();
+    tutupPage();
+  } catch(e) { tunjukToast('Gagal: ' + e.message, 'ralat'); }
 }
 
 // ── Modal Berat & Tinggi ──────────────────────────────────────
