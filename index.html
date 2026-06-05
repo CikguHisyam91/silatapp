@@ -874,32 +874,46 @@ async function muatChartYuran(BULAN_S, tahun) {
 
 async function muatChartHadir(BULAN_S, tahun) {
   const el = document.getElementById('chart-hadir');
-  if(!el) return;
+  if (!el) return;
   try {
-    // Guna endpoint khas untuk semua ahli (bukan per individu)
     const data = await apiC('stat_hadir_semua',{tahun},120);
-    const bulanRaw = data?.ikut_bulan || {};
-    el.innerHTML = BULAN_S.map((b,i)=>{
-      // ikut_bulan adalah object dengan key 1-12
-      const rec = bulanRaw[i+1] || bulanRaw[String(i+1)] || {};
-      const pct = rec?.peratus || 0;
-      const h = Math.max(4, Math.round(pct*0.76));
-      const w = pct>=80?'#00E676':pct>=60?'#FFD700':'#FF4444';
-      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">' +
-        '<div style="font-size:8px;color:var(--muted)">'+(pct>0?pct+'%':'')+'</div>' +
-        '<div style="width:100%;height:'+h+'px;background:'+w+';border-radius:3px 3px 0 0" title="'+b+': '+pct+'%"></div>' +
-        '<div style="font-size:8px;color:var(--muted)">'+b+'</div></div>';
+    const bulanRaw  = data?.ikut_bulan || {};
+    const bulanSkrg = new Date().getMonth() + 1; // 1-12
+    const chartH    = 60;
+    el.style.cssText = 'display:flex;align-items:flex-end;gap:3px;height:'+(chartH+28)+'px;padding-bottom:0';
+    el.innerHTML = BULAN_S.map((b,i) => {
+      const bulanIdx = i + 1;
+      const rec      = bulanRaw[bulanIdx] || bulanRaw[String(bulanIdx)] || {};
+      const hadirN   = Number(rec.hadir)  || 0;
+      const tidakN   = Number(rec.tidak)  || 0;
+      const pct      = Number(rec.peratus)|| 0;
+      const total    = hadirN + tidakN;
+      // KELABU: bulan akan datang ATAU tiada rekod langsung
+      const grey     = bulanIdx > bulanSkrg || total === 0;
+      const warna    = grey ? 'rgba(255,255,255,.1)' : pct>=80 ? '#00E676' : pct>=60 ? '#FFD700' : '#FF4444';
+      const tinggi   = grey ? 2 : Math.max(8, Math.round(pct * chartH / 100));
+      const label    = (!grey && pct > 0) ? pct+'%' : '';
+      const title    = grey ? b+': Tiada data' : b+': '+pct+'% ('+hadirN+' hadir / '+total+' sesi)';
+      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0">' +
+        '<div style="font-size:7px;color:var(--muted);height:14px;display:flex;align-items:flex-end;justify-content:center">'+label+'</div>' +
+        '<div style="width:80%;height:'+tinggi+'px;background:'+warna+';border-radius:3px 3px 0 0" title="'+title+'"></div>' +
+        '<div style="font-size:7px;color:var(--muted);margin-top:2px">'+b+'</div>' +
+      '</div>';
     }).join('');
-    // Tambah legend
-    const leg = document.createElement('div');
-    leg.style.cssText='display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;font-size:10px;color:var(--muted)';
-    leg.innerHTML='<span style="color:#00E676">■</span> ≥80% Baik &nbsp;<span style="color:#FFD700">■</span> 60-79% Sederhana &nbsp;<span style="color:#FF4444">■</span> &lt;60% Lemah';
-    el.after(leg);
-  } catch(e){ if(el) el.innerHTML='<div style="font-size:11px;color:var(--muted);padding:10px">Gagal muatkan data</div>'; }
+    // Legend
+    let leg = el.nextElementSibling;
+    if (!leg || !leg.innerHTML?.includes('Baik')) {
+      leg = document.createElement('div');
+      leg.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;font-size:10px;color:var(--muted)';
+      leg.innerHTML = '<span style="color:#00E676">■</span> ≥80% Baik &nbsp;<span style="color:#FFD700">■</span> 60-79% Sederhana &nbsp;<span style="color:#FF4444">■</span> &lt;60% Lemah';
+      el.after(leg);
+    }
+  } catch(e) {
+    if(el) el.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:10px">Gagal muatkan data: '+e.message+'</div>';
+  }
 }
 
 
-// ── Isu 4: Edit Kehadiran Lepas ──────────────────────────────
 async function editKehadiran(noKp, nama, tarikh, statusLama) {
   const statusBaru = statusLama === 'HADIR' ? 'TIDAK HADIR' : 'HADIR';
   if(!confirm('Tukar kehadiran ' + nama.split(' ')[0] + '\n' + tarikh + '\n' + statusLama + ' → ' + statusBaru + '?')) return;
