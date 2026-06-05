@@ -337,7 +337,9 @@ async function renderProfil() {
   const bmi=(berat>0&&tinggi>0)?Math.round(berat/Math.pow(tinggi/100,2)*10)/10:null;
   const kUs=usia?katUsia(usia):'—';
   // Kira kelas berat untuk papar dalam kad
-  const _kUsFull = usia ? katUsiaP(usia) : null;
+  // Guna umur kompetisi (tahun sahaja) untuk kategori pertandingan
+  const usiaKomp = kiraUsiaKompetitiParent(a.NO_KP, a.TARIKH_LAHIR) || usia;
+  const _kUsFull = usiaKomp ? katUsiaP(usiaKomp) : null;
   const _kelasObj = _kUsFull ? cariKelasP(_kUsFull.label, berat) : null;
   const _kelasLabel = _kelasObj
     ? 'Kelas ' + _kelasObj.kelas + ' · ' + _kelasObj.mn + '–' + _kelasObj.mx + 'kg'
@@ -947,6 +949,19 @@ function katUsiaP(u) {
   if(u<=14) return {label:'PRA REMAJA',had:'13-14 tahun'};if(u<=16) return {label:'REMAJA',had:'15-16 tahun'};
   if(u<=20) return {label:'SUKMA',had:'16-20 tahun'};if(u<=35) return {label:'TERBUKA',had:'21-35 tahun'};
   return {label:'MASTER',had:'35+ tahun'};
+}
+
+// Umur kompetisi — guna TAHUN LAHIR sahaja (standard Silat Malaysia)
+function kiraUsiaKompetitiParent(noKp, tarikh) {
+  let tahunLahir = null;
+  if (noKp && noKp.length >= 6) {
+    const yy = parseInt(String(noKp).substring(0,2));
+    tahunLahir = yy<=30 ? 2000+yy : 1900+yy;
+  } else if (tarikh) {
+    const d = new Date(tarikh);
+    if (!isNaN(d)) tahunLahir = d.getFullYear();
+  }
+  return tahunLahir ? new Date().getFullYear() - tahunLahir : null;
 }
 
 // ── Isu 8: Notifikasi Tunggakan ──────────────────────────────
