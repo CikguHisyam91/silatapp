@@ -1055,6 +1055,7 @@ function cariKelasBeratHardcode(katLabel, beratKg) {
 
 // ── Utiliti Kelas Berat & Kategori ───────────────────────────
 function kiraUsiaDariTarikh(tarikh, noKp) {
+  // Umur sebenar (untuk papar)
   let tL = null;
   if (tarikh && tarikh.length >= 6) tL = new Date(tarikh);
   else if (noKp && noKp.length >= 12) {
@@ -1066,6 +1067,21 @@ function kiraUsiaDariTarikh(tarikh, noKp) {
   let u = now.getFullYear() - tL.getFullYear();
   if (now.getMonth()<tL.getMonth()||(now.getMonth()===tL.getMonth()&&now.getDate()<tL.getDate())) u--;
   return u;
+}
+
+function kiraUsiaKompetisi(tarikh, noKp) {
+  // Umur KOMPETISI — guna TAHUN LAHIR sahaja (bukan bulan/hari)
+  // Standard Silat Malaysia: 2026 - 2017 = 9 tahun, walaupun belum birthday
+  let tahunLahir = null;
+  if (noKp && noKp.length >= 6) {
+    const yy = parseInt(noKp.substring(0,2));
+    tahunLahir = yy<=30 ? 2000+yy : 1900+yy;
+  } else if (tarikh && tarikh.length >= 4) {
+    const d = new Date(tarikh);
+    if (!isNaN(d)) tahunLahir = d.getFullYear();
+  }
+  if (!tahunLahir) return null;
+  return new Date().getFullYear() - tahunLahir;
 }
 function katUsiaLabel(usia) {
   if (!usia) return null;
@@ -1093,7 +1109,7 @@ function labelBMIAdmin(b) {
 
 
 function janaHtmlFizikal(tarikh, noKp, beratRaw, tinggiRaw) {
-  const usia  = kiraUsiaDariTarikh(tarikh, noKp);
+  const usia  = kiraUsiaKompetisi(tarikh, noKp);
   const katU  = katUsiaLabel(usia);
   const berat = parseFloat(beratRaw)||0;
   const tinggi= parseFloat(tinggiRaw)||0;
@@ -1150,7 +1166,7 @@ async function muatSenaraiKelasBerat() {
     // Kumpul ikut kategori usia - guna hardcode berat
     const kumpulan = {};
     ahli.forEach(a=>{
-      const usia = kiraUsiaDariTarikh(a.TARIKH_LAHIR||a.tarikh_lahir||a.tarikh_daftar, a.NO_KP||a.no_kp);
+      const usia = kiraUsiaKompetisi(a.TARIKH_LAHIR||a.tarikh_lahir, a.NO_KP||a.no_kp);
       const katU = katUsiaLabel(usia);
       if (!katU) return;
       // Handle semua format field name dari API
@@ -1205,7 +1221,7 @@ async function muatTurunSenaraiBeratPDF() {
     // Kumpul data
     const kumpulan={};
     ahli.forEach(a=>{
-      const usia=kiraUsiaDariTarikh(a.TARIKH_LAHIR||a.tarikh_lahir,a.NO_KP||a.no_kp);
+      const usia=kiraUsiaKompetisi(a.TARIKH_LAHIR||a.tarikh_lahir,a.NO_KP||a.no_kp);
       const katU=katUsiaLabel(usia);
       if(!katU)return;
       const berat=parseFloat(a.BERAT_KG||a.berat_kg)||0;
@@ -1586,7 +1602,7 @@ async function renderProfilAhli() {
 async function loadKelasBeratProfil(tarikh, noKp, berat) {
   const el = document.getElementById('info-kelas-berat');
   if (!el) return;
-  const usia  = kiraUsiaDariTarikh(tarikh, noKp);
+  const usia  = kiraUsiaKompetisi(tarikh, noKp);
   const katU  = katUsiaLabel(usia);
   const beratKg = parseFloat(berat)||0;
   if (!katU) { el.innerHTML='<span style="color:var(--muted)">Usia tidak dapat dikira. Semak tarikh lahir.</span>'; return; }
