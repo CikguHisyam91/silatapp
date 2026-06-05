@@ -2434,6 +2434,18 @@ async function renderTetapan() {
         <div style="font-size:12px;color:var(--muted)">Guru: ${t.NAMA_GURU||'Muhammad Hisyam'}<br>Tel: ${t.TELEFON_GURU||'—'}</div>
       </div>
 
+      <!-- Kawalan Jadual Latihan -->
+      <div class="kad" style="border:1px solid rgba(255,215,0,.25);margin-top:12px">
+        <div class="kad-tajuk" style="color:var(--c2)">🗓️ Jadual Latihan</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+          Kemaskini jadual dan status latihan — akan papar dalam Portal Ibu Bapa
+        </div>
+        <div id="panel-jadual"><div style="font-size:12px;color:var(--muted)">Memuatkan...</div></div>
+        <button class="btn btn-outline" style="margin-top:10px;width:100%;border-color:var(--c2);color:var(--c2);font-size:12px" onclick="muatEditJadual()">
+          <i class="ti ti-pencil"></i> Edit Jadual & Status
+        </button>
+      </div>
+
       <div class="kad" style="border:1px solid rgba(0,200,150,.25);margin-top:12px">
         <div class="kad-tajuk" style="color:var(--c3)">🔒 Pematuhan PDPA</div>
         <div style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:10px">
@@ -2780,6 +2792,78 @@ async function padamAhliKonfirm(noKp, nama) {
       tunjukToast('Ralat: ' + e2.message, 'ralat');
     }
   }
+}
+
+
+// ── Kawalan Jadual Latihan (Admin) ───────────────────────────
+async function muatEditJadual() {
+  const el = document.getElementById('panel-jadual');
+  try {
+    const t = await api('tetapan');
+    const jadual = [];
+    for (let i = 1; i <= 3; i++) {
+      jadual.push({
+        i,
+        hari  : t['JADUAL_'+i+'_HARI']   || (i===1?'Sabtu':i===2?'Ahad':''),
+        masa  : t['JADUAL_'+i+'_MASA']   || '9:00 - 11:00 pagi',
+        lokasi: t['JADUAL_'+i+'_LOKASI'] || 'Gelanggang Seri Mutiara',
+        status: t['JADUAL_'+i+'_STATUS'] || 'BERJALAN',
+        catatan: t['JADUAL_'+i+'_CATATAN'] || '',
+      });
+    }
+    const modal = document.createElement('div');
+    modal.className = 'modal-bg'; modal.id = 'modal-jadual';
+    let h = '<div class="modal" style="max-height:90vh;overflow-y:auto">';
+    h += '<div class="modal-tajuk">🗓️ Edit Jadual Latihan<div class="modal-tutup" onclick="document.getElementById(&quot;modal-jadual&quot;).remove()"><i class="ti ti-x"></i></div></div>';
+    jadual.forEach(j => {
+      if (!j.hari && j.i > 2) return;
+      h += '<div style="background:rgba(255,255,255,.05);border-radius:10px;padding:12px;margin-bottom:12px">';
+      h += '<div class="form-kump"><label class="form-label">Sesi '+j.i+' — Hari</label>';
+      h += '<input class="form-input" id="jd-'+j.i+'-hari" value="'+j.hari+'" placeholder="cth: Sabtu"></div>';
+      h += '<div class="form-kump"><label class="form-label">Masa</label>';
+      h += '<input class="form-input" id="jd-'+j.i+'-masa" value="'+j.masa+'" placeholder="cth: 9:00 - 11:00 pagi"></div>';
+      h += '<div class="form-kump"><label class="form-label">Lokasi</label>';
+      h += '<input class="form-input" id="jd-'+j.i+'-lokasi" value="'+j.lokasi+'" placeholder="cth: Gelanggang Utama"></div>';
+      h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+      h += '<div class="form-kump"><label class="form-label">Status</label>';
+      h += '<select class="form-input" id="jd-'+j.i+'-status">';
+      h += '<option value="BERJALAN"'+(j.status==='BERJALAN'?' selected':'')+'>✅ Berjalan</option>';
+      h += '<option value="DITANGGUHKAN"'+(j.status==='DITANGGUHKAN'?' selected':'')+'>🚫 Ditangguhkan</option>';
+      h += '</select></div>';
+      h += '<div class="form-kump"><label class="form-label">Sebab (jika tangguh)</label>';
+      h += '<input class="form-input" id="jd-'+j.i+'-catatan" value="'+j.catatan+'" placeholder="cth: Cuti sekolah"></div></div>';
+      h += '</div>';
+    });
+    h += '<button onclick="simpanJadual()" class="btn btn-pri btn-blok"><i class="ti ti-device-floppy"></i> Simpan Jadual</button>';
+    h += '</div>';
+    modal.innerHTML = h;
+    document.body.appendChild(modal);
+    requestAnimationFrame(() => modal.classList.add('buka'));
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+  } catch(e) { tunjukToast('Gagal muatkan jadual: '+e.message, 'ralat'); }
+}
+
+async function simpanJadual() {
+  tunjukToast('⏳ Menyimpan jadual...', 'ok');
+  try {
+    for (let i = 1; i <= 3; i++) {
+      const hari = document.getElementById('jd-'+i+'-hari')?.value;
+      if (!hari) continue;
+      const fields = [
+        ['JADUAL_'+i+'_HARI',    hari],
+        ['JADUAL_'+i+'_MASA',    document.getElementById('jd-'+i+'-masa')?.value||''],
+        ['JADUAL_'+i+'_LOKASI',  document.getElementById('jd-'+i+'-lokasi')?.value||''],
+        ['JADUAL_'+i+'_STATUS',  document.getElementById('jd-'+i+'-status')?.value||'BERJALAN'],
+        ['JADUAL_'+i+'_CATATAN', document.getElementById('jd-'+i+'-catatan')?.value||''],
+      ];
+      for (const [kunci, nilai] of fields) {
+        await apiPost({tindakan:'kemaskini_tetapan', kunci, nilai});
+      }
+    }
+    document.getElementById('modal-jadual')?.remove();
+    tunjukToast('✅ Jadual latihan dikemaskini! Ibu bapa akan nampak perubahan.', 'ok');
+    clearApiCache('tetapan');
+  } catch(e) { tunjukToast('Gagal: '+e.message, 'ralat'); }
 }
 
 // ── Modal Berat & Tinggi ──────────────────────────────────────
