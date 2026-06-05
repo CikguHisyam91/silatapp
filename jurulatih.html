@@ -63,8 +63,8 @@ body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(
 
 /* Video grid */
 .video-grid{display:grid;gap:12px}
-.video-kad{background:var(--card);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;transition:.2s;cursor:pointer}
-.video-kad:hover{border-color:var(--gold);box-shadow:0 4px 20px rgba(255,215,0,.1)}
+.video-kad{background:var(--card);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;transition:.2s}
+.video-kad[onclick]{cursor:pointer}.video-kad[onclick]:hover{border-color:var(--gold);box-shadow:0 4px 20px rgba(255,215,0,.1)}
 .video-thumb{position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,#0A2010,#1A4030);overflow:hidden}
 .video-thumb img{width:100%;height:100%;object-fit:cover;transition:.3s}
 .video-thumb .play-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3);opacity:0;transition:.2s}
@@ -280,7 +280,7 @@ function paparSilibus(kategoriSet) {
       const fid  = m ? m[1] : '';
       const thumb = fid ? 'https://lh3.googleusercontent.com/d/' + fid + '=w400' : '';
       const tags  = (s.BENGKUNG_TAG||'').split(',').filter(Boolean);
-      html += '<div class="video-kad" id="vkad-' + i + '">';
+      html += '<div class="video-kad" id="vkad-' + i + '" ' + (s.LINK ? 'onclick="mainVideo('+i+',\''+s.LINK+'\')"' : '') + '>';
       // Thumbnail
       html += '<div class="video-thumb">';
       if (thumb) {
@@ -289,24 +289,20 @@ function paparSilibus(kategoriSet) {
       } else {
         html += '<div class="video-thumb-placeholder">🎬</div>';
       }
-      html += '<div class="play-overlay"><div class="play-circle">▶</div></div>';
+      if (s.LINK) html += '<div class="play-overlay"><div class="play-circle" id="pc-'+i+'">▶</div></div>';
       html += '</div>';
       // Body
       html += '<div class="video-body">';
       html += '<div class="video-tajuk">' + (s.TAJUK||'Video Tanpa Nama') + '</div>';
-      html += '<div class="video-meta">';
-      html += '<div style="display:flex;gap:4px;flex-wrap:wrap;flex:1">';
-      html += '<span class="video-kat">' + (s.KATEGORI||'LAIN-LAIN') + '</span>';
-      tags.forEach(t => {
-        if (t.trim()) html += '<span style="font-size:9px;background:rgba(29,158,117,.15);color:var(--jade2);border:1px solid rgba(29,158,117,.3);border-radius:5px;padding:2px 6px">' + t.trim() + '</span>';
-      });
-      html += '</div>';
-      if (s.LINK) {
-        html += '<button class="btn-tonton" onclick="mainVideo(' + i + ',\'' + (s.LINK||'') + '\')" style="flex-shrink:0"><i class="ti ti-player-play"></i> Tonton</button>';
-      } else {
-        html += '<span style="font-size:10px;color:var(--muted)">Tiada link</span>';
+      if (tags.length || !s.LINK) {
+        html += '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px">';
+        tags.forEach(t => {
+          if (t.trim()) html += '<span style="font-size:9px;background:rgba(29,158,117,.15);color:var(--jade2);border:1px solid rgba(29,158,117,.3);border-radius:5px;padding:2px 6px">' + t.trim() + '</span>';
+        });
+        if (!s.LINK) html += '<span style="font-size:9px;color:var(--muted)">Tiada link</span>';
+        html += '</div>';
       }
-      html += '</div></div>';
+      html += '</div>';
       // Inline player slot
       html += '<div class="inline-player" id="vplay-' + i + '"><iframe id="vframe-' + i + '" src="" allowfullscreen></iframe></div>';
       html += '</div>';
