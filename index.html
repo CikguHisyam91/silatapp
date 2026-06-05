@@ -851,16 +851,22 @@ async function muatChartYuran(BULAN_S, tahun) {
     // Sokong format lama (ikut_bulan) dan baru (kutipan_bulanan)
     const bulanData = data?.kutipan_bulanan || data?.ikut_bulan || [];
     const maxVal = Math.max(...bulanData.map(b=>b.jumlah||b.masuk||0), 1);
+    // Kira semula maxVal dengan padding
+    const chartH = 60;
+    el.style.height = (chartH + 28) + 'px';
+    el.style.alignItems = 'flex-end';
     el.innerHTML = BULAN_S.map((b,i)=>{
-      const rec = bulanData.find(r=>(r.bulan_idx===i+1)||(r.bulan===b)||(r.bulan_idx===i+1));
+      const rec = bulanData.find(r=>(r.bulan_idx===i+1)||(r.bulan===b));
       const val = rec ? (rec.jumlah||rec.masuk||0) : 0;
-      const h = Math.max(4, Math.round((val/maxVal)*76));
-      const w = i<=new Date().getMonth() ? '#00E676' : 'rgba(255,255,255,.1)';
-      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
-        <div style="font-size:8px;color:var(--muted)">${val>0?'RM'+(val/1000).toFixed(0)+'k':''}</div>
-        <div style="width:100%;height:${h}px;background:${w};border-radius:3px 3px 0 0" title="${b}: RM${val}"></div>
-        <div style="font-size:8px;color:var(--muted)">${b}</div>
-      </div>`;
+      const h = val > 0 ? Math.max(6, Math.round((val/maxVal)*chartH)) : 3;
+      const lepas = i <= new Date().getMonth();
+      const warna = lepas && val>0 ? '#00E676' : 'rgba(255,255,255,.1)';
+      const label = val>0 ? (val>=1000?'RM'+(val/1000).toFixed(1)+'k':'RM'+Math.round(val)) : '';
+      return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0">' +
+        '<div style="font-size:7px;color:var(--muted);height:14px;display:flex;align-items:flex-end;white-space:nowrap;overflow:hidden">'+label+'</div>' +
+        '<div style="width:80%;height:'+h+'px;background:'+warna+';border-radius:3px 3px 0 0;min-height:3px" title="'+b+': RM'+Math.round(val)+'"></div>' +
+        '<div style="font-size:7px;color:var(--muted);margin-top:2px">'+b+'</div>' +
+      '</div>';
     }).join('');
     if(elLabel) elLabel.innerHTML = '<span style="font-size:10px;color:#00E676">■</span><span style="font-size:10px;color:var(--muted)">Kutipan bulanan</span>';
   } catch(e){ if(el) el.innerHTML='<div style="font-size:11px;color:var(--muted);padding:10px">Gagal muatkan data</div>'; }
