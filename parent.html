@@ -885,29 +885,56 @@ function bukaSilibus(k) {
     ${items.map(s=>{
       const m=(s.LINK||'').match(/\/d\/([^\/\?&]+)/);
       const fid=m?m[1]:'';
-      const thumb=fid?'https://lh3.googleusercontent.com/d/'+fid+'=w100':'';
-      return `<div class="vid-item" onclick="mainVid('${s.ID}','${s.LINK}')">
-        <div class="vid-thumb">${thumb?`<img src="${thumb}" onerror="this.style.display='none'">`:''} ▶</div>
-        <div class="vid-info"><div class="vid-nama">${s.TAJUK||'—'}</div><div class="vid-kat">${s.KATEGORI||'—'}</div></div>
+      const thumb=fid?'https://lh3.googleusercontent.com/d/'+fid+'=w400':'';
+      return `<div onclick="mainVid('${s.ID}','${s.LINK}')"
+        style="background:#fff;border-radius:12px;overflow:hidden;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.1);cursor:pointer;border:2px solid transparent;transition:.15s"
+        onmouseenter="this.style.borderColor='#1D9E75'" onmouseleave="this.style.borderColor='transparent'">
+        <div style="position:relative;aspect-ratio:16/9;background:#e0f2e9">
+          ${thumb?`<img src="${thumb}" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none'">`:``}
+          <div id="poverlay-${s.ID}" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3)">
+            <div style="width:48px;height:48px;border-radius:50%;background:rgba(8,80,65,.9);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;box-shadow:0 2px 12px rgba(8,80,65,.4)">▶</div>
+          </div>
+        </div>
+        <div style="padding:10px 12px">
+          <div style="font-size:13px;font-weight:700;color:#1a3a2a">${s.TAJUK||'—'}</div>
+          <div style="font-size:11px;color:#666;margin-top:2px">${s.KATEGORI||'—'}</div>
+        </div>
       </div>
-      <div class="vid-embed" id="vembed-${s.ID}"><iframe id="vframe-${s.ID}" src="" allowfullscreen allow="autoplay"></iframe></div>`;
+      <div id="vembed-${s.ID}" style="display:none;border-radius:10px;overflow:hidden;margin-bottom:10px;border:2px solid #1D9E75">
+        <iframe id="vframe-${s.ID}" src="" style="width:100%;aspect-ratio:16/9;border:none;display:block" allowfullscreen allow="autoplay"></iframe>
+      </div>`;
     }).join('')}
   </div>`;
   panel.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
+let _vidBukaP = null;
 function mainVid(id,link) {
-  const embed=document.getElementById('vembed-'+id),frame=document.getElementById('vframe-'+id);
+  const embed=document.getElementById('vembed-'+id);
+  const frame=document.getElementById('vframe-'+id);
+  const ov=document.getElementById('poverlay-'+id);
   if(!embed||!frame)return;
+  // Tutup video lain
+  if(_vidBukaP && _vidBukaP!==id){
+    const le=document.getElementById('vembed-'+_vidBukaP);
+    const lf=document.getElementById('vframe-'+_vidBukaP);
+    const lo=document.getElementById('poverlay-'+_vidBukaP);
+    if(le)le.style.display='none'; if(lf)lf.src='';
+    if(lo)lo.innerHTML='<div style="width:48px;height:48px;border-radius:50%;background:rgba(8,80,65,.9);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff">▶</div>';
+  }
   const buka=embed.style.display!=='block';
-  document.querySelectorAll('.vid-embed').forEach(e=>{e.style.display='none';});
-  document.querySelectorAll('.vid-embed iframe').forEach(f=>{f.src='';});
   if(buka){
     const m=(link||'').match(/\/d\/([^\/\?&]+)/);
     const fid=m?m[1]:'';
     frame.src=fid?'https://drive.google.com/file/d/'+fid+'/preview':link;
     embed.style.display='block';
+    if(ov)ov.innerHTML='<div style="width:48px;height:48px;border-radius:50%;background:rgba(197,50,50,.9);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff">⏹</div>';
+    _vidBukaP=id;
     embed.scrollIntoView({behavior:'smooth',block:'nearest'});
+  }else{
+    embed.style.display='none'; frame.src='';
+    if(ov)ov.innerHTML='<div style="width:48px;height:48px;border-radius:50%;background:rgba(8,80,65,.9);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff">▶</div>';
+    _vidBukaP=null;
   }
 }
 
