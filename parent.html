@@ -504,12 +504,12 @@ async function renderKehadiran() {
     const data=await api('kehadiran',{no_kp:dataAnak.NO_KP});
     dataKehadiran=data;
     const tahun=new Date().getFullYear(),bSkrg=new Date().getMonth();
-    const tahunIni=data.filter(r=>{const t=new Date(r.TARIKH);return !isNaN(t)&&t.getFullYear()===tahun;});
-    const hadirT=tahunIni.filter(r=>r.STATUS_KEHADIRAN==='HADIR').length;
+    const tahunIni=data.filter(r=>{const t=new Date(r.tarikh||r.TARIKH||'');return !isNaN(t)&&t.getFullYear()===tahun;});
+    const hadirT=tahunIni.filter(r=>(r.STATUS_KEHADIRAN||r.status||'HADIR')==='HADIR').length;
     const tidakT=tahunIni.filter(r=>r.STATUS_KEHADIRAN==='TIDAK HADIR').length;
     const jT=hadirT+tidakT,pctT=jT>0?Math.round(hadirT/jT*100):0;
-    const bulanIni=data.filter(r=>{const t=new Date(r.TARIKH);return !isNaN(t)&&t.getFullYear()===tahun&&t.getMonth()===bSkrg;});
-    const hadirB=bulanIni.filter(r=>r.STATUS_KEHADIRAN==='HADIR').length;
+    const bulanIni=data.filter(r=>{const t=new Date(r.tarikh||r.TARIKH||'');return !isNaN(t)&&t.getFullYear()===tahun&&t.getMonth()===bSkrg;});
+    const hadirB=bulanIni.filter(r=>(r.STATUS_KEHADIRAN||r.status||'HADIR')==='HADIR').length;
     const jB=bulanIni.length,pctB=jB>0?Math.round(hadirB/jB*100):0;
     const r=46,circ=2*Math.PI*r,dash=circ*pctT/100;
     const donut=`<svg width="110" height="110" viewBox="0 0 110 110">
@@ -519,7 +519,7 @@ async function renderKehadiran() {
     </svg>`;
     const ikutBulan={};
     for(let b=0;b<12;b++) ikutBulan[b]={hadir:0,jum:0};
-    tahunIni.forEach(r=>{const b=new Date(r.TARIKH).getMonth();ikutBulan[b].jum++;if(r.STATUS_KEHADIRAN==='HADIR')ikutBulan[b].hadir++;});
+    tahunIni.forEach(r=>{const b=new Date(r.tarikh||r.TARIKH||'').getMonth();ikutBulan[b].jum++;if((r.STATUS_KEHADIRAN||r.status||'HADIR')==='HADIR')ikutBulan[b].hadir++;});
 
     main.innerHTML=`
       <div class="hadir-hero">
@@ -555,11 +555,11 @@ async function renderKehadiran() {
       </div>
       <div class="kad">
         <div class="kad-tajuk">🕐 Rekod Terkini</div>
-        ${data.slice().sort((a,b)=>new Date(b.TARIKH)-new Date(a.TARIKH)).slice(0,10).map(r=>{
-          const hadir=r.STATUS_KEHADIRAN==='HADIR';
+        ${data.slice().sort((a,b)=>new Date(b.tarikh||b.TARIKH||0)-new Date(a.tarikh||a.TARIKH||0)).slice(0,10).map(r=>{
+          const hadir=(r.STATUS_KEHADIRAN||r.status||'HADIR')==='HADIR';
           return `<div class="rekod-item">
             <div class="rekod-dot" style="background:${hadir?'#1D9E75':'#E53935'}"></div>
-            <div class="rekod-tarikh">${fmtT(r.TARIKH)}</div>
+            <div class="rekod-tarikh">${fmtT(r.tarikh||r.TARIKH||'')}</div>
             <span class="rekod-badge ${hadir?'badge-hadir':'badge-tidak'}">${r.STATUS_KEHADIRAN}</span>
           </div>`;
         }).join('')}
@@ -567,6 +567,86 @@ async function renderKehadiran() {
       <button class="btn-keluar" onclick="keluar()"><i class="ti ti-logout"></i> Log Keluar</button>
     `;
   }catch(e){main.innerHTML=`<div style="text-align:center;padding:30px;color:#aaa">Gagal muatkan kehadiran: ${e.message}</div>`;}
+}
+
+
+// ── JADUAL LATIHAN ────────────────────────────────────────────
+async function renderJadual() {
+  const main = document.getElementById('portal-main');
+  main.innerHTML = '<div class="muat"><i class="ti ti-loader-2 spin"></i> Memuatkan jadual...</div>';
+  try {
+    const t = await api('tetapan');
+    // Baca jadual dari TETAPAN sheet
+    const jadual = [];
+    for (let i = 1; i <= 5; i++) {
+      const hari = t['JADUAL_'+i+'_HARI'];
+      if (!hari) continue;
+      jadual.push({
+        hari  : hari,
+        masa  : t['JADUAL_'+i+'_MASA']   || '—',
+        lokasi: t['JADUAL_'+i+'_LOKASI'] || '—',
+        status: (t['JADUAL_'+i+'_STATUS'] || 'BERJALAN').toUpperCase(),
+        catatan: t['JADUAL_'+i+'_CATATAN'] || '',
+      });
+    }
+
+    // Default jadual kalau tak set dalam tetapan
+    if (!jadual.length) {
+      jadual.push({hari:'Sabtu',masa:'9:00 - 11:00 pagi',lokasi:'Gelanggang Seri Mutiara',status:'BERJALAN',catatan:''});
+      jadual.push({hari:'Ahad', masa:'9:00 - 11:00 pagi',lokasi:'Gelanggang Seri Mutiara',status:'BERJALAN',catatan:''});
+    }
+
+    const adaTangguh = jadual.some(j => j.status === 'DITANGGUHKAN');
+
+    let html = '';
+
+    // Banner status minggu ini
+    if (adaTangguh) {
+      html += '<div style="background:#FFEBEE;border:2px solid #E53935;border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;gap:12px;align-items:flex-start">';
+      html += '<span style="font-size:24px;flex-shrink:0">⚠️</span>';
+      html += '<div><div style="font-weight:800;color:#C62828;font-size:14px;margin-bottom:2px">Ada Latihan Ditangguhkan</div>';
+      html += '<div style="font-size:12px;color:#666">Semak jadual di bawah untuk maklumat lanjut</div></div></div>';
+    } else {
+      html += '<div style="background:#E8F5E9;border:2px solid #1D9E75;border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;gap:12px;align-items:center">';
+      html += '<span style="font-size:24px">✅</span>';
+      html += '<div><div style="font-weight:800;color:#085041;font-size:14px">Latihan Berjalan Seperti Biasa</div>';
+      html += '<div style="font-size:12px;color:#555">Semua sesi latihan minggu ini seperti jadual</div></div></div>';
+    }
+
+    // Senarai jadual
+    html += '<div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Jadual Latihan Mingguan</div>';
+
+    jadual.forEach(j => {
+      const ditangguh = j.status === 'DITANGGUHKAN';
+      const bg    = ditangguh ? '#FFF3F3' : '#F0FAF5';
+      const border= ditangguh ? '#FFCDD2' : '#C8E6C0';
+      const warna = ditangguh ? '#C62828' : '#085041';
+      html += '<div style="background:'+bg+';border:2px solid '+border+';border-radius:14px;padding:14px 16px;margin-bottom:10px">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+      html += '<div style="font-family:Lilita One,cursive;font-size:16px;color:'+warna+'">'+j.hari+'</div>';
+      html += '<span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;background:'+(ditangguh?'#FFCDD2':'#C8E6C0')+';color:'+warna+'">';
+      html += (ditangguh?'🚫 DITANGGUHKAN':'✅ BERJALAN')+'</span></div>';
+      html += '<div style="display:flex;flex-direction:column;gap:5px">';
+      html += '<div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="font-size:16px">🕐</span><span style="color:#333;font-weight:600">'+j.masa+'</span></div>';
+      html += '<div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="font-size:16px">📍</span><span style="color:#555">'+j.lokasi+'</span></div>';
+      if (ditangguh && j.catatan) {
+        html += '<div style="margin-top:6px;background:#FFEBEE;border-radius:8px;padding:8px 10px;font-size:12px;color:#C62828">';
+        html += '<strong>Sebab:</strong> '+j.catatan+'</div>';
+      }
+      html += '</div></div>';
+    });
+
+    // Nota admin
+    html += '<div style="background:#F5F5F5;border-radius:10px;padding:10px 14px;margin-top:6px">';
+    html += '<div style="font-size:11px;color:#888;text-align:center">📞 Untuk pertanyaan, hubungi jurulatih terus<br>';
+    html += 'Jadual boleh berubah mengikut situasi semasa</div></div>';
+
+    html += '<button class="btn-keluar" onclick="keluar()"><i class="ti ti-logout"></i> Log Keluar</button>';
+
+    main.innerHTML = html;
+  } catch(e) {
+    main.innerHTML = '<div style="text-align:center;padding:30px;color:#aaa">Gagal muatkan jadual: '+e.message+'</div>';
+  }
 }
 
 // ── LAPORAN ───────────────────────────────────────────────────
