@@ -2252,8 +2252,18 @@ async function renderKewangan() {
       // Kumpul ikut bulan
       const bulanMap = {};
       semua.forEach(t => {
-        const k = String(t.tarikh||'').substring(0,7);
+        // Pastikan tarikh dalam format YYYY-MM
+        let tStr = String(t.tarikh||'');
+        // Handle pelbagai format tarikh
+        if (tStr.length < 7 || tStr.indexOf('-') !== 4) {
+          const d = new Date(tStr);
+          if (!isNaN(d)) tStr = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+        }
+        const k = tStr.substring(0,7);
+        if (!k || k.length < 7) return; // skip rekod tanpa tarikh sah
         if (!bulanMap[k]) bulanMap[k] = [];
+        // Normalize tarikh dalam transaksi
+        t._tarikhNorm = tStr;
         bulanMap[k].push(t);
       });
 
@@ -2302,7 +2312,8 @@ async function renderKewangan() {
         items.forEach((t, idx) => {
           bilNo++;
           const isMasuk = t.jenis === 'PENDAPATAN';
-          const dd = String(t.tarikh||'').substring(8,10)+'/'+String(t.tarikh||'').substring(5,7);
+          const _tN = t._tarikhNorm||String(t.tarikh||'');
+          const dd = _tN.length>=10 ? _tN.substring(8,10)+'/'+_tN.substring(5,7) : _tN.substring(0,5);
           const bkVal = parseFloat(t.baki)||0;
           const zebra = idx%2===0 ? 'rgba(255,255,255,.015)' : 'transparent';
           const warnaAmt = isMasuk ? '#00E676' : '#FF5177';
