@@ -1344,6 +1344,7 @@ function renderHalamanPage(halaman) {
     case 'tetapan'       : renderTetapan();        break;
     case 'analisis'      : renderAnalisis();       break;
     case 'kewangan'      : renderKewangan();       break;
+    case 'laporan'       : renderLaporan();        break;
     case 'latihan'       : renderLatihanKendiri(); break;
     case 'sejarah_gred'  : renderSejarahGred();    break;
     case 'silibus'       : renderSilibus();        break;
@@ -2184,160 +2185,189 @@ function paparJadualPesilat(senarai) {
 
 
 
-// ── HALAMAN: Kewangan ─────────────────────────────────────────
+// ── HALAMAN: Kewangan (Buku Lejer) ─────────────────────────────
 let tahunKewangan = new Date().getFullYear();
+let tapisLejer = 'SEMUA';
 
 async function renderKewangan() {
   const main = getMain();
+  main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan lejer...</span></div>';
   try {
-    const d = await api('ringkasan_kewangan', { tahun: tahunKewangan });
-    const wBaki = d.baki >= 0 ? 'var(--c3)' : 'var(--c6)';
-    const TAHUN_LIST = [2024, 2025, 2026, 2027];
+    const d = await apiC('lejer_kewangan',{tahun:tahunKewangan},60);
+    const r = d.ringkasan || {};
+    const fmt  = v => 'RM ' + Math.abs(parseFloat(v)||0).toFixed(2);
+    const BULAN_PENUH = ['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'];
 
-    main.innerHTML = `
-      <!-- Pilih Tahun -->
-      <div class="kad" style="padding:12px 14px;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="font-size:12px;color:var(--muted);font-weight:700;text-transform:uppercase">Tahun</div>
-          <div style="display:flex;gap:6px">
-            ${TAHUN_LIST.map(t=>`<button onclick="tukarTahunKewangan(${t})" class="btn ${t===tahunKewangan?'btn-pri':'btn-outline'}" style="padding:5px 12px;font-size:12px">${t}</button>`).join('')}
-          </div>
-        </div>
-      </div>
+    let semua = (d.transaksi || []).slice().reverse(); // oldest first
+    if (tapisLejer !== 'SEMUA') semua = semua.filter(t => t.jenis === (tapisLejer==='MASUK'?'PENDAPATAN':'PERBELANJAAN'));
 
-      <!-- Ringkasan -->
-      <div class="kad-row">
-        <div class="stat-kad g">
-          <div class="stat-num">RM${(d.jumlah_masuk||0).toFixed(0)}</div>
-          <div class="stat-lbl">📥 Jumlah Masuk</div>
-        </div>
-        <div class="stat-kad r">
-          <div class="stat-num">RM${(d.perbelanjaan||0).toFixed(0)}</div>
-          <div class="stat-lbl">📤 Perbelanjaan</div>
-        </div>
-      </div>
-      <div class="kad" style="text-align:center;margin-bottom:12px">
-        <div style="font-size:12px;color:var(--muted);margin-bottom:4px">BAKI TERKINI ${d.tahun}</div>
-        <div style="font-size:36px;font-weight:700;color:${wBaki}">RM${(d.baki||0).toFixed(2)}</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px">
-          Yuran: RM${(d.kutipan_yuran||0).toFixed(2)} + 
-          Lain-lain: RM${(d.pendapatan_lain||0).toFixed(2)}
-        </div>
-      </div>
+    const baki    = (r.masuk||0) - (r.keluar||0);
+    const masukRm = r.masuk||0;
+    const kelRm   = r.keluar||0;
 
-      <!-- Butang Tambah -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-        <button class="btn btn-pri" onclick="bukaModalKewangan('PENDAPATAN')">
-          <i class="ti ti-plus"></i> Tambah Masuk
-        </button>
-        <button class="btn btn-red" onclick="bukaModalKewangan('PERBELANJAAN')">
-          <i class="ti ti-minus"></i> Tambah Keluar
-        </button>
-      </div>
+    let html = '';
 
-      <!-- Graf Bar Mudah -->
-      <div class="kad" style="margin-bottom:12px">
-        <div class="seksyen-tajuk" style="margin-top:0">Aliran Mengikut Bulan ${d.tahun}</div>
-        ${(d.ikut_bulan||[]).map(b => {
-          const max = Math.max(...(d.ikut_bulan||[]).map(x=>Math.max(x.masuk,x.keluar)), 1);
-          const pMasuk = Math.round(b.masuk/max*100);
-          const pKeluar = Math.round(b.keluar/max*100);
-          if (!b.masuk && !b.keluar) return '';
-          return `
-          <div style="margin-bottom:10px">
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px">
-              <span>${b.bulan}</span>
-              <span style="color:var(--c3)">+RM${b.masuk.toFixed(0)}</span>
-              <span style="color:var(--c6)">-RM${b.keluar.toFixed(0)}</span>
-            </div>
-            <div style="background:rgba(255,255,255,.08);border-radius:4px;height:8px;overflow:hidden;margin-bottom:2px">
-              <div style="background:var(--c3);height:100%;width:${pMasuk}%;border-radius:4px"></div>
-            </div>
-            <div style="background:rgba(255,255,255,.08);border-radius:4px;height:8px;overflow:hidden">
-              <div style="background:var(--c6);height:100%;width:${pKeluar}%;border-radius:4px"></div>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>
+    // ── Row 1: Tahun + Tambah ──────────────────────────────────
+    html += '<div style="display:flex;gap:6px;align-items:center;margin-bottom:12px;flex-wrap:wrap">';
+    [2024,2025,2026,2027].forEach(y => {
+      const ak = y===tahunKewangan;
+      html += '<button onclick="tukarTahunKewangan('+y+')" style="padding:5px 12px;font-size:12px;font-weight:700;border-radius:8px;'
+            + 'border:1.5px solid '+(ak?'var(--c2)':'rgba(255,255,255,.2)')+';'
+            + 'background:'+(ak?'var(--c2)':'transparent')+';'
+            + 'color:'+(ak?'#1A0000':'var(--muted)')+';cursor:pointer">'+y+'</button>';
+    });
+    html += '<div style="flex:1"></div>';
+    html += '<button onclick="kewMasuk()" style="padding:6px 10px;font-size:11px;font-weight:700;border-radius:8px;border:1.5px solid var(--c3);background:rgba(0,200,83,.15);color:var(--c3);cursor:pointer"><i class="ti ti-plus"></i> Masuk</button>';
+    html += '<button onclick="kewKeluar()" style="padding:6px 10px;font-size:11px;font-weight:700;border-radius:8px;border:1.5px solid var(--c6);background:rgba(255,23,68,.15);color:var(--c6);cursor:pointer"><i class="ti ti-minus"></i> Keluar</button>';
+    html += '</div>';
 
-      <!-- Rekod Terkini -->
-      <div class="seksyen-tajuk">Rekod Terkini</div>
-      ${(d.terkini||[]).length ? d.terkini.map(r=>`
-        <div class="senarai-item" style="cursor:default">
-          <div class="avatar ${r.JENIS==='PENDAPATAN'?'g':'r'}" style="font-size:18px">${r.JENIS==='PENDAPATAN'?'📥':'📤'}</div>
-          <div class="item-info">
-            <div class="item-nama">${r.KETERANGAN||r.KATEGORI||'—'}</div>
-            <div class="item-sub">${r.TARIKH} · ${r.KATEGORI}</div>
-          </div>
-          <span class="badge ${r.JENIS==='PENDAPATAN'?'hijau':'merah'}">
-            ${r.JENIS==='PENDAPATAN'?'+':'-'}RM${parseFloat(r.JUMLAH||0).toFixed(2)}
-          </span>
-        </div>
-      `).join('') : '<div class="kosong"><i class="ti ti-receipt-off"></i><p>Tiada rekod lagi</p></div>'}
-    `;
+    // ── Kad Ringkasan ──────────────────────────────────────────
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">';
+    [
+      ['💰 Masuk','#00E676','rgba(0,200,83,.12)','rgba(0,200,83,.25)', masukRm],
+      ['💸 Keluar','#FF5177','rgba(255,23,68,.12)','rgba(255,23,68,.25)', kelRm],
+      ['🏦 Baki', baki>=0?'#FFD700':'#FF5177', baki>=0?'rgba(255,215,0,.12)':'rgba(255,23,68,.12)', baki>=0?'rgba(255,215,0,.3)':'rgba(255,23,68,.3)', baki],
+    ].forEach(([label,w,bg,border,val]) => {
+      html += '<div style="background:'+bg+';border:1.5px solid '+border+';border-radius:12px;padding:10px 6px;text-align:center">';
+      html += '<div style="font-size:9px;font-weight:700;color:'+w+';margin-bottom:2px">'+label+'</div>';
+      html += '<div style="font-size:11px;font-weight:900;color:'+w+'">'+fmt(val)+'</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+
+    // ── Tapis ──────────────────────────────────────────────────
+    html += '<div style="display:flex;gap:6px;margin-bottom:14px">';
+    [['SEMUA','rgba(255,255,255,.6)'],['MASUK','var(--c3)'],['KELUAR','var(--c6)']].forEach(([j,w]) => {
+      const ak = j===tapisLejer;
+      html += '<button onclick="tapisKewangan(j)" style="flex:1;padding:7px 4px;font-size:11px;font-weight:700;border-radius:8px;'
+            + 'border:1.5px solid '+w+';background:'+(ak?w:'transparent')+';'
+            + 'color:'+(ak?'#000':w)+';cursor:pointer">'+j+'</button>';
+    });
+    html += '</div>';
+
+    // ── Buku Lejer ─────────────────────────────────────────────
+    if (!semua.length) {
+      html += '<div class="kosong"><i class="ti ti-receipt-off"></i><p>Tiada transaksi '+tahunKewangan+'</p></div>';
+    } else {
+      // Kumpul ikut bulan
+      const bulanMap = {};
+      semua.forEach(t => {
+        const k = String(t.tarikh||'').substring(0,7);
+        if (!bulanMap[k]) bulanMap[k] = [];
+        bulanMap[k].push(t);
+      });
+
+      // Header lejer
+      html += '<div style="background:rgba(255,215,0,.08);border:1.5px solid rgba(255,215,0,.2);border-radius:14px;overflow:hidden">';
+
+      // Lajur header
+      html += '<div style="display:grid;grid-template-columns:52px 1fr auto;gap:0;padding:8px 12px;'
+            + 'background:rgba(255,215,0,.12);border-bottom:1.5px solid rgba(255,215,0,.2)">';
+      html += '<span style="font-size:9px;font-weight:700;color:var(--c2);text-transform:uppercase;letter-spacing:.3px">Tarikh</span>';
+      html += '<span style="font-size:9px;font-weight:700;color:var(--c2);text-transform:uppercase;letter-spacing:.3px">Keterangan</span>';
+      html += '<span style="font-size:9px;font-weight:700;color:var(--c2);text-align:right;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap">Amaun / Baki</span>';
+      html += '</div>';
+
+      let bilNo = 0;
+      let balasBawa = 0;
+
+      Object.entries(bulanMap).forEach(([bln, items]) => {
+        const [y,m] = bln.split('-');
+        const namaBln = BULAN_PENUH[parseInt(m)-1]||m;
+        const tMasuk  = items.filter(t=>t.jenis==='PENDAPATAN').reduce((s,t)=>s+(t.jumlah||0),0);
+        const tKeluar = items.filter(t=>t.jenis==='PERBELANJAAN').reduce((s,t)=>s+(t.jumlah||0),0);
+        const bakiTutup = items[items.length-1]?.baki || 0;
+
+        // Header bulan
+        html += '<div style="display:grid;grid-template-columns:1fr auto;gap:6px;padding:8px 12px;'
+              + 'background:rgba(255,255,255,.05);border-top:1px solid rgba(255,255,255,.06);'
+              + 'border-bottom:1px solid rgba(255,255,255,.06)">';
+        html += '<span style="font-size:12px;font-weight:800;color:#FFD700">📅 '+namaBln+' '+y+'</span>';
+        html += '<span style="font-size:10px;display:flex;gap:6px;align-items:center">';
+        if (tMasuk)  html += '<span style="color:#00E676;font-weight:700">+'+fmt(tMasuk)+'</span>';
+        if (tKeluar) html += '<span style="color:#FF5177;font-weight:700">-'+fmt(tKeluar)+'</span>';
+        html += '</span></div>';
+
+        // Bawa masuk (kalau ada)
+        if (balasBawa !== 0) {
+          html += '<div style="display:grid;grid-template-columns:52px 1fr auto;padding:5px 12px;'
+                + 'background:rgba(255,255,255,.01);border-bottom:1px dashed rgba(255,255,255,.06)">';
+          html += '<span style="font-size:9px;color:rgba(255,255,255,.25);align-self:center">B/B</span>';
+          html += '<span style="font-size:10px;color:rgba(255,255,255,.3);font-style:italic;align-self:center">Baki Bawa Masuk</span>';
+          html += '<span style="font-size:10px;font-weight:700;color:rgba(255,215,0,.5);text-align:right;white-space:nowrap">'+fmt(balasBawa)+'</span>';
+          html += '</div>';
+        }
+
+        // Baris transaksi
+        items.forEach((t, idx) => {
+          bilNo++;
+          const isMasuk = t.jenis === 'PENDAPATAN';
+          const dd = String(t.tarikh||'').substring(8,10)+'/'+String(t.tarikh||'').substring(5,7);
+          const bkVal = parseFloat(t.baki)||0;
+          const zebra = idx%2===0 ? 'rgba(255,255,255,.015)' : 'transparent';
+          const warnaAmt = isMasuk ? '#00E676' : '#FF5177';
+          const prefix   = isMasuk ? '+' : '-';
+          const badgeBg  = t.sumber==='YURAN' ? 'rgba(0,200,150,.2)' : 'rgba(255,215,0,.15)';
+          const badgeClr = t.sumber==='YURAN' ? 'var(--c3)' : 'var(--c2)';
+
+          html += '<div style="display:grid;grid-template-columns:52px 1fr auto;padding:8px 12px;'
+                + 'background:'+zebra+';border-bottom:1px solid rgba(255,255,255,.04);align-items:center">';
+
+          // Tarikh + nombor
+          html += '<div><div style="font-size:11px;font-weight:600;color:#fff">'+dd+'</div>'
+                + '<div style="font-size:9px;color:rgba(255,255,255,.2)">#'+bilNo+'</div></div>';
+
+          // Keterangan + badge
+          html += '<div style="min-width:0;padding-right:8px">';
+          html += '<div style="font-size:12px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(t.keterangan||'—')+'</div>';
+          html += '<div style="display:flex;gap:4px;margin-top:2px;flex-wrap:wrap">';
+          html += '<span style="font-size:9px;background:'+badgeBg+';color:'+badgeClr+';border-radius:3px;padding:1px 5px">'+(t.sumber||'KW')+'</span>';
+          if (t.kategori && t.kategori!=='—') html += '<span style="font-size:9px;color:rgba(255,255,255,.3)">'+(t.kategori)+'</span>';
+          html += '</div></div>';
+
+          // Amaun + baki
+          html += '<div style="text-align:right;white-space:nowrap">';
+          html += '<div style="font-size:12px;font-weight:800;color:'+warnaAmt+'">'+prefix+fmt(t.jumlah)+'</div>';
+          html += '<div style="font-size:9px;color:'+(bkVal>=0?'rgba(255,215,0,.6)':'#FF5177')+';margin-top:1px">Baki: '+fmt(bkVal)+'</div>';
+          html += '</div>';
+          html += '</div>';
+        });
+
+        // Subtotal bulan
+        html += '<div style="display:flex;justify-content:space-between;padding:7px 12px;'
+              + 'background:rgba(255,255,255,.04);border-top:1px solid rgba(255,255,255,.1)">';
+        html += '<span style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4)">Jumlah '+namaBln+'</span>';
+        html += '<div style="display:flex;gap:10px;align-items:center">';
+        if (tMasuk)  html += '<span style="font-size:10px;font-weight:700;color:#00E676">+'+fmt(tMasuk)+'</span>';
+        if (tKeluar) html += '<span style="font-size:10px;font-weight:700;color:#FF5177">-'+fmt(tKeluar)+'</span>';
+        html += '<span style="font-size:11px;font-weight:800;color:'+(bakiTutup>=0?'#FFD700':'#FF5177')+'">'+fmt(bakiTutup)+'</span>';
+        html += '</div></div>';
+
+        balasBawa = bakiTutup;
+      });
+
+      // Baki akhir tahun
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 14px;'
+            + 'background:rgba(255,215,0,.1);border-top:2px solid rgba(255,215,0,.3)">';
+      html += '<span style="font-size:13px;font-weight:900;color:#FFD700">BAKI AKHIR '+tahunKewangan+'</span>';
+      html += '<span style="font-size:16px;font-weight:900;color:'+(baki>=0?'#FFD700':'#FF5177')+'">'+fmt(baki)+'</span>';
+      html += '</div>';
+      html += '</div>'; // tutup lejer
+    }
+
+    main.innerHTML = html;
   } catch(e) {
-    main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p><button class="btn btn-outline" onclick="muatSemula()">Cuba Semula</button></div>`;
+    main.innerHTML = '<div class="kosong"><i class="ti ti-wifi-off"></i><p>'+e.message+'</p>'
+                   + '<button class="btn btn-outline" onclick="renderKewangan()">Cuba Semula</button></div>';
   }
 }
 
-function tukarTahunKewangan(tahun) { tahunKewangan = tahun; renderKewangan(); }
 
-function bukaModalKewangan(jenis) {
-  const tajuk = jenis === 'PENDAPATAN' ? '📥 Tambah Pendapatan' : '📤 Tambah Perbelanjaan';
-  const warna = jenis === 'PENDAPATAN' ? '#00E676' : '#FF5177';
-  const katList = jenis === 'PENDAPATAN'
-    ? ['YURAN BULANAN','YURAN PENDAFTARAN','DERMA','LAIN-LAIN PENDAPATAN']
-    : ['PERALATAN LATIHAN','SEWA TEMPAT','PERTANDINGAN','PERJALANAN','BAYARAN GURU TAMU','LAIN-LAIN PERBELANJAAN'];
+    html += '<button onclick="kewMasuk()" style="padding:6px 10px;font-size:11px;font-weight:700;border-radius:8px;border:1.5px solid var(--c3);background:rgba(0,200,83,.15);color:var(--c3);cursor:pointer"><i class="ti ti-plus"></i> Masuk</button>';
+    html += '<button onclick="kewKeluar()" style="padding:6px 10px;font-size:11px;font-weight:700;border-radius:8px;border:1.5px solid var(--c6);background:rgba(255,23,68,.15);color:var(--c6);cursor:pointer"><i class="ti ti-minus"></i> Keluar</button>';
+function tukarTahunKewangan(tahun) { tahunKewangan=tahun; clearApiCache('lejer'); renderKewangan(); }
+function tapisKewangan(jenis) { tapisLejer=jenis; renderKewangan(); }
 
-  const modal = document.createElement('div');
-  modal.className = 'modal-bg buka';
-  modal.id = 'modal-kewangan-temp';
-  modal.innerHTML = `
-    <div class="modal">
-      <div class="modal-tajuk" style="color:${warna}">${tajuk}
-        <div class="modal-tutup" onclick="document.getElementById('modal-kewangan-temp').remove()"><i class="ti ti-x"></i></div>
-      </div>
-      <div class="form-kump">
-        <label class="form-label">Kategori</label>
-        <select class="form-input" id="kw-kategori">
-          ${katList.map(k=>`<option>${k}</option>`).join('')}
-        </select>
-      </div>
-      <div class="form-kump">
-        <label class="form-label">Jumlah (RM)</label>
-        <input class="form-input" id="kw-jumlah" type="number" min="0" step="0.01" placeholder="0.00" required>
-      </div>
-      <div class="form-kump">
-        <label class="form-label">Tarikh</label>
-        <input class="form-input" id="kw-tarikh" type="date" value="${new Date().toISOString().split('T')[0]}">
-      </div>
-      <div class="form-kump">
-        <label class="form-label">Keterangan</label>
-        <input class="form-input" id="kw-keterangan" type="text" placeholder="Hurai ringkas">
-      </div>
-      <button class="btn btn-blok" style="background:${warna};color:#fff;border:none;box-shadow:none" onclick="simpanKewangan('${jenis}')">
-        <i class="ti ti-device-floppy"></i> Simpan
-      </button>
-    </div>`;
-  document.body.appendChild(modal);
-}
-
-async function simpanKewangan(jenis) {
-  const jumlah = document.getElementById('kw-jumlah')?.value;
-  if (!jumlah) { tunjukToast('Sila isi jumlah!','ralat'); return; }
-  try {
-    await apiPost({
-      tindakan: 'tambah_kewangan',
-      jenis, jumlah,
-      kategori   : document.getElementById('kw-kategori')?.value,
-      tarikh     : document.getElementById('kw-tarikh')?.value,
-      keterangan : document.getElementById('kw-keterangan')?.value,
-    });
-    document.getElementById('modal-kewangan-temp')?.remove();
-    tunjukToast('✅ Rekod kewangan disimpan!','ok');
-    renderKewangan();
-  } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
-}
 
 // ── HALAMAN: Latihan Kendiri ──────────────────────────────────
 async function renderLatihanKendiri() {
@@ -2904,6 +2934,217 @@ async function simpanJadual() {
     tunjukToast('✅ Jadual latihan dikemaskini! Ibu bapa akan nampak perubahan.', 'ok');
     clearApiCache('tetapan');
   } catch(e) { tunjukToast('Gagal: '+e.message, 'ralat'); }
+}
+
+
+// ── MENU LAPORAN ──────────────────────────────────────────────
+let tapisLaporan = 'SEMUA', cariLaporan = '';
+
+async function renderLaporan() {
+  const main = getMain();
+  main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan laporan...</span></div>';
+  try {
+    const data = await apiC('senarai_laporan',{},60);
+    const semua = Array.isArray(data) ? data : [];
+    // Statistik
+    const total   = semua.length;
+    const pesilat = [...new Set(semua.map(r=>r.NO_KP||r.no_kp))].length;
+    const bulan   = new Date().getMonth()+1;
+    const tahun   = new Date().getFullYear();
+    const bulanIni = semua.filter(r=>{
+      const t = new Date(r.TARIKH||r.tarikh||'');
+      return !isNaN(t) && t.getFullYear()===tahun && t.getMonth()+1===bulan;
+    }).length;
+
+    let html = '';
+
+    // ── Header + Butang Buat Laporan ──
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">';
+    html += '<div style="font-size:13px;color:var(--muted)">'+total+' laporan disimpan</div>';
+    html += '<button onclick="bukaBuatLaporan()" style="padding:8px 14px;font-size:12px;font-weight:700;border-radius:10px;background:linear-gradient(135deg,var(--c3),#00C853);border:none;color:#fff;cursor:pointer"><i class="ti ti-plus"></i> Buat Laporan</button>';
+    html += '</div>';
+
+    // ── Kad Ringkasan ──
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">';
+    [
+      ['📋','Jumlah Laporan',total,'rgba(41,121,255,.12)','rgba(41,121,255,.3)','var(--c4)'],
+      ['👥','Pesilat Dinilai',pesilat,'rgba(0,200,83,.12)','rgba(0,200,83,.3)','var(--c3)'],
+      ['📅','Bulan Ini',bulanIni,'rgba(255,215,0,.12)','rgba(255,215,0,.3)','var(--c2)'],
+    ].forEach(([ikon,label,val,bg,border,w])=>{
+      html += '<div style="background:'+bg+';border:1.5px solid '+border+';border-radius:12px;padding:10px 6px;text-align:center">';
+      html += '<div style="font-size:18px;margin-bottom:2px">'+ikon+'</div>';
+      html += '<div style="font-size:18px;font-weight:900;color:'+w+'">'+val+'</div>';
+      html += '<div style="font-size:9px;color:var(--muted)">'+label+'</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+
+    // ── Carian ──
+    html += '<div style="position:relative;margin-bottom:10px">';
+    html += '<i class="ti ti-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px"></i>';
+    html += '<input id="inp-cari-lap" type="text" placeholder="Cari nama pesilat..." value="'+cariLaporan+'" '
+          + 'oninput="cariLaporan=this.value;renderLaporan()" '
+          + 'style="width:100%;padding:10px 12px 10px 36px;border:1.5px solid rgba(255,255,255,.15);border-radius:10px;background:rgba(255,255,255,.07);color:#fff;font-size:13px;outline:none">';
+    html += '</div>';
+
+    // ── Tapis Bakat ──
+    html += '<div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px">';
+    [['SEMUA','rgba(255,255,255,.6)'],['SILAT SENI','var(--c3)'],['OLAHRAGA','var(--c4)'],['KEDUA-DUANYA','var(--c2)'],['BELUM DIKENALPASTI','var(--muted)']].forEach(([j,w])=>{
+      const ak = j===tapisLaporan;
+      html += '<button onclick="tapisLap(j)" style="flex-shrink:0;padding:6px 12px;font-size:10px;font-weight:700;border-radius:99px;border:1.5px solid '+w+';background:'+(ak?w:'transparent')+';color:'+(ak?'#000':w)+';cursor:pointer;white-space:nowrap">'+j+'</button>';
+    });
+    html += '</div>';
+
+    // ── Senarai Laporan ──
+    let tampil = semua.slice();
+    if (tapisLaporan !== 'SEMUA') tampil = tampil.filter(r=>(r.BAKAT||r.bakat||'').toUpperCase().includes(tapisLaporan));
+    if (cariLaporan)  tampil = tampil.filter(r=>(r.NAMA_PENUH||r.nama||'').toUpperCase().includes(cariLaporan.toUpperCase()));
+    // Susun terbaru dulu
+    tampil.sort((a,b)=>String(b.TARIKH||b.tarikh||'').localeCompare(String(a.TARIKH||a.tarikh||'')));
+
+    if (!tampil.length) {
+      html += '<div class="kosong"><i class="ti ti-clipboard-x"></i><p>Tiada laporan ditemui</p></div>';
+    } else {
+      tampil.forEach(r => {
+        const id     = r.ID_LAPORAN||r.id_laporan||'—';
+        const nama   = r.NAMA_PENUH||r.nama||'—';
+        const bengkung = (r.BENGKUNG_SEMASA||r.bengkung||'—').replace('BENGKUNG ','').replace(' KOSONG (AHLI BAHARU)','');
+        const tarikh = fmtT(r.TARIKH||r.tarikh||'');
+        const pct    = parseFloat(r.PERATUS||r.peratus||0);
+        const bakat  = r.BAKAT||r.bakat||'BELUM DIKENALPASTI';
+        const catatan= r.CATATAN||r.catatan||'';
+        const markah = r.JUMLAH_MARKAH||r.jumlah_markah||0;
+        const markahMax = r.MARKAH_MAX||r.markah_max||0;
+        const warnaP = pct>=80?'var(--c3)':pct>=60?'var(--c2)':'var(--c6)';
+        const bakatWarna = bakat==='SILAT SENI'?'var(--c3)':bakat==='OLAHRAGA'?'var(--c4)':bakat==='KEDUA-DUANYA'?'var(--c2)':'var(--muted)';
+        const bakatIkon  = bakat==='SILAT SENI'?'🌸':bakat==='OLAHRAGA'?'⚡':bakat==='KEDUA-DUANYA'?'🏆':'❓';
+
+        html += '<div class="kad" style="margin-bottom:10px;padding:12px 14px">';
+
+        // Row 1: Nama + markah
+        html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">';
+        html += '<div style="min-width:0;flex:1;padding-right:8px">';
+        html += '<div style="font-weight:800;font-size:14px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+nama+'</div>';
+        html += '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+bengkung+' · '+tarikh+'</div>';
+        html += '</div>';
+        // Markah bulat
+        html += '<div style="width:46px;height:46px;border-radius:50%;border:2.5px solid '+warnaP+';display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">';
+        html += '<div style="font-size:12px;font-weight:900;color:'+warnaP+'">'+Math.round(pct)+'%</div>';
+        if (markahMax) html += '<div style="font-size:8px;color:var(--muted)">'+markah+'/'+markahMax+'</div>';
+        html += '</div></div>';
+
+        // Row 2: Badge bakat + catatan
+        html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">';
+        html += '<span style="font-size:10px;font-weight:700;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:2px 8px;color:'+bakatWarna+'">'+bakatIkon+' '+bakat+'</span>';
+        if (catatan) html += '<span style="font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">💬 '+catatan+'</span>';
+        html += '</div>';
+
+        // Row 3: Butang tindakan
+        html += '<div style="display:flex;gap:6px">';
+        html += '<button onclick="lihatDetailLaporan(id)" style="flex:1;padding:7px;font-size:11px;font-weight:700;border-radius:8px;background:rgba(41,121,255,.15);border:1px solid rgba(41,121,255,.3);color:var(--c4);cursor:pointer"><i class="ti ti-eye"></i> Lihat</button>';
+        html += '<button onclick="editLaporan(id,bakat,catatan)" style="flex:1;padding:7px;font-size:11px;font-weight:700;border-radius:8px;background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.25);color:var(--c2);cursor:pointer"><i class=\'ti ti-pencil\'></i> Edit</button>';
+        html += '<button onclick="padamLaporanAdmin(id,nama)" style="padding:7px 10px;font-size:11px;font-weight:700;border-radius:8px;background:rgba(255,23,68,.12);border:1px solid rgba(255,23,68,.25);color:var(--c6);cursor:pointer"><i class=\'ti ti-trash\'></i></button>';
+        html += '</div>';
+        html += '</div>';
+      });
+    }
+
+    main.innerHTML = html;
+  } catch(e) {
+    main.innerHTML = '<div class="kosong"><i class="ti ti-wifi-off"></i><p>'+e.message+'</p><button class="btn btn-outline" onclick="renderLaporan()">Cuba Semula</button></div>';
+  }
+}
+
+function closeModal(id){document.getElementById(id)?.remove();}
+function bukaBuatLaporan(){window.open("laporan.html","_blank");}
+function tapisLap(j) { tapisLaporan=j; clearApiCache('senarai'); renderLaporan(); }
+
+async function lihatDetailLaporan(id) {
+  tunjukToast('Memuatkan...','ok');
+  try {
+    const d = await api('laporan_pesilat',{id_laporan:id});
+    const modal = document.createElement('div');
+    modal.className='modal-bg'; modal.id='modal-detail-lap';
+    const pct = parseFloat(d.PERATUS||0);
+    const wP  = pct>=80?'var(--c3)':pct>=60?'var(--c2)':'var(--c6)';
+    const bkt = d.BAKAT||'—';
+    const bktI= bkt==='SILAT SENI'?'🌸':bkt==='OLAHRAGA'?'⚡':'🏆';
+    let h = '<div class="modal" style="max-height:88vh;overflow-y:auto">';
+    h += '<div class="modal-tajuk">Laporan Penilaian';
+    h += '<div class="modal-tutup" onclick="closeModal('+"'modal-detail-lap'"+"'"+')"><i class="ti ti-x"></i></div></div>';
+    h += '<div style="background:rgba(255,255,255,.05);border-radius:10px;padding:12px;margin-bottom:12px">';
+    h += '<div style="font-weight:800;font-size:15px;margin-bottom:2px">'+(d.NAMA_PENUH||'—')+'</div>';
+    h += '<div style="font-size:11px;color:var(--muted)">'+(d.BENGKUNG_SEMASA||'—')+' · '+fmtT(d.TARIKH||'')+'</div>';
+    h += '</div>';
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
+    h += '<div style="text-align:center;background:rgba(255,255,255,.05);border-radius:10px;padding:10px">';
+    h += '<div style="font-size:28px;font-weight:900;color:'+wP+'">'+Math.round(pct)+'%</div>';
+    h += '<div style="font-size:10px;color:var(--muted)">'+(d.JUMLAH_MARKAH||0)+' / '+(d.MARKAH_MAX||0)+' markah</div>';
+    h += '</div>';
+    h += '<div style="text-align:center;background:rgba(255,255,255,.05);border-radius:10px;padding:10px">';
+    h += '<div style="font-size:22px;margin-bottom:4px">'+bktI+'</div>';
+    h += '<div style="font-size:11px;font-weight:700;color:var(--c2)">'+bkt+'</div>';
+    h += '</div></div>';
+    if (d.CATATAN) h += '<div style="background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.2);border-radius:8px;padding:10px;margin-bottom:12px;font-size:12px">💬 '+d.CATATAN+'</div>';
+    if (d.detail && d.detail.length) {
+      h += '<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px">ITEM PENILAIAN</div>';
+      d.detail.forEach(function(item) {
+        const ikon = (item.STATUS==='CEMERLANG'||item.STATUS==='LULUS')?'✅':(item.STATUS==='SEDERHANA'?'🟡':'❌');
+        h += '<div style="display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05)">';
+        h += '<span style="font-size:12px">'+ikon+' '+(item.NAMA_ITEM||item.nama||'—')+'</span>';
+        h += '<span style="font-size:11px;color:var(--muted)">'+(item.STATUS||'—')+'</span></div>';
+      });
+    }
+    h += '</div>';
+    modal.innerHTML = h;
+    document.body.appendChild(modal);
+    requestAnimationFrame(function(){modal.classList.add('buka');});
+    modal.addEventListener('click', function(ev){if(ev.target===modal)modal.remove();});
+  } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
+}
+
+function editLaporan(id, bakatSedia, catatanSedia) {
+  const modal = document.createElement('div');
+  modal.className='modal-bg'; modal.id='modal-edit-lap';
+  const BAKAT = ['SILAT SENI','OLAHRAGA','KEDUA-DUANYA','BELUM DIKENALPASTI'];
+  let h = '<div class="modal">';
+  h += '<div class="modal-tajuk">Edit Laporan';
+  h += '<div class="modal-tutup" onclick="closeModal('+"'modal-edit-lap'"+"'"+')"><i class="ti ti-x"></i></div></div>';
+  h += '<div class="form-kump"><label class="form-label">Penilaian Bakat</label><select class="form-input" id="el-bakat">';
+  BAKAT.forEach(function(b){h+='<option value="'+b+'"'+(b===bakatSedia?' selected':'')+'>'+b+'</option>';});
+  h += '</select></div>';
+  h += '<div class="form-kump"><label class="form-label">Catatan Jurulatih</label>';
+  h += '<textarea class="form-input" id="el-catatan" rows="3">'+catatanSedia+'</textarea></div>';
+  h += '<button onclick="simpanEditLaporanById(id)" class="btn btn-pri btn-blok"><i class="ti ti-device-floppy"></i> Simpan</button>';
+  h += '</div>';
+  modal.innerHTML = h;
+  document.body.appendChild(modal);
+  requestAnimationFrame(function(){modal.classList.add('buka');});
+  modal.addEventListener('click', function(ev){if(ev.target===modal)modal.remove();});
+}
+
+async function simpanEditLaporanById(id) {
+  const bakat   = document.getElementById('el-bakat')?.value;
+  const catatan = document.getElementById('el-catatan')?.value||'';
+  tunjukToast('Menyimpan...','ok');
+  try {
+    await apiPost({tindakan:'kemaskini_laporan', id_laporan:id, bakat, catatan});
+    document.getElementById('modal-edit-lap')?.remove();
+    tunjukToast('Laporan dikemaskini!','ok');
+    clearApiCache('senarai');
+    renderLaporan();
+  } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
+}
+
+
+async function padamLaporanAdmin(id, nama) {
+  if (!confirm('Padam laporan ini?\n\nPesilat: '+nama+'\nID: '+id+'\n\nTindakan ini tidak boleh dibatalkan.')) return;
+  try {
+    await apiPost({tindakan:'padam_laporan', id_laporan:id});
+    tunjukToast('✅ Laporan dipadamkan','ok');
+    clearApiCache('senarai');
+    renderLaporan();
+  } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
 }
 
 // ── Modal Berat & Tinggi ──────────────────────────────────────
