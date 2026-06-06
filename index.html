@@ -1671,7 +1671,7 @@ async function loadKelasBeratProfil(tarikh, noKp, berat) {
 // ── HALAMAN: Kehadiran ───────────────────────────────────────
 async function renderKehadiran() {
   const main = getMain();
-  const hari  = new Date().toISOString().split('T')[0];
+  const hari = new Date().toISOString().split('T')[0];
   statusHadir = {};
 
   try {
@@ -1682,99 +1682,165 @@ async function renderKehadiran() {
         <i class="ti ti-calendar"></i>
         <input type="date" value="${hari}" id="inp-tarikh-hadir" onchange="muatStatusHadir()">
       </div>
-      <div class="kad" style="margin-bottom:12px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-          <div style="font-weight:600">Senarai Ahli (<span id="jum-hadir">0</span> hadir)</div>
-          <div style="display:flex;gap:8px">
-            <button class="btn btn-outline" style="padding:6px 12px;font-size:12px" onclick="tandaSemuaHadir()">Semua Hadir</button>
-          </div>
-        </div>
-        <div id="senarai-kehadiran"></div>
+      <div id="panel-hadir-loading" style="display:flex;justify-content:center;padding:20px">
+        <i class="ti ti-loader-2" style="animation:spin 1s linear infinite;font-size:24px;color:#FFD700"></i>
       </div>
-      <button class="btn btn-pri btn-blok" id="btn-simpan-hadir" onclick="simpanKehadiran()">
-        <i class="ti ti-device-floppy"></i> Simpan Kehadiran
-      </button>
+      <div id="panel-hadir" style="display:none">
+        <!-- Hadir section -->
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:13px;font-weight:800;color:#00E676">
+            ✅ Sudah Hadir: <span id="jum-hadir" style="font-size:16px">0</span> orang
+          </div>
+          <button onclick="tandaSemuaHadir()" style="padding:6px 12px;font-size:11px;font-weight:700;border-radius:8px;background:rgba(0,200,83,.15);border:1.5px solid var(--c3);color:var(--c3);cursor:pointer">
+            Semua Hadir
+          </button>
+        </div>
+        <div id="senarai-sudah-hadir" style="margin-bottom:14px"></div>
+
+        <!-- Belum Hadir section -->
+        <div style="font-size:13px;font-weight:800;color:var(--muted);margin-bottom:8px">
+          ⏳ Belum Hadir: <span id="jum-belum">0</span> orang
+        </div>
+        <div id="senarai-belum-hadir"></div>
+      </div>
     `;
 
-    renderSenaraiKehadiran();
     muatStatusHadir();
   } catch (e) {
     main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p><button class="btn btn-outline" onclick="muatSemula()">Cuba Semula</button></div>`;
   }
 }
 
-function renderSenaraiKehadiran() {
-  const senarai = dataAhliCache || [];
-  const el = document.getElementById('senarai-kehadiran');
-  if (!el) return;
-
-  senarai.forEach(a => { if (!statusHadir[a.no_kp]) statusHadir[a.no_kp] = false; });
-
-  el.innerHTML = senarai.map(a => `
-    <div class="item-kehadiran" id="item-${a.no_kp}">
-      <div class="toggle-hadir ${statusHadir[a.no_kp]?'on':''}" id="tog-${a.no_kp}" onclick="togHadir('${a.no_kp}')"></div>
-      <div class="item-info">
-        <div class="item-nama">${a.nama}</div>
-        <div class="item-sub">${a.bengkung||'—'}</div>
-      </div>
-      <span class="badge ${statusHadir[a.no_kp]?'hijau':'abu'}" id="bdg-${a.no_kp}">${statusHadir[a.no_kp]?'HADIR':'—'}</span>
-    </div>
-  `).join('');
-
-  kemaskiniJumHadir();
-}
-
 async function muatStatusHadir() {
   const tarikh = document.getElementById('inp-tarikh-hadir')?.value;
   if (!tarikh) return;
+
+  const loading = document.getElementById('panel-hadir-loading');
+  const panel   = document.getElementById('panel-hadir');
+  if (loading) loading.style.display = 'flex';
+  if (panel)   panel.style.display   = 'none';
+
+  // Reset status semua ke false dulu
+  statusHadir = {};
+  (dataAhliCache||[]).forEach(a => { statusHadir[a.no_kp] = false; });
+
   try {
     const rekod = await api('kehadiran', {tarikh});
-    rekod.forEach(r => { statusHadir[r.NO_KP] = r.STATUS_KEHADIRAN === 'HADIR'; });
-    renderSenaraiKehadiran();
-  } catch (e) { /* senyap */ }
+    rekod.forEach(r => {
+      const kp = r.NO_KP || r.no_kp;
+      if (kp) statusHadir[kp] = (r.STATUS_KEHADIRAN || r.status || '') === 'HADIR';
+    });
+  } catch(e) { /* senyap - guna semua false */ }
+
+  if (loading) loading.style.display = 'none';
+  if (panel)   panel.style.display   = 'block';
+  paparSenaraiKehadiran();
 }
 
-function togHadir(no_kp) {
-  statusHadir[no_kp] = !statusHadir[no_kp];
-  const tog = document.getElementById('tog-' + no_kp);
-  const bdg = document.getElementById('bdg-' + no_kp);
-  if (tog) tog.classList.toggle('on', statusHadir[no_kp]);
-  if (bdg) { bdg.className = 'badge ' + (statusHadir[no_kp] ? 'hijau' : 'abu'); bdg.textContent = statusHadir[no_kp] ? 'HADIR' : '—'; }
-  kemaskiniJumHadir();
+function paparSenaraiKehadiran() {
+  const senarai = dataAhliCache || [];
+  const elHadir  = document.getElementById('senarai-sudah-hadir');
+  const elBelum  = document.getElementById('senarai-belum-hadir');
+  const elJumH   = document.getElementById('jum-hadir');
+  const elJumB   = document.getElementById('jum-belum');
+  if (!elHadir || !elBelum) return;
+
+  const sudahHadir = senarai.filter(a => statusHadir[a.no_kp]);
+  const belumHadir = senarai.filter(a => !statusHadir[a.no_kp]);
+
+  if (elJumH) elJumH.textContent = sudahHadir.length;
+  if (elJumB) elJumB.textContent = belumHadir.length;
+
+  // Render sudah hadir (hijau, boleh untick)
+  elHadir.innerHTML = sudahHadir.length
+    ? sudahHadir.map(a => `
+        <div class="item-kehadiran" id="item-${a.no_kp}" style="border-left:3px solid var(--c3);background:rgba(0,200,83,.06)">
+          <div class="toggle-hadir on" id="tog-${a.no_kp}" onclick="togHadir('${a.no_kp}')"></div>
+          <div class="item-info">
+            <div class="item-nama">${a.nama}</div>
+            <div class="item-sub">${a.bengkung||'—'}</div>
+          </div>
+          <span class="badge hijau">HADIR</span>
+          <span id="saving-${a.no_kp}" style="display:none;font-size:10px;color:var(--muted)">⏳</span>
+        </div>`).join('')
+    : '<div style="font-size:12px;color:var(--muted);padding:10px;text-align:center">Tiada murid yang hadir lagi</div>';
+
+  // Render belum hadir (plain, boleh tick)
+  elBelum.innerHTML = belumHadir.length
+    ? belumHadir.map(a => `
+        <div class="item-kehadiran" id="item-${a.no_kp}">
+          <div class="toggle-hadir" id="tog-${a.no_kp}" onclick="togHadir('${a.no_kp}')"></div>
+          <div class="item-info">
+            <div class="item-nama">${a.nama}</div>
+            <div class="item-sub">${a.bengkung||'—'}</div>
+          </div>
+          <span class="badge abu" id="bdg-${a.no_kp}">—</span>
+          <span id="saving-${a.no_kp}" style="display:none;font-size:10px;color:var(--muted)">⏳</span>
+        </div>`).join('')
+    : '<div style="font-size:12px;color:var(--c3);padding:10px;text-align:center;font-weight:700">✅ Semua murid sudah hadir!</div>';
 }
 
-function tandaSemuaHadir() {
-  (dataAhliCache||[]).forEach(a => { statusHadir[a.no_kp] = true; });
-  renderSenaraiKehadiran();
-}
-
-function kemaskiniJumHadir() {
-  const jum = Object.values(statusHadir).filter(Boolean).length;
-  const el  = document.getElementById('jum-hadir');
-  if (el) el.textContent = jum;
-}
-
-async function simpanKehadiran() {
+async function togHadir(no_kp) {
   const tarikh = document.getElementById('inp-tarikh-hadir')?.value;
-  const masa   = new Date().toTimeString().slice(0,5);
-  const btn    = document.getElementById('btn-simpan-hadir');
-  const senarai= dataAhliCache || [];
+  if (!tarikh) { tunjukToast('Pilih tarikh dahulu!', 'ralat'); return; }
 
-  if (!senarai.length) { tunjukToast('Tiada ahli untuk direkodkan', 'ralat'); return; }
+  // Toggle status
+  statusHadir[no_kp] = !statusHadir[no_kp];
 
-  btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Menyimpan...';
+  // Tunjuk spinner saving
+  const sp = document.getElementById('saving-' + no_kp);
+  if (sp) sp.style.display = 'inline';
 
-  const rekod = senarai.map(a => ({ no_kp: a.no_kp, status: statusHadir[a.no_kp] ? 'HADIR' : 'TIDAK HADIR' }));
+  // Disable toggle sementara
+  const tog = document.getElementById('tog-' + no_kp);
+  if (tog) { tog.style.pointerEvents = 'none'; tog.style.opacity = '0.5'; }
 
   try {
-    await apiPost({ tindakan:'rekod_kehadiran', rekod, tarikh, masa });
-    tunjukToast('Kehadiran berjaya disimpan!', 'ok');
-  } catch (e) {
-    tunjukToast('Gagal: ' + e.message, 'ralat');
-  } finally {
-    btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Simpan Kehadiran';
+    const ahli = (dataAhliCache||[]).find(a => a.no_kp === no_kp);
+    const nama = ahli?.nama || '';
+    await apiPost({
+      tindakan: 'rekod_kehadiran',
+      rekod: [{ no_kp, nama, tarikh, status: statusHadir[no_kp] ? 'HADIR' : 'TIDAK HADIR', masa: new Date().toTimeString().slice(0,5) }],
+      edit_mode: true
+    });
+    // Refresh paparan (sort semula)
+    paparSenaraiKehadiran();
+  } catch(e) {
+    // Rollback
+    statusHadir[no_kp] = !statusHadir[no_kp];
+    tunjukToast('Gagal simpan: ' + e.message, 'ralat');
+    paparSenaraiKehadiran();
   }
 }
+
+async function tandaSemuaHadir() {
+  const tarikh = document.getElementById('inp-tarikh-hadir')?.value;
+  if (!tarikh) { tunjukToast('Pilih tarikh dahulu!', 'ralat'); return; }
+
+  const senarai = dataAhliCache || [];
+  const belum = senarai.filter(a => !statusHadir[a.no_kp]);
+  if (!belum.length) { tunjukToast('Semua dah hadir!', 'ok'); return; }
+
+  tunjukToast('⏳ Menyimpan kehadiran...', 'ok');
+
+  // Set semua true dulu (optimistic)
+  belum.forEach(a => { statusHadir[a.no_kp] = true; });
+  paparSenaraiKehadiran();
+
+  try {
+    const masa = new Date().toTimeString().slice(0,5);
+    const rekod = senarai.map(a => ({ no_kp: a.no_kp, nama: a.nama, tarikh, status: 'HADIR', masa }));
+    await apiPost({ tindakan:'rekod_kehadiran', rekod, tarikh, masa, edit_mode: true });
+    clearApiCache('kehadiran');
+    tunjukToast('✅ Semua kehadiran disimpan!', 'ok');
+  } catch(e) {
+    // Rollback
+    belum.forEach(a => { statusHadir[a.no_kp] = false; });
+    paparSenaraiKehadiran();
+    tunjukToast('Gagal: ' + e.message, 'ralat');
+  }
+}
+
 
 // ── HALAMAN: Yuran ───────────────────────────────────────────
 // ── State yuran ──────────────────────────────────────────────
@@ -2268,9 +2334,7 @@ async function renderKewangan() {
     html += '<div style="display:flex;gap:6px;margin-bottom:14px">';
     [['SEMUA','rgba(255,255,255,.6)'],['MASUK','var(--c3)'],['KELUAR','var(--c6)']].forEach(([j,w]) => {
       const ak = j===tapisLejer;
-      html += '<button onclick="tapisKewangan(j)" style="flex:1;padding:7px 4px;font-size:11px;font-weight:700;border-radius:8px;'
-            + 'border:1.5px solid '+w+';background:'+(ak?w:'transparent')+';'
-            + 'color:'+(ak?'#000':w)+';cursor:pointer">'+j+'</button>';
+      html += `<button onclick="tapisKewangan('${j}')" style="flex:1;padding:7px 4px;font-size:11px;font-weight:700;border-radius:8px;border:1.5px solid ${w};background:${ak?w:'transparent'};color:${ak?'#000':w};cursor:pointer">${j}</button>`;
     });
     html += '</div>';
 
