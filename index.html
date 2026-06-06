@@ -282,7 +282,7 @@ select.form-input{appearance:none}
         <span class="game-ikon">📖</span>
         <span class="game-lbl">SILIBUS</span>
       </div>
-      <div class="game-btn" style="background:linear-gradient(160deg,#FF8C42,#FF4500);box-shadow:0 6px 0 #882200,0 10px 20px rgba(255,69,0,.3);border:2px solid rgba(255,255,255,.3);border-bottom-width:6px" onclick="pilihMenu('laporan')">
+      <div class="game-btn" style="background:linear-gradient(160deg,#FF8C42,#FF4500);box-shadow:0 6px 0 #882200,0 10px 20px rgba(255,69,0,.3);border:2px solid rgba(255,255,255,.3);border-bottom-width:6px" onclick="bukaPage('laporan','📋 Laporan')">
         <span class="game-ikon">📋</span>
         <span class="game-lbl">LAPORAN</span>
       </div>
@@ -1354,6 +1354,7 @@ function renderHalamanPage(halaman) {
 }
 
 function renderHalaman(halaman) { renderHalamanPage(halaman); }
+function pilihMenu(halaman) { bukaPage(halaman, halaman); }
 
 // ── HALAMAN: Dashboard ───────────────────────────────────────
 async function renderDashboard() {
@@ -2368,16 +2369,78 @@ async function renderKewangan() {
 
     main.innerHTML = html;
   } catch(e) {
-    main.innerHTML = '<div class="kosong"><i class="ti ti-wifi-off"></i><p>'+e.message+'</p>'
-                   + '<button class="btn btn-outline" onclick="renderKewangan()">Cuba Semula</button></div>';
+    main.innerHTML = ''
+      + '<div style="display:flex;gap:6px;align-items:center;margin-bottom:14px;flex-wrap:wrap">'
+      + '<div style="flex:1;font-size:13px;font-weight:700;color:var(--c2)">💰 Kewangan ' + tahunKewangan + '</div>'
+      + '<button onclick="kewMasuk()" style="padding:6px 12px;font-size:12px;font-weight:700;border-radius:8px;border:1.5px solid var(--c3);background:rgba(0,200,83,.15);color:var(--c3);cursor:pointer"><i class="ti ti-plus"></i> Masuk</button>'
+      + '<button onclick="kewKeluar()" style="padding:6px 12px;font-size:12px;font-weight:700;border-radius:8px;border:1.5px solid var(--c6);background:rgba(255,23,68,.15);color:var(--c6);cursor:pointer"><i class="ti ti-minus"></i> Keluar</button>'
+      + '</div>'
+      + '<div class="kosong"><i class="ti ti-wifi-off"></i><p>' + e.message + '</p>'
+      + '<button class="btn btn-outline" onclick="renderKewangan()">Cuba Semula</button></div>';
   }
 }
 
 
-    html += '<button onclick="kewMasuk()" style="padding:6px 10px;font-size:11px;font-weight:700;border-radius:8px;border:1.5px solid var(--c3);background:rgba(0,200,83,.15);color:var(--c3);cursor:pointer"><i class="ti ti-plus"></i> Masuk</button>';
-    html += '<button onclick="kewKeluar()" style="padding:6px 10px;font-size:11px;font-weight:700;border-radius:8px;border:1.5px solid var(--c6);background:rgba(255,23,68,.15);color:var(--c6);cursor:pointer"><i class="ti ti-minus"></i> Keluar</button>';
 function tukarTahunKewangan(tahun) { tahunKewangan=tahun; clearApiCache('lejer'); renderKewangan(); }
 function tapisKewangan(jenis) { tapisLejer=jenis; renderKewangan(); }
+
+// ── Kawalan Kewangan: Masuk / Keluar ─────────────────────────
+function kewMasuk()  { bukaModalKewangan('PENDAPATAN');  }
+function kewKeluar() { bukaModalKewangan('PERBELANJAAN'); }
+
+function bukaModalKewangan(jenis) {
+  const isMasuk = jenis === 'PENDAPATAN';
+  const warna   = isMasuk ? 'var(--c3)' : 'var(--c6)';
+  const KAT_MASUK  = ['SUMBANGAN','DERMA','GERAN','JUALAN','LAIN-LAIN'];
+  const KAT_KELUAR = ['PERALATAN','PENGANGKUTAN','PERTANDINGAN','SERAGAM','MAKANAN','BAYARAN DEWAN','LAIN-LAIN'];
+  const kategori   = isMasuk ? KAT_MASUK : KAT_KELUAR;
+  const tarHari    = new Date().toISOString().substring(0,10);
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg'; modal.id = 'modal-kew';
+  let h = '<div class="modal">';
+  h += '<div class="modal-tajuk" style="color:'+warna+'">' + (isMasuk ? '💰 Duit Masuk' : '💸 Duit Keluar');
+  h += '<div class="modal-tutup" onclick="closeModal(\'modal-kew\')"><i class="ti ti-x"></i></div></div>';
+  h += '<div class="form-kump"><label class="form-label">Jumlah (RM) *</label>';
+  h += '<input class="form-input" id="kw-jumlah" type="number" inputmode="decimal" min="0.01" step="0.01" placeholder="0.00" style="font-size:22px;font-weight:900;color:'+warna+'"></div>';
+  h += '<div class="form-kump"><label class="form-label">Keterangan *</label>';
+  h += '<input class="form-input" id="kw-keterangan" type="text" placeholder="' + (isMasuk ? 'cth: Sumbangan Encik Ali...' : 'cth: Beli marker papan...') + '"></div>';
+  h += '<div class="form-kump"><label class="form-label">Kategori</label><select class="form-input" id="kw-kategori">';
+  kategori.forEach(function(k){ h += '<option>'+k+'</option>'; });
+  h += '</select></div>';
+  h += '<div class="form-kump"><label class="form-label">Tarikh</label>';
+  h += '<input class="form-input" id="kw-tarikh" type="date" value="'+tarHari+'"></div>';
+  h += '<button id="btn-kw-simpan" onclick="simpanKewanganBaru(\''+jenis+'\')" ';
+  h += 'style="width:100%;padding:13px;border-radius:12px;background:' + (isMasuk ? 'linear-gradient(135deg,var(--c3),#00C853)' : 'linear-gradient(135deg,#E53935,#FF5177)') + ';color:#fff;border:none;font-size:14px;font-weight:800;cursor:pointer">';
+  h += '<i class="ti ti-device-floppy"></i> Simpan ' + (isMasuk ? 'Pendapatan' : 'Perbelanjaan') + '</button>';
+  h += '</div>';
+  modal.innerHTML = h;
+  document.body.appendChild(modal);
+  requestAnimationFrame(function(){ modal.classList.add('buka'); });
+  modal.addEventListener('click', function(ev){ if (ev.target === modal) modal.remove(); });
+  setTimeout(function(){ document.getElementById('kw-jumlah')?.focus(); }, 300);
+}
+
+async function simpanKewanganBaru(jenis) {
+  const jumlah     = parseFloat(document.getElementById('kw-jumlah')?.value || 0);
+  const keterangan = (document.getElementById('kw-keterangan')?.value || '').trim();
+  const kategori   = document.getElementById('kw-kategori')?.value || '';
+  const tarikh     = document.getElementById('kw-tarikh')?.value || '';
+  if (!jumlah || jumlah <= 0) { tunjukToast('Sila masukkan jumlah yang sah!','ralat'); return; }
+  if (!keterangan) { tunjukToast('Sila masukkan keterangan!','ralat'); return; }
+  const btn = document.getElementById('btn-kw-simpan');
+  if (btn) { btn.disabled = true; btn.innerHTML = 'Menyimpan...'; }
+  try {
+    await apiPost({ tindakan:'tambah_kewangan', jenis, kategori, jumlah, tarikh, keterangan });
+    closeModal('modal-kew');
+    tunjukToast('✅ RM ' + jumlah.toFixed(2) + ' berjaya direkodkan!', 'ok');
+    clearApiCache('lejer');
+    renderKewangan();
+  } catch(e) {
+    tunjukToast('Gagal: ' + e.message, 'ralat');
+    if (btn) { btn.disabled = false; btn.innerHTML = 'Simpan'; }
+  }
+}
+
 
 
 // ── HALAMAN: Latihan Kendiri ──────────────────────────────────
@@ -3002,7 +3065,7 @@ async function renderLaporan() {
     html += '<div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px">';
     [['SEMUA','rgba(255,255,255,.6)'],['SILAT SENI','var(--c3)'],['OLAHRAGA','var(--c4)'],['KEDUA-DUANYA','var(--c2)'],['BELUM DIKENALPASTI','var(--muted)']].forEach(([j,w])=>{
       const ak = j===tapisLaporan;
-      html += '<button onclick="tapisLap(j)" style="flex-shrink:0;padding:6px 12px;font-size:10px;font-weight:700;border-radius:99px;border:1.5px solid '+w+';background:'+(ak?w:'transparent')+';color:'+(ak?'#000':w)+';cursor:pointer;white-space:nowrap">'+j+'</button>';
+      html += `<button onclick="tapisLap('${j}')" style="flex-shrink:0;padding:6px 12px;font-size:10px;font-weight:700;border-radius:99px;border:1.5px solid ${w};background:${ak?w:'transparent'};color:${ak?'#000':w};cursor:pointer;white-space:nowrap">${j}</button>`;
     });
     html += '</div>';
 
@@ -3062,7 +3125,13 @@ async function renderLaporan() {
 
     main.innerHTML = html;
   } catch(e) {
-    main.innerHTML = '<div class="kosong"><i class="ti ti-wifi-off"></i><p>'+e.message+'</p><button class="btn btn-outline" onclick="renderLaporan()">Cuba Semula</button></div>';
+    main.innerHTML = ''
+      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'
+      + '<div style="font-size:13px;color:var(--muted)">Senarai Laporan</div>'
+      + '<button onclick="bukaBuatLaporan()" style="padding:8px 14px;font-size:12px;font-weight:700;border-radius:10px;background:linear-gradient(135deg,var(--c3),#00C853);border:none;color:#fff;cursor:pointer"><i class="ti ti-plus"></i> Buat Laporan</button>'
+      + '</div>'
+      + '<div class="kosong"><i class="ti ti-wifi-off"></i><p>' + e.message + '</p>'
+      + '<button class="btn btn-outline" onclick="clearApiCache(&quot;senarai_laporan&quot;);renderLaporan()">Cuba Semula</button></div>';
   }
 }
 
