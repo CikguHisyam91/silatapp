@@ -1060,9 +1060,17 @@ function cariKelasBeratHardcode(katLabel, beratKg) {
   if (!katLabel || !beratKg) return null;
   const berat = parseFloat(beratKg)||0;
   if (!berat) return null;
+  // Cari kelas tepat
   for (const r of RUJUKAN_BERAT) {
     if (r.kat === katLabel && berat >= r.mn && berat < r.mx)
       return {kelas: r.kelas, min: r.mn, max: r.mx};
+  }
+  // Fallback: berat di bawah minimum → Kelas A (kategori sama)
+  const semuaKat = RUJUKAN_BERAT.filter(r => r.kat === katLabel);
+  if (semuaKat.length) {
+    const minKelas = semuaKat.reduce((a,b) => a.mn < b.mn ? a : b);
+    if (berat < minKelas.mn)
+      return {kelas: 'A', min: 0, max: minKelas.mn, catatan: 'Bawah minimum'};
   }
   return null;
 }
@@ -1326,6 +1334,8 @@ function muatSemula() {
   renderHalamanPage(halamanSkrg);
 }
 
+function escapeAttr(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escapeHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function getMain() {
   return document.getElementById('page-content') || document.getElementById('main');
 }
@@ -1549,6 +1559,7 @@ async function renderProfilAhli() {
   if (!no_kp) { navigasi('ahli'); return; }
   try {
     const a = await api('profil_ahli', {no_kp});
+    window._ahliNama = a.NAMA_PENUH || ''; // safe store for onclick
     const stat = await api('statistik_kehadiran', {no_kp, tahun: tahunSkrg});
     const gred = await api('sejarah_gred', {no_kp});
     const warna = (k) => k?.includes('RENDAH') ? 'var(--c3)' : k?.includes('MENENGAH') ? 'var(--c2)' : 'var(--c4)';
@@ -1601,11 +1612,11 @@ async function renderProfilAhli() {
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
-        <button class="btn btn-pri" onclick="bukaModalYuran('${a.NO_KP}','${a.NAMA_PENUH}')"><i class="ti ti-coin"></i> Rekod Yuran</button>
-        <button class="btn btn-outline" onclick="bukaModalGred('${a.NO_KP}','${a.NAMA_PENUH}')"><i class="ti ti-award"></i> Naik Gred</button>
-        <button class="btn btn-outline" style="grid-column:1/-1;border-color:var(--c2);color:var(--c2)" onclick="bukaModalBerat('${a.NO_KP}','${a.NAMA_PENUH}','${a.BERAT_KG||''}','${a.TINGGI_CM||''}',kiraUsiaDariKP('${a.TARIKH_LAHIR}','${a.NO_KP}'))"><i class="ti ti-weight"></i> Kemaskini Berat & Tinggi</button>
+        <button class="btn btn-pri" onclick="bukaModalYuran('${a.NO_KP}',window._ahliNama||'')"><i class="ti ti-coin"></i> Rekod Yuran</button>
+        <button class="btn btn-outline" onclick="bukaModalGred('${a.NO_KP}',window._ahliNama||'')"><i class="ti ti-award"></i> Naik Gred</button>
+        <button class="btn btn-outline" style="grid-column:1/-1;border-color:var(--c2);color:var(--c2)" onclick="bukaModalBerat('${a.NO_KP}',window._ahliNama||'','${a.BERAT_KG||''}','${a.TINGGI_CM||''}',kiraUsiaDariKP('${a.TARIKH_LAHIR}','${a.NO_KP}'))"><i class="ti ti-weight"></i> Kemaskini Berat & Tinggi</button>
         <button class="btn btn-outline" style="border-color:var(--c7);color:var(--c7)" onclick="bukaEditAhli('${a.NO_KP}')"><i class="ti ti-pencil"></i> Edit Maklumat</button>
-        <button class="btn btn-outline" style="border-color:var(--c6);color:var(--c6)" onclick="padamAhliKonfirm('${a.NO_KP}','${a.NAMA_PENUH}')"><i class="ti ti-user-off"></i> Padam Pesilat</button>
+        <button class="btn btn-outline" style="border-color:var(--c6);color:var(--c6)" onclick="padamAhliKonfirm('${a.NO_KP}',window._ahliNama||'')"><i class="ti ti-user-off"></i> Padam Pesilat</button>
       </div>
     `;
     // Load kelas berat selepas render
@@ -1627,13 +1638,30 @@ async function loadKelasBeratProfil(tarikh, noKp, berat) {
   // Guna data hardcode dulu (laju & pasti)
   const found = cariKelasBeratHardcode(katU.label, beratKg);
   if (found) {
+    const notaBawah = found.catatan === 'Bawah minimum'
+      ? '<div style="font-size:10px;color:#FFB300;margin-top:3px;background:rgba(255,160,0,.1);border-radius:5px;padding:2px 6px">⚠️ Berat di bawah minimum — bertanding dalam Kelas A</div>'
+      : '';
+    const hadMin = found.catatan === 'Bawah minimum' ? '<'+found.max+'kg' : found.min+'kg – '+(found.max>=900?'Terbuka':found.max+'kg');
     el.innerHTML = '<div style="display:flex;align-items:center;gap:14px">' +
       '<div style="font-size:32px;font-weight:900;color:#FFD700;background:rgba(255,215,0,.1);border-radius:10px;padding:6px 16px;border:2px solid rgba(255,215,0,.3)">' + found.kelas + '</div>' +
       '<div><div style="font-size:12px;color:#FFD700;font-weight:700;margin-bottom:2px">🏆 KELAS PERTANDINGAN</div>' +
-      '<div style="font-size:13px;font-weight:600;color:#fff">' + katU.label + ' · ' + found.min + 'kg – ' + (found.max>=900?'Terbuka':found.max+'kg') + '</div>' +
-      '<div style="font-size:10px;color:var(--muted);margin-top:2px">Kategori: ' + katU.had + '</div></div></div>';
+      '<div style="font-size:13px;font-weight:600;color:#fff">' + katU.label + ' · ' + hadMin + '</div>' +
+      '<div style="font-size:10px;color:var(--muted);margin-top:2px">Kategori: ' + katU.had + '</div>' + notaBawah + '</div></div>';
   } else {
-    el.innerHTML = '<span style="font-size:12px;color:var(--muted)">Kategori: ' + katU.label + ' · ' + beratKg + 'kg — Kelas tidak dijumpai dalam pangkalan data.</span>';
+    // Cari berat minimum untuk kategori ini
+    const minBeratKat = RUJUKAN_BERAT.filter(r => r.kat === katU.label).reduce((mn, r) => Math.min(mn, r.mn), 999);
+    const kurang = minBeratKat < 999 ? (minBeratKat - beratKg).toFixed(1) : null;
+    const msgBerat = kurang !== null
+      ? '⚠️ Berat ' + beratKg + 'kg — Terlalu ringan untuk ' + katU.label + '. <strong style="color:#FFD700">Minimum: ' + minBeratKat + 'kg</strong> (kurang ' + kurang + 'kg lagi)'
+      : 'Kategori: ' + katU.label + ' · ' + beratKg + 'kg — Kelas tidak dijumpai.';
+    el.innerHTML = '<div style="background:rgba(255,100,0,.12);border:2px solid rgba(255,140,0,.4);border-radius:10px;padding:12px 14px;">' +
+      '<div style="display:flex;align-items:center;gap:10px">' +
+      '<div style="font-size:28px">⚖️</div>' +
+      '<div><div style="font-size:12px;font-weight:800;color:#FFA000;margin-bottom:3px">BERAT BELUM MENCUKUPI</div>' +
+      '<div style="font-size:13px;color:#fff;font-weight:600">' + beratKg + 'kg — ' + katU.label + '</div>' +
+      (kurang !== null ? '<div style="font-size:12px;color:rgba(255,200,100,.9);margin-top:3px">Minimum: <b style=\'color:#FFD700\'>' + minBeratKat + 'kg</b> (Kelas A) · Kurang <b style=\'color:#FF8A00\'>' + kurang + 'kg</b> lagi</div>' : '') +
+      '<div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:4px">Pesilat perlu mencapai ' + (kurang !== null ? minBeratKat : '?') + 'kg untuk layak kategori ' + katU.label + '</div>' +
+      '</div></div></div>';
   }
 }
 
@@ -2852,7 +2880,7 @@ async function bukaEditAhli(noKp) {
     h += '<div class="modal-tajuk">✏️ Edit Maklumat<div class="modal-tutup" onclick="document.getElementById(&quot;modal-edit-ahli&quot;).remove()"><i class="ti ti-x"></i></div></div>';
     h += '<div style="font-size:12px;color:var(--muted);margin-bottom:14px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 12px">' + a.NAMA_PENUH + ' · ' + a.NO_KP + '</div>';
     // Nama
-    h += '<div class="form-kump"><label class="form-label">Nama Penuh</label><input class="form-input" id="ea-nama" type="text" value="' + (a.NAMA_PENUH||'') + '" style="text-transform:uppercase"></div>';
+    h += '<div class="form-kump"><label class="form-label">Nama Penuh</label><input class="form-input" id="ea-nama" type="text" value="' + escapeAttr(a.NAMA_PENUH) + '"value="' + escapeAttr(a.NAMA_PENUH) + '" style="text-transform:uppercase"></div>';
     // Jantina
     h += '<div class="form-kump"><label class="form-label">Jantina</label><select class="form-input" id="ea-jantina"><option value="LELAKI"' + (a.JANTINA==='LELAKI'?' selected':'') + '>LELAKI</option><option value="PEREMPUAN"' + (a.JANTINA==='PEREMPUAN'?' selected':'') + '>PEREMPUAN</option></select></div>';
     // Kategori
@@ -2862,11 +2890,11 @@ async function bukaEditAhli(noKp) {
     // Alamat
     h += '<div class="form-kump"><label class="form-label">Alamat</label><textarea class="form-input" id="ea-alamat" rows="2">' + (a.ALAMAT||'') + '</textarea></div>';
     // Waris
-    h += '<div class="form-kump"><label class="form-label">Nama Waris / Penjaga</label><input class="form-input" id="ea-waris" type="text" value="' + (a.NAMA_WARIS||'') + '" style="text-transform:uppercase"></div>';
+    h += '<div class="form-kump"><label class="form-label">Nama Waris / Penjaga</label><input class="form-input" id="ea-waris" type="text" value="' + escapeAttr(a.NAMA_WARIS) + '"value="' + escapeAttr(a.NAMA_PENUH) + '" style="text-transform:uppercase"></div>';
     // Tel
-    h += '<div class="form-kump"><label class="form-label">No. Tel Waris</label><input class="form-input" id="ea-tel" type="tel" value="' + (a.NO_TEL_WARIS||'') + '"></div>';
+    h += '<div class="form-kump"><label class="form-label">No. Tel Waris</label><input class="form-input" id="ea-tel" type="tel" value="' + escapeAttr(a.NO_TEL_WARIS) + '"value="' + escapeAttr(a.NAMA_PENUH) + '"></div>';
     // Catatan
-    h += '<div class="form-kump"><label class="form-label">Catatan</label><input class="form-input" id="ea-catatan" type="text" value="' + (a.CATATAN||'') + '"></div>';
+    h += '<div class="form-kump"><label class="form-label">Catatan</label><input class="form-input" id="ea-catatan" type="text" value="' + escapeAttr(a.CATATAN) + '"value="' + escapeAttr(a.NAMA_PENUH) + '"></div>';
     h += '<button onclick="simpanEditAhli(\'' + noKp + '\')" class="btn btn-pri btn-blok"><i class="ti ti-device-floppy"></i> Simpan Perubahan</button>';
     h += '</div>';
     modal.innerHTML = h;
@@ -3136,6 +3164,8 @@ async function renderLaporan() {
 }
 
 function closeModal(id){document.getElementById(id)?.remove();}
+// Helper: escape apostrophe dalam nama untuk onclick attribute
+function safeN(n){return (n||'').replace(/'/g,"\\'")}
 function bukaBuatLaporan(){window.open("laporan.html","_blank");}
 function tapisLap(j) { tapisLaporan=j; clearApiCache('senarai'); renderLaporan(); }
 
