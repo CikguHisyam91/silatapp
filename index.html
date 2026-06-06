@@ -1370,7 +1370,7 @@ function pilihMenu(halaman) { bukaPage(halaman, halaman); }
 async function renderDashboard() {
   const main = getMain();
   try {
-    const d = await api('dashboard');
+    const d = await apiC('dashboard',{},120); // 2 min cache
     main.innerHTML = `
       <div class="seksyen-tajuk">Gelanggang Sri Gayong Panglima Ulung</div>
       <div class="kad-row">
@@ -2643,7 +2643,7 @@ async function padamLatihanAdmin(id) {
 async function renderTetapan() {
   const main = getMain();
   try {
-    const t = await api('tetapan');
+    const t = await apiC('tetapan',{},600); // 10 min cache
     main.innerHTML = `
       <div class="seksyen-tajuk">Maklumat Gelanggang</div>
       <div class="kad" style="text-align:center;padding:20px">
@@ -2757,7 +2757,7 @@ async function renderSilibus() {
   const main = getMain();
   main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan...</span></div>';
   try {
-    dataSilibus = await api('silibus');
+    dataSilibus = await apiC('silibus',{},600); // 10 min cache
     paparSilibus();
   } catch(e) {
     main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p></div>`;
@@ -2916,7 +2916,7 @@ async function simpanFormSilibus(id) {
     }
     document.getElementById('modal-silibus-form')?.remove();
     tunjukToast('✅ Video berjaya '+(id?'dikemaskini':'ditambah')+'!','ok');
-    dataSilibus = await api('silibus');
+    dataSilibus = await apiC('silibus',{},600); // 10 min cache
     paparSilibus();
   } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
 }
@@ -2926,7 +2926,7 @@ async function padamSilabus(id) {
   try {
     await apiPost({ tindakan:'padam_silibus', id });
     tunjukToast('Video dipadamkan','ok');
-    dataSilibus = await api('silibus');
+    dataSilibus = await apiC('silibus',{},600); // 10 min cache
     paparSilibus();
   } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
 }
@@ -3035,7 +3035,7 @@ async function padamAhliKonfirm(noKp, nama) {
 async function muatEditJadual() {
   const el = document.getElementById('panel-jadual');
   try {
-    const t = await api('tetapan');
+    const t = await apiC('tetapan',{},600); // 10 min cache
     const jadual = [];
     for (let i = 1; i <= 3; i++) {
       jadual.push({
@@ -3800,7 +3800,14 @@ async function loadDashboardStats() {
   const el = document.getElementById('dashboard-stats');
   if (!el) return;
   try {
-    const d = await api('dashboard');
+    const d = await apiC('dashboard',{},120); // 2 min cache
+    // ── Preload senyap dalam background ──────────────────────
+    setTimeout(() => {
+      if (!dataAhliCache) apiC('senarai_ahli',{status:'AKTIF'},300).then(d=>{dataAhliCache=d;}).catch(()=>{});
+      apiC('tetapan',{},600).catch(()=>{});
+      apiC('silibus',{},600).catch(()=>{});
+    }, 800);
+    // ─────────────────────────────────────────────────────────
     el.style.display = 'block';
     el.innerHTML = `
       <div class="kad-row" style="margin-top:12px">
