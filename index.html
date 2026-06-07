@@ -2288,7 +2288,8 @@ async function renderKewangan() {
   const main = getMain();
   main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan lejer...</span></div>';
   try {
-    const d = await apiC('lejer_kewangan',{tahun:tahunKewangan},60);
+    clearApiCache('lejer'); // pastikan sentiasa fresh
+    const d = await api('lejer_kewangan',{tahun:tahunKewangan});
     const r = d.ringkasan || {};
     const fmt  = v => 'RM ' + Math.abs(parseFloat(v)||0).toFixed(2);
     const BULAN_PENUH = ['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'];
@@ -2468,7 +2469,10 @@ async function renderKewangan() {
       + '<button onclick="kewKeluar()" style="padding:6px 12px;font-size:12px;font-weight:700;border-radius:8px;border:1.5px solid var(--c6);background:rgba(255,23,68,.15);color:var(--c6);cursor:pointer"><i class="ti ti-minus"></i> Keluar</button>'
       + '</div>'
       + '<div class="kosong"><i class="ti ti-wifi-off"></i><p>' + e.message + '</p>'
-      + '<button class="btn btn-outline" onclick="renderKewangan()">Cuba Semula</button></div>';
+      + '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'
+      + '<button class="btn btn-outline" onclick="renderKewangan()">Cuba Semula</button>'
+      + '<button class="btn btn-outline" style="border-color:var(--c2);color:var(--c2)" onclick="jalanRepairKewangan()"><i class="ti ti-tool"></i> Baiki Sheet</button>'
+      + '</div></div>';
   }
 }
 
@@ -2477,6 +2481,15 @@ function tukarTahunKewangan(tahun) { tahunKewangan=tahun; clearApiCache('lejer')
 function tapisKewangan(jenis) { tapisLejer=jenis; renderKewangan(); }
 
 // ── Kawalan Kewangan: Masuk / Keluar ─────────────────────────
+async function jalanRepairKewangan() {
+  tunjukToast('⏳ Memeriksa sheet kewangan...', 'ok');
+  try {
+    const r = await api('repair_kewangan');
+    tunjukToast('✅ ' + r.mesej, 'ok');
+    clearApiCache('lejer');
+    setTimeout(renderKewangan, 1000);
+  } catch(e) { tunjukToast('Gagal: ' + e.message, 'ralat'); }
+}
 function kewMasuk()  { bukaModalKewangan('PENDAPATAN');  }
 function kewKeluar() { bukaModalKewangan('PERBELANJAAN'); }
 
@@ -2525,6 +2538,7 @@ async function simpanKewanganBaru(jenis) {
     await apiPost({ tindakan:'tambah_kewangan', jenis, kategori, jumlah, tarikh, keterangan });
     closeModal('modal-kew');
     tunjukToast('✅ RM ' + jumlah.toFixed(2) + ' berjaya direkodkan!', 'ok');
+    tapisLejer = 'SEMUA'; // reset filter supaya rekod baru nampak
     clearApiCache('lejer');
     renderKewangan();
   } catch(e) {
