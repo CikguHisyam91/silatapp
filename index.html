@@ -3482,6 +3482,7 @@ async function renderTetapan() {
         </div>
       </div>
     `;
+    setTimeout(muatPaparJadual, 400); // Auto-load jadual semasa
   } catch(e) {
     main.innerHTML = `<div class="kosong"><i class="ti ti-settings"></i><p>Gagal muatkan tetapan</p><p style="font-size:12px">Pastikan sheet TETAPAN wujud</p></div>`;
   }
@@ -3814,11 +3815,46 @@ async function padamAhliKonfirm(noKp, nama) {
 }
 
 
+
+// Papar jadual semasa dalam panel tetapan (read-only)
+async function muatPaparJadual() {
+  const el = document.getElementById('panel-jadual');
+  if (!el) return;
+  try {
+    const t = await apiC('tetapan',{},600);
+    const HARI_WARNA = {BERJALAN:'var(--c3)', DITANGGUHKAN:'var(--c6)'};
+    const HARI_IKON  = {BERJALAN:'✅', DITANGGUHKAN:'🚫'};
+    let jadualHtml = '';
+    for (let i = 1; i <= 3; i++) {
+      const hari   = t['JADUAL_'+i+'_HARI'] || '';
+      const masa   = t['JADUAL_'+i+'_MASA'] || '';
+      const lokasi = t['JADUAL_'+i+'_LOKASI'] || '';
+      const status = t['JADUAL_'+i+'_STATUS'] || 'BERJALAN';
+      const catatan= t['JADUAL_'+i+'_CATATAN'] || '';
+      if (!hari) continue;
+      const w = HARI_WARNA[status] || 'var(--muted)';
+      const ik = HARI_IKON[status] || '❓';
+      jadualHtml += `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,.04);border-radius:8px;margin-bottom:6px;border-left:3px solid ${w}">
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:700;color:#fff">${ik} ${hari} · <span style="color:var(--c2)">${masa}</span></div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${lokasi}${catatan?' · <span style="color:var(--c6)">'+catatan+'</span>':''}</div>
+        </div>
+        <span style="font-size:9px;font-weight:700;color:${w};background:${w}22;border-radius:6px;padding:2px 7px">${status}</span>
+      </div>`;
+    }
+    el.innerHTML = jadualHtml || '<div style="font-size:12px;color:var(--muted);text-align:center;padding:10px">Belum ada jadual ditetapkan</div>';
+  } catch(e) {
+    if (document.getElementById('panel-jadual'))
+      document.getElementById('panel-jadual').innerHTML = '<div style="font-size:11px;color:var(--muted)">—</div>';
+  }
+}
+
 // ── Kawalan Jadual Latihan (Admin) ───────────────────────────
 async function muatEditJadual() {
   const el = document.getElementById('panel-jadual');
   try {
-    const t = await apiC('tetapan',{},600); // 10 min cache
+    clearApiCache('tetapan'); // Pastikan data terkini
+    const t = await api('tetapan');
     const jadual = [];
     for (let i = 1; i <= 3; i++) {
       jadual.push({
@@ -3882,9 +3918,25 @@ async function simpanJadual() {
     document.getElementById('modal-jadual')?.remove();
     tunjukToast('✅ Jadual latihan dikemaskini! Ibu bapa akan nampak perubahan.', 'ok');
     clearApiCache('tetapan');
+    setTimeout(muatPaparJadual, 500); // Refresh paparan jadual
   } catch(e) { tunjukToast('Gagal: '+e.message, 'ralat'); }
 }
 
+
+
+// Pemformat tarikh untuk paparan (DD/MM/YYYY)
+function fmtT(val) {
+  if (!val) return '—';
+  const s = String(val).trim();
+  // Format YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const [y,m,d] = s.split('-');
+    return d.substring(0,2)+'/'+m+'/'+y;
+  }
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return s.substring(0,10)||'—';
+  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+}
 
 // ── MENU LAPORAN ──────────────────────────────────────────────
 let tapisLaporan = 'SEMUA', cariLaporan = '';
