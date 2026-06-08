@@ -294,6 +294,12 @@ select.form-input{appearance:none}
         <span class="game-ikon">💰</span>
         <span class="game-lbl">KEWANGAN</span>
       </div>
+      <div class="game-btn" style="background:linear-gradient(160deg,#FFD700,#FFA000);box-shadow:0 6px 0 #E65100,0 10px 20px rgba(255,160,0,.3);border:2px solid rgba(255,255,255,.3);border-bottom-width:6px" onclick="bukaPage('pertandingan','🏆 Pertandingan')">
+        <div class="game-icon">🏆</div><div class="game-lbl">Pertandingan</div>
+      </div>
+      <div class="game-btn" style="background:linear-gradient(160deg,#29B6F6,#0288D1);box-shadow:0 6px 0 #01579B,0 10px 20px rgba(2,136,209,.3);border:2px solid rgba(255,255,255,.3);border-bottom-width:6px" onclick="bukaPage('galeri','📸 Galeri')">
+        <div class="game-icon">📸</div><div class="game-lbl">Galeri</div>
+      </div>
       <div class="game-btn" style="background:linear-gradient(160deg,#F06292,#C2185B);box-shadow:0 6px 0 #880E4F,0 10px 20px rgba(194,24,91,.3);border:2px solid rgba(255,255,255,.3);border-bottom-width:6px" onclick="bukaPage('latihan','🏃 Latihan')">
         <span class="game-ikon">🏃</span>
         <span class="game-lbl">LATIHAN</span>
@@ -1356,6 +1362,8 @@ function renderHalamanPage(halaman) {
     case 'kewangan'      : renderKewangan();       break;
     case 'laporan'       : renderLaporan();        break;
     case 'latihan'       : renderLatihanKendiri(); break;
+    case 'pertandingan'  : renderPertandingan();    break;
+    case 'galeri'        : renderGaleri();          break;
     case 'sejarah_gred'  : renderSejarahGred();    break;
     case 'silibus'       : renderSilibus();        break;
     case 'profil_pesilat': renderProfilPesilat();  break;
@@ -1401,12 +1409,18 @@ async function renderDashboard() {
         </div>
       </div>
 
+      <div class="seksyen-tajuk">📊 Graf Kehadiran & Pecahan Ahli</div>
+      <div class="kad" id="kad-graf-dash">
+        <div style="font-size:11px;color:var(--muted);text-align:center;padding:20px"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Memuatkan graf...</div>
+      </div>
+
       <div class="seksyen-tajuk">Tindakan Pantas</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <button class="btn btn-pri" onclick="navigasi('kehadiran')"><i class="ti ti-calendar-check"></i> Rekod Hadir</button>
         <button class="btn btn-outline" onclick="bukaModal('modal-daftar')"><i class="ti ti-user-plus"></i> Daftar Ahli</button>
         <button class="btn btn-outline" onclick="navigasi('yuran')"><i class="ti ti-coin"></i> Rekod Yuran</button>
         <button class="btn btn-outline" onclick="navigasi('silibus')"><i class="ti ti-book"></i> Silibus</button>
+        <button class="btn btn-outline" onclick="janaLaporanOPR()" style="border-color:#FFD700;color:#FFD700;grid-column:1/-1"><i class="ti ti-report-analytics"></i> Jana Laporan OPR</button>
       </div>
 
       <div class="seksyen-tajuk">Yuran ${d.bulan_yuran} ${d.tahun_yuran}</div>
@@ -1429,6 +1443,7 @@ async function renderDashboard() {
     `;
     tambahFab(() => bukaModal('modal-daftar'));
     setTimeout(muatTunggakan, 1000);
+    setTimeout(muatGrafDashboard, 1200);
   } catch (e) {
     main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>Gagal memuatkan data.<br>${e.message}</p><button class="btn btn-outline" onclick="muatSemula()">Cuba Semula</button></div>`;
   }
@@ -1440,8 +1455,20 @@ async function renderSenaraiAhli() {
   try {
     if (!dataAhliCache) dataAhliCache = await api('senarai_ahli', {status:'AKTIF'});
     const ahli = dataAhliCache;
+    // Kira kategori unik untuk tapis
+    const katUnik  = ['SEMUA',...new Set((ahli||[]).map(a=>a.kategori||'LAIN').filter(Boolean))];
+    const bkgUnik  = ['SEMUA',...new Set((ahli||[]).map(a=>a.bengkung||'—').filter(b=>b!=='—'))];
     main.innerHTML = `
-      <div class="kotak-carian"><i class="ti ti-search"></i><input type="search" placeholder="Cari nama atau no. KP..." oninput="tapis(this.value)" id="inp-carian"></div>
+      <div class="kotak-carian"><i class="ti ti-search"></i><input type="search" placeholder="Cari nama atau no. KP..." oninput="tapisAhliQ(this.value)" id="inp-carian"></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0">
+        <select id="inp-kat-ahli" onchange="tapisAhliApply()" style="flex:1;padding:7px 8px;border-radius:8px;background:var(--bg);border:1.5px solid rgba(255,255,255,.15);color:#fff;font-size:11px">
+          ${katUnik.map(k=>'<option value="'+k+'">'+(k==='SEMUA'?'📚 Semua Kategori':k)+'</option>').join('')}
+        </select>
+        <select id="inp-bkg-ahli" onchange="tapisAhliApply()" style="flex:1;padding:7px 8px;border-radius:8px;background:var(--bg);border:1.5px solid rgba(255,255,255,.15);color:#fff;font-size:11px">
+          ${bkgUnik.map(b=>'<option value="'+b+'">'+(b==='SEMUA'?'🥋 Semua Bengkung':b)+'</option>').join('')}
+        </select>
+        <button onclick="exportAhliCSV()" title="Export Excel/CSV" style="padding:7px 10px;border-radius:8px;background:rgba(0,200,83,.15);border:1.5px solid var(--c3);color:var(--c3);cursor:pointer;font-size:12px"><i class="ti ti-file-spreadsheet"></i></button>
+      </div>
       <div id="senarai-ahli"></div>
     `;
     renderSenarai(ahli);
@@ -1537,16 +1564,44 @@ function renderSenarai(senarai) {
 }
 
 let timerCarian;
-function tapis(q) {
-  clearTimeout(timerCarian);
-  timerCarian = setTimeout(() => {
-    if (!dataAhliCache) return;
-    const hasil = q ? dataAhliCache.filter(a =>
-      a.nama.toLowerCase().includes(q.toLowerCase()) ||
-      a.no_kp.includes(q)
-    ) : dataAhliCache;
-    renderSenarai(hasil);
-  }, 250);
+let _qAhli = '', _katAhli = 'SEMUA', _bkgAhli = 'SEMUA';
+
+function tapisAhliQ(q) { _qAhli = q; clearTimeout(timerCarian); timerCarian = setTimeout(tapisAhliApply, 250); }
+
+function tapisAhliApply() {
+  if (!dataAhliCache) return;
+  const kat = document.getElementById('inp-kat-ahli')?.value || 'SEMUA';
+  const bkg = document.getElementById('inp-bkg-ahli')?.value || 'SEMUA';
+  let hasil = dataAhliCache;
+  if (_qAhli) hasil = hasil.filter(a => (a.nama||'').toLowerCase().includes(_qAhli.toLowerCase()) || (a.no_kp||'').includes(_qAhli));
+  if (kat !== 'SEMUA') hasil = hasil.filter(a => (a.kategori||'') === kat);
+  if (bkg !== 'SEMUA') hasil = hasil.filter(a => (a.bengkung||'—') === bkg);
+  renderSenarai(hasil);
+}
+
+// Kekalkan fungsi lama untuk keserasian
+function tapis(q) { _qAhli = q; tapisAhliApply(); }
+
+// ── Export Senarai Ahli ke CSV ──
+function exportAhliCSV() {
+  if (!dataAhliCache || !dataAhliCache.length) { tunjukToast('Tiada data untuk dieksport','ralat'); return; }
+  const hdrs = ['ID Ahli','No. KP','Nama Penuh','Jantina','Tarikh Lahir','Kategori','Bengkung','Tarikh Daftar','Status','No. Tel Waris'];
+  const rows = dataAhliCache.map(a => [
+    a.id_ahli||'', a.no_kp||'', (a.nama||'').replace(/,/g,' '), a.jantina||'',
+    a.tarikh_lahir||'', a.kategori||'', (a.bengkung||'').replace(/,/g,' '),
+    a.tarikh_daftar||'', a.status||'AKTIF', a.no_tel||''
+  ]);
+  muat_turun_csv([hdrs, ...rows], 'Senarai_Ahli_' + new Date().toISOString().split('T')[0] + '.csv');
+  tunjukToast('✅ Fail CSV disiapkan!','ok');
+}
+
+function muat_turun_csv(rows, namaFail) {
+  const csv = rows.map(r => r.map(v => '"' + String(v||'').replace(/"/g,'""') + '"').join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = namaFail; a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ── HALAMAN: Profil Ahli ─────────────────────────────────────
@@ -2784,6 +2839,425 @@ function bukaWinPenyata(transaksi, ringkasan, tempoh, jenisTempoh, tetapan) {
   win.document.close();
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+//  FEATURE 4: HALAMAN PERTANDINGAN
+// ═══════════════════════════════════════════════════════════════
+async function renderPertandingan() {
+  const main = getMain();
+  main.innerHTML = '<div class="muat"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i></div>';
+  try {
+    const tahun = new Date().getFullYear();
+    const [data, ahli] = await Promise.all([
+      api('senarai_tandingan', {tahun}),
+      apiC('senarai_ahli', {status:'AKTIF'}, 300)
+    ]);
+    const WARNA_KEP = {EMAS:'#FFD700',PERAK:'#C0C0C0',GANGSA:'#CD7F32',MENANG:'#00E676',KALAH:'#FF5177',DEFAULT:'rgba(255,255,255,.5)'};
+    const warnaKep = k => WARNA_KEP[(k||'').toUpperCase()] || WARNA_KEP.DEFAULT;
+
+    let html = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <div style="flex:1;font-size:14px;font-weight:800;color:#FFD700">🏆 Rekod Pertandingan ${tahun}</div>
+      <button onclick="modalTambahTandingan()" style="padding:7px 12px;border-radius:8px;background:rgba(255,215,0,.15);border:1.5px solid #FFD700;color:#FFD700;cursor:pointer;font-size:12px;font-weight:700"><i class="ti ti-plus"></i> Tambah</button>
+      <button onclick="exportTandinganCSV()" title="Export CSV" style="padding:7px 10px;border-radius:8px;background:rgba(0,200,83,.1);border:1.5px solid var(--c3);color:var(--c3);cursor:pointer;font-size:12px"><i class="ti ti-file-spreadsheet"></i></button>
+    </div>`;
+
+    if (!data.length) {
+      html += '<div class="kosong"><i class="ti ti-trophy-off"></i><p>Belum ada rekod pertandingan</p></div>';
+    } else {
+      // Ringkasan
+      const menang = data.filter(d => ['EMAS','PERAK','GANGSA','MENANG'].some(k => (d.keputusan||'').toUpperCase().includes(k))).length;
+      html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+        <div style="background:rgba(255,215,0,.12);border-radius:10px;padding:10px;text-align:center;border:1px solid rgba(255,215,0,.3)">
+          <div style="font-size:22px;font-weight:900;color:#FFD700">${data.length}</div>
+          <div style="font-size:10px;color:var(--muted)">Penyertaan</div>
+        </div>
+        <div style="background:rgba(0,230,118,.12);border-radius:10px;padding:10px;text-align:center;border:1px solid rgba(0,230,118,.3)">
+          <div style="font-size:22px;font-weight:900;color:#00E676">${menang}</div>
+          <div style="font-size:10px;color:var(--muted)">Pencapaian</div>
+        </div>
+        <div style="background:rgba(108,99,255,.12);border-radius:10px;padding:10px;text-align:center;border:1px solid rgba(108,99,255,.3)">
+          <div style="font-size:22px;font-weight:900;color:#6C63FF">${new Set(data.map(d=>d.no_kp)).size}</div>
+          <div style="font-size:10px;color:var(--muted)">Pesilat</div>
+        </div>
+      </div>`;
+
+      // Senarai ikut tandingan
+      const byTandingan = {};
+      data.forEach(d => {
+        const k = (d.nama_tandingan||'—') + '|' + (d.tarikh||'');
+        if (!byTandingan[k]) byTandingan[k] = {nama:d.nama_tandingan, tarikh:d.tarikh, items:[]};
+        byTandingan[k].items.push(d);
+      });
+
+      Object.values(byTandingan).sort((a,b) => b.tarikh > a.tarikh ? 1 : -1).forEach(g => {
+        const td = String(g.tarikh||'');
+        const tarikhFmt = td.length>=10 ? td.substring(8,10)+'/'+td.substring(5,7)+'/'+td.substring(0,4) : td;
+        html += `<div style="background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.2);border-radius:12px;margin-bottom:10px;overflow:hidden">
+          <div style="padding:10px 12px;background:rgba(255,215,0,.1);display:flex;justify-content:space-between;align-items:center">
+            <div style="font-size:13px;font-weight:800;color:#FFD700">${g.nama||'—'}</div>
+            <div style="font-size:11px;color:var(--muted)">${tarikhFmt}</div>
+          </div>`;
+        g.items.forEach(t => {
+          html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-top:1px solid rgba(255,255,255,.05)">
+            <div style="width:32px;height:32px;border-radius:50%;background:rgba(255,215,0,.15);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#FFD700;flex-shrink:0">${(t.nama||'?')[0]}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:12px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.nama||'—'}</div>
+              <div style="font-size:10px;color:var(--muted)">${t.acara||'—'} · ${t.kategori||'—'}</div>
+            </div>
+            <span style="font-size:11px;font-weight:700;color:${warnaKep(t.keputusan)};background:${warnaKep(t.keputusan)}22;border-radius:6px;padding:3px 8px">${t.keputusan||'—'}</span>
+            <button onclick="padamTandinganKonfirm('${(t.id||'').replace(/'/g,"\\'")}','${(t.nama||'').replace(/'/g,"\\'")}' )" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:2px;font-size:14px"><i class="ti ti-trash"></i></button>
+          </div>`;
+        });
+        html += '</div>';
+      });
+    }
+    main.innerHTML = html;
+  } catch(e) {
+    main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p><button class="btn btn-outline" onclick="renderPertandingan()">Cuba Semula</button></div>`;
+  }
+}
+
+async function modalTambahTandingan() {
+  const ahli = dataAhliCache || await apiC('senarai_ahli',{status:'AKTIF'},300);
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg'; modal.id = 'modal-tandingan';
+  const hari = new Date().toISOString().split('T')[0];
+  let h = '<div class="modal">';
+  h += '<div class="modal-tajuk" style="color:#FFD700">🏆 Tambah Rekod Pertandingan<div class="modal-tutup" onclick="closeModal(\'modal-tandingan\')"><i class="ti ti-x"></i></div></div>';
+  h += '<div class="form-kump"><label class="form-label">Pesilat *</label><select class="form-input" id="td-no-kp">';
+  ahli.forEach(a => { h += `<option value="${a.no_kp}">${a.nama}</option>`; });
+  h += '</select></div>';
+  h += '<div class="form-kump"><label class="form-label">Nama Pertandingan *</label><input class="form-input" id="td-nama-tandingan" type="text" placeholder="cth: Kejohanan Silat Kebangsaan 2026"></div>';
+  h += '<div class="form-kump"><label class="form-label">Tarikh</label><input class="form-input" id="td-tarikh" type="date" value="' + hari + '"></div>';
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  h += '<div class="form-kump"><label class="form-label">Acara</label><input class="form-input" id="td-acara" type="text" placeholder="cth: Seni Sendiri"></div>';
+  h += '<div class="form-kump"><label class="form-label">Kategori</label><input class="form-input" id="td-kategori" type="text" placeholder="cth: Bawah 17 tahun"></div>';
+  h += '</div>';
+  h += '<div class="form-kump"><label class="form-label">Keputusan *</label><select class="form-input" id="td-keputusan"><option>EMAS</option><option>PERAK</option><option>GANGSA</option><option>MENANG</option><option>KALAH</option><option>TANPA PINGAT</option><option>PENYERTAAN</option></select></div>';
+  h += '<div class="form-kump"><label class="form-label">Tempat Bertanding</label><input class="form-input" id="td-tempat" type="text" placeholder="cth: Stadium Negara, KL"></div>';
+  h += '<button onclick="simpanTandingan()" style="width:100%;padding:12px;border-radius:10px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;border:none;font-size:13px;font-weight:800;cursor:pointer;margin-top:4px"><i class="ti ti-trophy"></i> Simpan</button>';
+  h += '</div>';
+  modal.innerHTML = h;
+  document.body.appendChild(modal);
+  requestAnimationFrame(() => modal.classList.add('buka'));
+  modal.addEventListener('click', ev => { if (ev.target === modal) modal.remove(); });
+}
+
+async function simpanTandingan() {
+  const d = {
+    no_kp: document.getElementById('td-no-kp')?.value,
+    nama_tandingan: document.getElementById('td-nama-tandingan')?.value?.trim(),
+    tarikh: document.getElementById('td-tarikh')?.value,
+    acara: document.getElementById('td-acara')?.value?.trim(),
+    kategori: document.getElementById('td-kategori')?.value?.trim(),
+    keputusan: document.getElementById('td-keputusan')?.value,
+    tempat: document.getElementById('td-tempat')?.value?.trim()
+  };
+  if (!d.no_kp || !d.nama_tandingan) { tunjukToast('Lengkapkan maklumat wajib','ralat'); return; }
+  try {
+    await apiPost({tindakan:'tambah_tandingan', ...d});
+    closeModal('modal-tandingan');
+    tunjukToast('✅ Rekod pertandingan disimpan!','ok');
+    renderPertandingan();
+  } catch(e) { tunjukToast('Gagal: ' + e.message,'ralat'); }
+}
+
+async function padamTandinganKonfirm(id, nama) {
+  if (!confirm('Padam rekod pertandingan ini?\n\n' + nama)) return;
+  try {
+    await apiPost({tindakan:'padam_tandingan', id});
+    tunjukToast('🗑️ Rekod dipadam','ok');
+    renderPertandingan();
+  } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
+}
+
+function exportTandinganCSV() {
+  api('senarai_tandingan',{tahun:new Date().getFullYear()}).then(data => {
+    if (!data.length) { tunjukToast('Tiada data','ralat'); return; }
+    const hdrs = ['ID','No. KP','Nama','Pertandingan','Tarikh','Kategori','Acara','Keputusan','Tempat'];
+    const rows = data.map(d => [d.id,d.no_kp,d.nama,d.nama_tandingan,d.tarikh,d.kategori,d.acara,d.keputusan,d.tempat]);
+    muat_turun_csv([hdrs,...rows], 'Pertandingan_' + new Date().getFullYear() + '.csv');
+    tunjukToast('✅ Export berjaya!','ok');
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  FEATURE 11: HALAMAN GALERI FOTO LATIHAN
+// ═══════════════════════════════════════════════════════════════
+async function renderGaleri() {
+  const main = getMain();
+  main.innerHTML = '<div class="muat"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i></div>';
+  try {
+    const tahun = new Date().getFullYear();
+    const data = await api('senarai_galeri', {tahun});
+    let html = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <div style="flex:1;font-size:14px;font-weight:800;color:#29B6F6">📸 Galeri Latihan ${tahun}</div>
+      <button onclick="modalTambahGaleri()" style="padding:7px 12px;border-radius:8px;background:rgba(41,182,246,.15);border:1.5px solid #29B6F6;color:#29B6F6;cursor:pointer;font-size:12px;font-weight:700"><i class="ti ti-plus"></i> Tambah Foto</button>
+    </div>`;
+
+    if (!data.length) {
+      html += '<div class="kosong"><i class="ti ti-photo-off"></i><p>Belum ada foto latihan</p></div>';
+    } else {
+      data.forEach(g => {
+        const td = String(g.tarikh||'');
+        const tarikhFmt = td.length>=10 ? td.substring(8,10)+'/'+td.substring(5,7)+'/'+td.substring(0,4) : td;
+        const isGDrive = (g.pautan||'').includes('drive.google.com');
+        const isGPhoto = (g.pautan||'').includes('photos.google.com');
+        const thumbStyle = 'width:100%;height:180px;object-fit:cover;border-radius:10px 10px 0 0;display:block;background:#1a1a2e';
+        html += `<div style="background:rgba(41,182,246,.06);border:1px solid rgba(41,182,246,.2);border-radius:12px;overflow:hidden;margin-bottom:10px">`;
+        if (g.pautan && !isGPhoto) {
+          html += `<div style="position:relative"><a href="${g.pautan}" target="_blank"><img src="${g.pautan}" style="${thumbStyle}" onerror="this.style.display='none';this.nextSibling.style.display='flex'" alt="${g.tajuk||'Foto'}"></a><div style="display:none;height:180px;align-items:center;justify-content:center;font-size:40px;background:rgba(41,182,246,.1)">📷</div>`;
+          html += `<button onclick="padamGaleriKonfirm('${(g.id||'').replace(/'/g,"\\'")}' )" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:6px;padding:4px 7px;cursor:pointer;font-size:12px"><i class="ti ti-trash"></i></button></div>`;
+        } else {
+          html += `<div style="position:relative;height:80px;background:rgba(41,182,246,.1);display:flex;align-items:center;justify-content:center;font-size:36px">📷
+            <button onclick="padamGaleriKonfirm('${(g.id||'').replace(/'/g,"\\'")}' )" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;color:#fff;border-radius:6px;padding:4px 7px;cursor:pointer;font-size:12px"><i class="ti ti-trash"></i></button>
+          </div>`;
+        }
+        html += `<div style="padding:10px 12px">
+          <div style="font-size:13px;font-weight:700;color:#fff">${g.tajuk||'Sesi Latihan'}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${tarikhFmt}${g.keterangan?' · '+g.keterangan:''}</div>
+          ${g.pautan ? `<a href="${g.pautan}" target="_blank" style="font-size:11px;color:#29B6F6;margin-top:4px;display:inline-block"><i class="ti ti-external-link"></i> Lihat foto</a>` : ''}
+        </div></div>`;
+      });
+    }
+    main.innerHTML = html;
+  } catch(e) {
+    main.innerHTML = `<div class="kosong"><i class="ti ti-wifi-off"></i><p>${e.message}</p><button class="btn btn-outline" onclick="renderGaleri()">Cuba Semula</button></div>`;
+  }
+}
+
+function modalTambahGaleri() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg'; modal.id = 'modal-galeri';
+  const hari = new Date().toISOString().split('T')[0];
+  let h = '<div class="modal">';
+  h += '<div class="modal-tajuk" style="color:#29B6F6">📸 Tambah Foto Latihan<div class="modal-tutup" onclick="closeModal(\'modal-galeri\')"><i class="ti ti-x"></i></div></div>';
+  h += '<div class="form-kump"><label class="form-label">Tajuk Sesi *</label><input class="form-input" id="gal-tajuk" type="text" placeholder="cth: Latihan Minggu 1 Jun 2026"></div>';
+  h += '<div class="form-kump"><label class="form-label">Tarikh</label><input class="form-input" id="gal-tarikh" type="date" value="' + hari + '"></div>';
+  h += '<div class="form-kump"><label class="form-label">Pautan Foto (Google Drive / Google Photos)</label><input class="form-input" id="gal-pautan" type="url" placeholder="https://drive.google.com/..."></div>';
+  h += '<div class="form-kump"><label class="form-label">Keterangan</label><input class="form-input" id="gal-keterangan" type="text" placeholder="cth: 15 pesilat hadir, fokus teknik"></div>';
+  h += '<div style="font-size:10px;color:var(--muted);margin:6px 0 10px;padding:8px;background:rgba(41,182,246,.1);border-radius:8px">💡 <b>Cara dapatkan pautan:</b> Google Photos → buka album → Kongsi → Salin pautan</div>';
+  h += '<button onclick="simpanGaleri()" style="width:100%;padding:12px;border-radius:10px;background:linear-gradient(135deg,#29B6F6,#0288D1);color:#fff;border:none;font-size:13px;font-weight:800;cursor:pointer"><i class="ti ti-photo"></i> Simpan</button>';
+  h += '</div>';
+  modal.innerHTML = h;
+  document.body.appendChild(modal);
+  requestAnimationFrame(() => modal.classList.add('buka'));
+  modal.addEventListener('click', ev => { if (ev.target === modal) modal.remove(); });
+}
+
+async function simpanGaleri() {
+  const d = {
+    tajuk: document.getElementById('gal-tajuk')?.value?.trim(),
+    tarikh: document.getElementById('gal-tarikh')?.value,
+    pautan: document.getElementById('gal-pautan')?.value?.trim(),
+    keterangan: document.getElementById('gal-keterangan')?.value?.trim()
+  };
+  if (!d.tajuk) { tunjukToast('Tajuk wajib diisi','ralat'); return; }
+  try {
+    await apiPost({tindakan:'tambah_galeri', ...d});
+    closeModal('modal-galeri');
+    tunjukToast('✅ Foto ditambah!','ok');
+    renderGaleri();
+  } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
+}
+
+async function padamGaleriKonfirm(id) {
+  if (!confirm('Padam rekod foto ini?')) return;
+  try {
+    await apiPost({tindakan:'padam_galeri', id});
+    tunjukToast('🗑️ Foto dipadam','ok');
+    renderGaleri();
+  } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  FEATURE 10: LAPORAN OPR AUTOMATIK
+// ═══════════════════════════════════════════════════════════════
+async function janaLaporanOPR() {
+  tunjukToast('⏳ Menyediakan OPR...','ok');
+  try {
+    const bulan = new Date().getMonth() + 1;
+    const tahun = new Date().getFullYear();
+    const data  = await api('data_opr', {tahun, bulan});
+    bukaWinOPR(data);
+  } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
+}
+
+function bukaWinOPR(d) {
+  const BULAN = ['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'];
+  const namaBulan = BULAN[parseInt(d.bulan)-1];
+  const tarikhCetak = new Date().toLocaleDateString('ms-MY',{day:'2-digit',month:'long',year:'numeric'});
+
+  const bulat = (v,max) => {
+    const pct = max > 0 ? Math.min(100, Math.round(v/max*100)) : 0;
+    const r = 40; const circ = 2*Math.PI*r;
+    const dash = (pct/100)*circ;
+    const warna = pct>=80?'#00C853':pct>=60?'#FFD700':'#FF5177';
+    return `<svg width="110" height="110" viewBox="0 0 110 110">
+      <circle cx="55" cy="55" r="${r}" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="10"/>
+      <circle cx="55" cy="55" r="${r}" fill="none" stroke="${warna}" stroke-width="10"
+        stroke-dasharray="${dash} ${circ}" stroke-dashoffset="${circ/4}" stroke-linecap="round"/>
+      <text x="55" y="52" text-anchor="middle" fill="${warna}" font-size="18" font-weight="700">${pct}%</text>
+      <text x="55" y="68" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="9">${v}/${max}</text>
+    </svg>`;
+  };
+
+  const html = `<!DOCTYPE html>
+<html lang="ms"><head><meta charset="UTF-8"><title>OPR — ${d.nama_gelanggang}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#0d0d1a;color:#fff;padding:20px;min-height:100vh}
+.header{text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:2px solid rgba(255,255,255,.1)}
+.nama{font-size:20px;font-weight:700;color:#FFD700;letter-spacing:1px}
+.tajuk{font-size:14px;color:rgba(255,255,255,.6);margin-top:4px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:20px 0}
+.kad{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:20px;text-align:center}
+.kad-label{font-size:11px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px}
+.stat-besar{font-size:36px;font-weight:900;margin-bottom:4px}
+.stat-kecil{font-size:12px;color:rgba(255,255,255,.5)}
+.seksyen{font-size:13px;font-weight:700;color:#FFD700;margin:20px 0 10px;text-transform:uppercase;letter-spacing:1px}
+.bar-wrap{background:rgba(255,255,255,.1);border-radius:99px;height:10px;overflow:hidden;margin:6px 0}
+.bar-fill{height:100%;border-radius:99px;transition:width .5s}
+table{width:100%;border-collapse:collapse;font-size:12px}
+td,th{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.07);text-align:left}
+th{color:#FFD700;font-weight:600;font-size:11px}
+.no-print{text-align:center;margin-bottom:16px}
+@media print{body{background:#fff;color:#000}.no-print{display:none}.kad{border:1px solid #ddd;background:#f9f9f9}.nama{color:#1a3a6c}.seksyen{color:#1a3a6c}}
+</style></head><body>
+<div class="no-print">
+  <button onclick="window.print()" style="padding:10px 28px;font-size:13px;font-weight:700;background:#FFD700;color:#000;border:none;border-radius:8px;cursor:pointer;margin-right:8px">🖨️ Cetak / PDF</button>
+  <button onclick="window.close()" style="padding:10px 20px;font-size:13px;background:#333;color:#fff;border:1px solid #555;border-radius:8px;cursor:pointer">Tutup</button>
+</div>
+<div class="header">
+  <div style="font-size:32px;margin-bottom:8px">🥋</div>
+  <div class="nama">${d.nama_gelanggang}</div>
+  <div class="tajuk">LAPORAN OPR — ${namaBulan} ${d.tahun}</div>
+  <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:6px">Dicetak: ${tarikhCetak}</div>
+</div>
+
+<div class="seksyen">📊 Ringkasan Prestasi</div>
+<div class="grid3">
+  <div class="kad">
+    <div class="kad-label">Kehadiran</div>
+    ${bulat(d.hadir_bulan, d.jumlah_ahli)}
+  </div>
+  <div class="kad">
+    <div class="kad-label">Yuran Dikutip</div>
+    ${bulat(d.yuran_kutip, d.jumlah_ahli)}
+  </div>
+  <div class="kad">
+    <div class="kad-label">Pencapaian Tandingan</div>
+    ${bulat(d.jumlah_menang, Math.max(1, d.jumlah_tandingan))}
+  </div>
+</div>
+
+<div class="seksyen">📋 Laporan Terperinci</div>
+<table>
+  <tr><th>Perkara</th><th>Sasaran</th><th>Pencapaian</th><th>Peratus</th></tr>
+  <tr><td>Kehadiran Latihan</td><td>${d.jumlah_ahli} ahli</td><td>${d.hadir_bulan} hadir</td>
+    <td><div class="bar-wrap"><div class="bar-fill" style="width:${d.peratus_hadir}%;background:${d.peratus_hadir>=80?'#00C853':d.peratus_hadir>=60?'#FFD700':'#FF5177'}"></div></div>${d.peratus_hadir}%</td>
+  </tr>
+  <tr><td>Kutipan Yuran</td><td>${d.jumlah_ahli} ahli</td><td>${d.yuran_kutip} bayar</td>
+    <td><div class="bar-wrap"><div class="bar-fill" style="width:${d.peratus_yuran}%;background:${d.peratus_yuran>=80?'#00C853':d.peratus_yuran>=60?'#FFD700':'#FF5177'}"></div></div>${d.peratus_yuran}%</td>
+  </tr>
+  <tr><td>Penyertaan Pertandingan</td><td>—</td><td>${d.jumlah_tandingan} penyertaan, ${d.jumlah_menang} pencapaian</td><td>—</td></tr>
+  <tr><td>Jumlah Ahli Aktif</td><td>—</td><td>${d.jumlah_ahli} ahli</td><td>—</td></tr>
+</table>
+
+${d.nama_pengerusi ? `<div style="margin-top:40px;display:grid;grid-template-columns:1fr 1fr;gap:30px">
+  <div style="text-align:center"><div style="border-top:1px solid rgba(255,255,255,.3);padding-top:8px;margin-top:60px"><div style="font-size:13px;font-weight:600">${d.nama_pengerusi}</div><div style="font-size:11px;color:rgba(255,255,255,.5)">Pengerusi / Guru Besar</div></div></div>
+  <div style="text-align:center"><div style="border-top:1px solid rgba(255,255,255,.3);padding-top:8px;margin-top:60px"><div style="font-size:13px;font-weight:600">_________________________</div><div style="font-size:11px;color:rgba(255,255,255,.5)">Bendahari</div></div></div>
+</div>` : ''}
+</body></html>`;
+
+  const win = window.open('','_blank','width=800,height=700,scrollbars=yes');
+  win.document.write(html); win.document.close();
+}
+
+
+
+// ═══════════════════════════════════════════════════════════════
+//  FEATURE 7: GRAF DASHBOARD — SVG inline (tanpa CDN)
+// ═══════════════════════════════════════════════════════════════
+async function muatGrafDashboard() {
+  const el = document.getElementById('kad-graf-dash');
+  if (!el) return;
+  try {
+    const [trend, ahli] = await Promise.all([
+      api('stat_hadir_trend'),
+      apiC('senarai_ahli',{status:'AKTIF'},300)
+    ]);
+
+    // ── Graf 1: Trend Kehadiran 6 Bulan ──
+    const pts = trend.trend || [];
+    const maxH = Math.max(...pts.map(p => p.hadir), 1);
+    const W = 280, H = 80, pad = 8;
+    const xStep = (W - pad*2) / Math.max(pts.length - 1, 1);
+    const barW  = Math.floor((W - pad*2) / pts.length) - 4;
+
+    let bars = ''; let labels = '';
+    pts.forEach((p, i) => {
+      const x  = pad + i * ((W - pad*2) / pts.length);
+      const bh = Math.max(4, Math.round((p.hadir / maxH) * (H - 20)));
+      const y  = H - bh - 2;
+      const warna = p.hadir >= (p.ahliAktif*0.8) ? '#00E676' : p.hadir >= (p.ahliAktif*0.5) ? '#FFD700' : '#FF5177';
+      bars += `<rect x="${x}" y="${y}" width="${barW}" height="${bh}" rx="3" fill="${warna}" opacity="0.8"/>`;
+      bars += `<text x="${x + barW/2}" y="${y - 2}" text-anchor="middle" fill="${warna}" font-size="8" font-weight="700">${p.hadir}</text>`;
+      const lb = p.bulan.split(' ')[0];
+      labels += `<text x="${x + barW/2}" y="${H + 2}" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="8">${lb}</text>`;
+    });
+
+    const grafTrend = `<svg width="100%" viewBox="0 0 ${W} ${H+12}" xmlns="http://www.w3.org/2000/svg">${bars}${labels}</svg>`;
+
+    // ── Graf 2: Donut Pecahan Kategori ──
+    const katCount = {};
+    (ahli||[]).forEach(a => { const k = (a.kategori||'LAIN').split(' ')[1]||'LAIN'; katCount[k]=(katCount[k]||0)+1; });
+    const katItems = Object.entries(katCount).sort((a,b)=>b[1]-a[1]);
+    const total = (ahli||[]).length || 1;
+    const KAT_WARNA = {RENDAH:'#00E676', MENENGAH:'#6C63FF', DEWASA:'#FFD700', LAIN:'#FF9100'};
+    let startAngle = -Math.PI/2;
+    let donutPaths = '';
+    katItems.forEach(([k,n]) => {
+      const angle = (n/total)*2*Math.PI;
+      const cx = 50, cy = 50, r = 38, ri = 24;
+      const x1 = cx + r*Math.cos(startAngle), y1 = cy + r*Math.sin(startAngle);
+      const x2 = cx + r*Math.cos(startAngle+angle), y2 = cy + r*Math.sin(startAngle+angle);
+      const ix1 = cx + ri*Math.cos(startAngle+angle), iy1 = cy + ri*Math.sin(startAngle+angle);
+      const ix2 = cx + ri*Math.cos(startAngle), iy2 = cy + ri*Math.sin(startAngle);
+      const large = angle > Math.PI ? 1 : 0;
+      const warna = KAT_WARNA[k] || '#888';
+      donutPaths += `<path d="M${x1.toFixed(1)},${y1.toFixed(1)} A${r},${r} 0 ${large},1 ${x2.toFixed(1)},${y2.toFixed(1)} L${ix1.toFixed(1)},${iy1.toFixed(1)} A${ri},${ri} 0 ${large},0 ${ix2.toFixed(1)},${iy2.toFixed(1)} Z" fill="${warna}" opacity="0.85"/>`;
+      startAngle += angle;
+    });
+    donutPaths += `<text x="50" y="47" text-anchor="middle" fill="#fff" font-size="14" font-weight="900">${total}</text>`;
+    donutPaths += `<text x="50" y="58" text-anchor="middle" fill="rgba(255,255,255,.5)" font-size="8">ahli</text>`;
+    const grafDonut = `<svg width="100" height="100" viewBox="0 0 100 100">${donutPaths}</svg>`;
+
+    const legend = katItems.map(([k,n]) => {
+      const w = KAT_WARNA[k]||'#888';
+      return `<div style="display:flex;align-items:center;gap:4px;margin-bottom:4px">
+        <div style="width:10px;height:10px;border-radius:3px;background:${w};flex-shrink:0"></div>
+        <div style="font-size:10px;color:rgba(255,255,255,.7)">${k}<span style="color:${w};font-weight:700;margin-left:4px">${n}</span></div>
+      </div>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div style="margin-bottom:10px">
+        <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;margin-bottom:6px">📈 KEHADIRAN 6 BULAN LEPAS</div>
+        ${grafTrend}
+      </div>
+      <div style="border-top:1px solid rgba(255,255,255,.08);padding-top:10px;display:flex;gap:12px;align-items:center">
+        <div style="flex-shrink:0">${grafDonut}</div>
+        <div>
+          <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:600;margin-bottom:6px">🥋 PECAHAN KATEGORI</div>
+          ${legend}
+        </div>
+      </div>`;
+  } catch(e) {
+    const el2 = document.getElementById('kad-graf-dash');
+    if (el2) el2.innerHTML = '<div style="font-size:11px;color:var(--muted);text-align:center;padding:12px">Graf tidak tersedia</div>';
+  }
+}
 
 function kewMasuk()  { bukaModalKewangan('PENDAPATAN');  }
 function kewKeluar() { bukaModalKewangan('PERBELANJAAN'); }
