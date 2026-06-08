@@ -838,6 +838,7 @@ async function renderSilibus() {
     const kat=katRelevan(bengkung);
     const wKat={'WIRID 700':'linear-gradient(135deg,#5C35B0,#7B52D4)','BENGKUNG HITAM':'linear-gradient(135deg,#263238,#37474F)','BENGKUNG PUTIH':'linear-gradient(135deg,#7986CB,#5C6BC0)','BENGKUNG BIRU':'linear-gradient(135deg,#1565C0,#1976D2)','BENGKUNG HIJAU':'linear-gradient(135deg,#1B5E20,#2E7D32)','BENGKUNG KUNING':'linear-gradient(135deg,#F57F17,#F9A825)','BENGKUNG MERAH':'linear-gradient(135deg,#B71C1C,#C62828)','TARI TERATAI':'linear-gradient(135deg,#00695C,#00897B)','PECAHAN IBU GAYONG':'linear-gradient(135deg,#4527A0,#5E35B1)','SENAMAN KEKUDA':'linear-gradient(135deg,#37474F,#546E7A)','IBU GAYONG':'linear-gradient(135deg,#BF360C,#D84315)','LAIN-LAIN':'linear-gradient(135deg,#546E7A,#607D8B)'};
     const ikonKat={'WIRID 700':'📖','BENGKUNG HITAM':'🥷','BENGKUNG PUTIH':'🤍','BENGKUNG BIRU':'💙','BENGKUNG HIJAU':'💚','BENGKUNG KUNING':'💛','BENGKUNG MERAH':'❤️','TARI TERATAI':'🌸','PECAHAN IBU GAYONG':'⚔️','SENAMAN KEKUDA':'🏋️','IBU GAYONG':'🌟','LAIN-LAIN':'📁'};
+    const dataSilibus=data;
     const katAktif=Object.keys(kumpulanSilibus).filter(k=>kat.some(r=>k.includes(r)));
     const katLain=Object.keys(kumpulanSilibus).filter(k=>!kat.some(r=>k.includes(r)));
 
@@ -859,17 +860,82 @@ async function renderSilibus() {
     }
 
     main.innerHTML=`
-      <div class="kad" style="background:linear-gradient(135deg,#085041,#1D9E75);color:#fff;margin-bottom:12px">
-        <div style="font-size:12px;opacity:.8;margin-bottom:4px">Tahap Bengkung Semasa</div>
-        <div style="font-size:16px;font-weight:700">🥋 ${bengkung||'—'}</div>
-        <div style="font-size:11px;opacity:.7;margin-top:4px">Pilih kategori untuk tonton video pelajaran</div>
-      </div>
+      <div class=\"kad\" style=\"background:linear-gradient(135deg,#085041,#1D9E75);color:#fff;margin-bottom:12px\">\n        <div style=\"font-size:12px;opacity:.8;margin-bottom:4px\">Tahap Bengkung Semasa</div>\n        <div style=\"font-size:16px;font-weight:700\">🥋 ${bengkung||'—'}</div>\n        <div style=\"font-size:11px;opacity:.7;margin-top:4px\">${dataSilibus.length} pelajaran tersedia mengikut tahap semasa</div>\n      </div>\n      <div id=\"panel-progress-silibus\">\n        <div style=\"font-size:11px;color:#085041;text-align:center;padding:8px\"><i class=\"ti ti-loader-2\"></i></div>\n      </div>
       ${grid(katAktif,'📚 Pelajaran Tahap Semasa','#085041')}
       ${grid(katLain,'📁 Semua Bahan Rujukan','#888')}
       <div id="panel-video" style="display:none"></div>
       <button class="btn-keluar" onclick="keluar()"><i class="ti ti-logout"></i> Log Keluar</button>
     `;
   }catch(e){main.innerHTML=`<div style="text-align:center;padding:30px;color:#aaa">Gagal: ${e.message}</div>`;}
+}
+
+
+// ── PROGRESS SILIBUS ─────────────────────────────────────────
+async function muatProgressSilibus() {
+  const panel = document.getElementById('panel-progress-silibus');
+  if (!panel) return;
+  try {
+    const laporan = await api('laporan_pesilat', {no_kp: dataAnak.NO_KP || dataAnak.no_kp});
+    const semua = Array.isArray(laporan) ? laporan : (laporan.senarai || []);
+    
+    // Kira markah mengikut kategori
+    const markahByKat = {};
+    semua.forEach(l => {
+      const k = l.KATEGORI || l.kategori || 'LAIN';
+      if (!markahByKat[k]) markahByKat[k] = {total:0, lulus:0, markah:[]};
+      markahByKat[k].total++;
+      const m = parseFloat(l.MARKAH || l.markah || 0);
+      markahByKat[k].markah.push(m);
+      if (m >= 60) markahByKat[k].lulus++;
+    });
+
+    const katList = Object.keys(markahByKat);
+    if (!katList.length) {
+      panel.innerHTML = '<div style="background:rgba(8,80,65,.1);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#085041">Belum ada rekod penilaian. Rekod akan dikemaskini oleh jurulatih.</div>';
+      return;
+    }
+
+    const totalLulus = Object.values(markahByKat).reduce((s,v)=>s+v.lulus,0);
+    const totalItem  = Object.values(markahByKat).reduce((s,v)=>s+v.total,0);
+    const pctGlobal  = totalItem > 0 ? Math.round(totalLulus/totalItem*100) : 0;
+    const warnaGlobal = pctGlobal >= 80 ? '#1D9E75' : pctGlobal >= 60 ? '#F9A825' : '#E53935';
+
+    let html = `<div style="background:rgba(8,80,65,.08);border:1px solid rgba(8,80,65,.2);border-radius:12px;padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:#085041;margin-bottom:10px">📊 Kemajuan Penilaian</div>
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div style="text-align:center;flex-shrink:0">
+          <div style="font-size:26px;font-weight:900;color:${warnaGlobal}">${pctGlobal}%</div>
+          <div style="font-size:10px;color:#888">${totalLulus}/${totalItem} lulus</div>
+        </div>
+        <div style="flex:1">
+          <div style="background:rgba(0,0,0,.08);border-radius:99px;height:10px;overflow:hidden">
+            <div style="background:${warnaGlobal};height:100%;width:${pctGlobal}%;border-radius:99px;transition:.5s"></div>
+          </div>
+          <div style="font-size:10px;color:#666;margin-top:4px">${pctGlobal >= 80 ? '🌟 Cemerlang' : pctGlobal >= 60 ? '✅ Lulus' : '⚠️ Perlu latihan lebih'}</div>
+        </div>
+      </div>`;
+
+    katList.slice(0,4).forEach(k => {
+      const v = markahByKat[k];
+      const pct = v.total > 0 ? Math.round(v.lulus/v.total*100) : 0;
+      const avgM = v.markah.length > 0 ? Math.round(v.markah.reduce((a,b)=>a+b,0)/v.markah.length) : 0;
+      const warna = pct >= 80 ? '#1D9E75' : pct >= 60 ? '#F9A825' : '#E53935';
+      html += `<div style="margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
+          <span style="color:#333;font-weight:600">${k.length > 20 ? k.substring(0,18)+'…' : k}</span>
+          <span style="color:${warna};font-weight:700">${avgM} markah · ${pct}%</span>
+        </div>
+        <div style="background:rgba(0,0,0,.08);border-radius:99px;height:6px;overflow:hidden">
+          <div style="background:${warna};height:100%;width:${pct}%;border-radius:99px"></div>
+        </div>
+      </div>`;
+    });
+
+    html += '</div>';
+    panel.innerHTML = html;
+  } catch(e) {
+    panel.innerHTML = '';
+  }
 }
 
 function bukaSilibus(k) {
