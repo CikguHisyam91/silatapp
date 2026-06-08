@@ -3941,132 +3941,231 @@ function fmtT(val) {
 // ── MENU LAPORAN ──────────────────────────────────────────────
 let tapisLaporan = 'SEMUA', cariLaporan = '';
 
+// ── VIEW STATE ─────────────────────────────────────────────────
+let _semuaLaporan = [];
+let _lapPelilhNama = '';
+let cariPesilat = '';
+
 async function renderLaporan() {
   const main = getMain();
   main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan laporan...</span></div>';
   try {
     const data = await apiC('senarai_laporan',{},60);
-    const semua = Array.isArray(data) ? data : [];
-    // Statistik
-    const total   = semua.length;
-    const pesilat = [...new Set(semua.map(r=>r.NO_KP||r.no_kp))].length;
-    const bulan   = new Date().getMonth()+1;
-    const tahun   = new Date().getFullYear();
-    const bulanIni = semua.filter(r=>{
-      const t = new Date(r.TARIKH||r.tarikh||'');
-      return !isNaN(t) && t.getFullYear()===tahun && t.getMonth()+1===bulan;
-    }).length;
-
-    let html = '';
-
-    // ── Header + Butang Buat Laporan ──
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">';
-    html += '<div style="font-size:13px;color:var(--muted)">'+total+' laporan disimpan</div>';
-    html += '<button onclick="bukaBuatLaporan()" style="padding:8px 14px;font-size:12px;font-weight:700;border-radius:10px;background:linear-gradient(135deg,var(--c3),#00C853);border:none;color:#fff;cursor:pointer"><i class="ti ti-plus"></i> Buat Laporan</button>';
-    html += '</div>';
-
-    // ── Kad Ringkasan ──
-    html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">';
-    [
-      ['📋','Jumlah Laporan',total,'rgba(41,121,255,.12)','rgba(41,121,255,.3)','var(--c4)'],
-      ['👥','Pesilat Dinilai',pesilat,'rgba(0,200,83,.12)','rgba(0,200,83,.3)','var(--c3)'],
-      ['📅','Bulan Ini',bulanIni,'rgba(255,215,0,.12)','rgba(255,215,0,.3)','var(--c2)'],
-    ].forEach(([ikon,label,val,bg,border,w])=>{
-      html += '<div style="background:'+bg+';border:1.5px solid '+border+';border-radius:12px;padding:10px 6px;text-align:center">';
-      html += '<div style="font-size:18px;margin-bottom:2px">'+ikon+'</div>';
-      html += '<div style="font-size:18px;font-weight:900;color:'+w+'">'+val+'</div>';
-      html += '<div style="font-size:9px;color:var(--muted)">'+label+'</div>';
-      html += '</div>';
-    });
-    html += '</div>';
-
-    // ── Carian ──
-    html += '<div style="position:relative;margin-bottom:10px">';
-    html += '<i class="ti ti-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px"></i>';
-    html += '<input id="inp-cari-lap" type="text" placeholder="Cari nama pesilat..." value="'+cariLaporan+'" '
-          + 'oninput="cariLaporan=this.value;renderLaporan()" '
-          + 'style="width:100%;padding:10px 12px 10px 36px;border:1.5px solid rgba(255,255,255,.15);border-radius:10px;background:rgba(255,255,255,.07);color:#fff;font-size:13px;outline:none">';
-    html += '</div>';
-
-    // ── Tapis Bakat ──
-    html += '<div style="display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px">';
-    [['SEMUA','rgba(255,255,255,.6)'],['SILAT SENI','var(--c3)'],['OLAHRAGA','var(--c4)'],['KEDUA-DUANYA','var(--c2)'],['BELUM DIKENALPASTI','var(--muted)']].forEach(([j,w])=>{
-      const ak = j===tapisLaporan;
-      html += `<button onclick="tapisLap('${j}')" style="flex-shrink:0;padding:6px 12px;font-size:10px;font-weight:700;border-radius:99px;border:1.5px solid ${w};background:${ak?w:'transparent'};color:${ak?'#000':w};cursor:pointer;white-space:nowrap">${j}</button>`;
-    });
-    html += '</div>';
-
-    // ── Senarai Laporan ──
-    let tampil = semua.slice();
-    if (tapisLaporan !== 'SEMUA') tampil = tampil.filter(r=>(r.BAKAT||r.bakat||'').toUpperCase().includes(tapisLaporan));
-    if (cariLaporan)  tampil = tampil.filter(r=>(r.NAMA_PENUH||r.nama||'').toUpperCase().includes(cariLaporan.toUpperCase()));
-    // Susun terbaru dulu
-    tampil.sort((a,b)=>String(b.TARIKH||b.tarikh||'').localeCompare(String(a.TARIKH||a.tarikh||'')));
-
-    if (!tampil.length) {
-      html += '<div class="kosong"><i class="ti ti-clipboard-x"></i><p>Tiada laporan ditemui</p></div>';
-    } else {
-      tampil.forEach(r => {
-        const id     = r.ID_LAPORAN||r.id_laporan||'—';
-        const nama   = r.NAMA_PENUH||r.nama||'—';
-        const bengkung = (r.BENGKUNG_SEMASA||r.bengkung||'—').replace('BENGKUNG ','').replace(' KOSONG (AHLI BAHARU)','');
-        const tarikh = fmtT(r.TARIKH||r.tarikh||'');
-        const pct    = parseFloat(r.PERATUS||r.peratus||0);
-        const bakat  = r.BAKAT||r.bakat||'BELUM DIKENALPASTI';
-        const catatan= r.CATATAN||r.catatan||'';
-        const markah = r.JUMLAH_MARKAH||r.jumlah_markah||0;
-        const markahMax = r.MARKAH_MAX||r.markah_max||0;
-        const warnaP = pct>=80?'var(--c3)':pct>=60?'var(--c2)':'var(--c6)';
-        const bakatWarna = bakat==='SILAT SENI'?'var(--c3)':bakat==='OLAHRAGA'?'var(--c4)':bakat==='KEDUA-DUANYA'?'var(--c2)':'var(--muted)';
-        const bakatIkon  = bakat==='SILAT SENI'?'🌸':bakat==='OLAHRAGA'?'⚡':bakat==='KEDUA-DUANYA'?'🏆':'❓';
-
-        html += '<div class="kad" style="margin-bottom:10px;padding:12px 14px">';
-
-        // Row 1: Nama + markah
-        html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">';
-        html += '<div style="min-width:0;flex:1;padding-right:8px">';
-        html += '<div style="font-weight:800;font-size:14px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+nama+'</div>';
-        html += '<div style="font-size:11px;color:var(--muted);margin-top:2px">'+bengkung+' · '+tarikh+'</div>';
-        html += '</div>';
-        // Markah bulat
-        html += '<div style="width:46px;height:46px;border-radius:50%;border:2.5px solid '+warnaP+';display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0">';
-        html += '<div style="font-size:12px;font-weight:900;color:'+warnaP+'">'+Math.round(pct)+'%</div>';
-        if (markahMax) html += '<div style="font-size:8px;color:var(--muted)">'+markah+'/'+markahMax+'</div>';
-        html += '</div></div>';
-
-        // Row 2: Badge bakat + catatan
-        html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">';
-        html += '<span style="font-size:10px;font-weight:700;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:6px;padding:2px 8px;color:'+bakatWarna+'">'+bakatIkon+' '+bakat+'</span>';
-        if (catatan) html += '<span style="font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">💬 '+catatan+'</span>';
-        html += '</div>';
-
-        // Row 3: Butang tindakan
-        html += '<div style="display:flex;gap:6px">';
-        html += '<button onclick="lihatDetailLaporan(id)" style="flex:1;padding:7px;font-size:11px;font-weight:700;border-radius:8px;background:rgba(41,121,255,.15);border:1px solid rgba(41,121,255,.3);color:var(--c4);cursor:pointer"><i class="ti ti-eye"></i> Lihat</button>';
-        html += '<button onclick="editLaporan(id,bakat,catatan)" style="flex:1;padding:7px;font-size:11px;font-weight:700;border-radius:8px;background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.25);color:var(--c2);cursor:pointer"><i class=\'ti ti-pencil\'></i> Edit</button>';
-        html += '<button onclick="padamLaporanAdmin(id,nama)" style="padding:7px 10px;font-size:11px;font-weight:700;border-radius:8px;background:rgba(255,23,68,.12);border:1px solid rgba(255,23,68,.25);color:var(--c6);cursor:pointer"><i class=\'ti ti-trash\'></i></button>';
-        html += '</div>';
-        html += '</div>';
-      });
-    }
-
-    main.innerHTML = html;
+    _semuaLaporan = Array.isArray(data) ? data : [];
+    renderLaporanSenarai();
   } catch(e) {
-    main.innerHTML = ''
-      + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'
+    main.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'
       + '<div style="font-size:13px;color:var(--muted)">Senarai Laporan</div>'
       + '<button onclick="bukaBuatLaporan()" style="padding:8px 14px;font-size:12px;font-weight:700;border-radius:10px;background:linear-gradient(135deg,var(--c3),#00C853);border:none;color:#fff;cursor:pointer"><i class="ti ti-plus"></i> Buat Laporan</button>'
-      + '</div>'
-      + '<div class="kosong"><i class="ti ti-wifi-off"></i><p>' + e.message + '</p>'
-      + '<button class="btn btn-outline" onclick="clearApiCache(&quot;senarai_laporan&quot;);renderLaporan()">Cuba Semula</button></div>';
+      + '</div><div class="kosong"><i class="ti ti-wifi-off"></i><p>' + e.message + '</p>'
+      + '<button class="btn btn-outline" onclick="clearApiCache(\'senarai_laporan\');renderLaporan()">Cuba Semula</button></div>';
   }
 }
 
-function closeModal(id){document.getElementById(id)?.remove();}
-// Helper: escape apostrophe dalam nama untuk onclick attribute
-function safeN(n){return (n||'').replace(/'/g,"\\'")}
-function bukaBuatLaporan(){window.open("laporan.html","_blank");}
+// ── VIEW 1: SENARAI PESILAT ────────────────────────────────────
+function renderLaporanSenarai() {
+  const main = getMain();
+  const semua = _semuaLaporan;
+
+  // Kumpulkan mengikut pesilat
+  const byKP = {};
+  semua.forEach(r => {
+    const kp = r.NO_KP || r.no_kp || '?';
+    if (!byKP[kp]) byKP[kp] = {
+      kp, nama: r.NAMA_PENUH || r.nama || '—',
+      bengkung: (r.BENGKUNG_SEMASA || r.bengkung || '—').replace('BENGKUNG ','').replace(' KOSONG (AHLI BAHARU)',''),
+      laporan: []
+    };
+    byKP[kp].laporan.push(r);
+  });
+
+  // Sort laporan setiap pesilat (terbaru dulu) + kira purata
+  const senarai = Object.values(byKP).map(p => {
+    p.laporan.sort((a,b) => String(b.TARIKH||b.tarikh||'').localeCompare(String(a.TARIKH||a.tarikh||'')));
+    p.terkini  = p.laporan[0];
+    p.pctTkni  = parseFloat(p.terkini?.PERATUS || p.terkini?.peratus || 0);
+    p.jumlah   = p.laporan.length;
+    return p;
+  }).sort((a,b) => a.nama.localeCompare(b.nama));
+
+  // Statistik header
+  const total   = semua.length;
+  const bilSiswa= senarai.length;
+  const bulanIni= semua.filter(r => {
+    const t = new Date(r.TARIKH||r.tarikh||'');
+    return !isNaN(t) && t.getFullYear()===new Date().getFullYear() && t.getMonth()===new Date().getMonth();
+  }).length;
+
+  // Tapis carian
+  const q = cariPesilat.trim().toUpperCase();
+  const tampil = q ? senarai.filter(p => p.nama.toUpperCase().includes(q)) : senarai;
+
+  let html = '';
+
+  // ── Header ──
+  html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'
+        + '<div style="flex:1;font-size:14px;font-weight:800;color:#fff">📋 Laporan Pesilat</div>'
+        + '<button onclick="bukaBuatLaporan()" style="padding:7px 12px;font-size:11px;font-weight:700;border-radius:8px;background:linear-gradient(135deg,var(--c3),#00C853);border:none;color:#fff;cursor:pointer"><i class="ti ti-plus"></i> Buat Laporan</button>'
+        + '</div>';
+
+  // ── Kad Ringkasan ──
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">';
+  [['📋',total,'Jumlah','rgba(41,121,255,.15)','rgba(41,121,255,.4)','#6C63FF'],
+   ['🥋',bilSiswa,'Pesilat','rgba(0,200,83,.15)','rgba(0,200,83,.4)','#00E676'],
+   ['📅',bulanIni,'Bulan Ini','rgba(255,215,0,.15)','rgba(255,215,0,.4)','#FFD700']
+  ].forEach(([ikon,val,lbl,bg,bd,warna]) => {
+    html += `<div style="background:${bg};border:1.5px solid ${bd};border-radius:12px;padding:10px 6px;text-align:center">
+      <div style="font-size:18px;margin-bottom:2px">${ikon}</div>
+      <div style="font-size:18px;font-weight:900;color:${warna}">${val}</div>
+      <div style="font-size:9px;color:var(--muted)">${lbl}</div></div>`;
+  });
+  html += '</div>';
+
+  // ── Carian ──
+  html += '<div style="position:relative;margin-bottom:12px">'
+        + '<i class="ti ti-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px"></i>'
+        + '<input id="inp-cari-pesilat" type="search" placeholder="Cari nama pesilat..." value="'+cariPesilat+'" '
+        + 'oninput="cariPesilat=this.value;renderLaporanSenarai()" '
+        + 'style="width:100%;padding:10px 12px 10px 36px;border:1.5px solid rgba(255,255,255,.15);border-radius:10px;background:rgba(255,255,255,.07);color:#fff;font-size:13px;outline:none">'
+        + '</div>';
+
+  // ── Senarai Pesilat ──
+  if (!tampil.length) {
+    html += '<div class="kosong"><i class="ti ti-user-off"></i><p>Tiada pesilat dijumpai</p></div>';
+  } else {
+    tampil.forEach(p => {
+      const pct   = p.pctTkni;
+      const warna = pct>=80?'#00E676':pct>=60?'#FFD700':'#FF5177';
+      const bdWarna = pct>=80?'rgba(0,230,118,.3)':pct>=60?'rgba(255,215,0,.3)':'rgba(255,81,119,.3)';
+      const tkhStr= p.terkini ? fmtT(p.terkini.TARIKH||p.terkini.tarikh||'') : '—';
+      const safeKP= (p.kp||'').replace(/'/g,"\\'");
+      const safeNama = (p.nama||'').replace(/'/g,"\\'");
+
+      html += `<div class="senarai-item" onclick="renderLaporanPerPesilat('${safeKP}','${safeNama}')" style="cursor:pointer;margin-bottom:8px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.03)">
+        <div class="avatar" style="background:linear-gradient(135deg,rgba(108,99,255,.3),rgba(108,99,255,.1));border:1.5px solid rgba(108,99,255,.4);color:#a99fff;font-size:16px;font-weight:800">${(p.nama||'?')[0]}</div>
+        <div class="item-info">
+          <div class="item-nama">${p.nama}</div>
+          <div class="item-sub" style="display:flex;gap:8px;align-items:center">
+            <span>${p.bengkung}</span>
+            <span style="background:rgba(255,255,255,.08);border-radius:99px;padding:1px 7px;font-size:9px">${p.jumlah} laporan</span>
+            <span style="color:var(--muted);font-size:10px">${tkhStr}</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+          <div style="width:40px;height:40px;border-radius:50%;border:2.5px solid ${bdWarna};background:${warna}18;display:flex;align-items:center;justify-content:center">
+            <span style="font-size:10px;font-weight:900;color:${warna}">${Math.round(pct)}%</span>
+          </div>
+          <i class="ti ti-chevron-right" style="color:var(--muted);font-size:12px"></i>
+        </div>
+      </div>`;
+    });
+  }
+
+  main.innerHTML = html;
+}
+
+// ── VIEW 2: LAPORAN PER PESILAT ────────────────────────────────
+function renderLaporanPerPesilat(kp, nama) {
+  const main = getMain();
+  const senaraiLap = _semuaLaporan
+    .filter(r => (r.NO_KP||r.no_kp||'') === kp)
+    .sort((a,b) => String(b.TARIKH||b.tarikh||'').localeCompare(String(a.TARIKH||a.tarikh||'')));
+
+  if (!senaraiLap.length) { tunjukToast('Tiada laporan untuk pesilat ini','ralat'); return; }
+
+  const bengkung = (senaraiLap[0]?.BENGKUNG_SEMASA||senaraiLap[0]?.bengkung||'—').replace('BENGKUNG ','').replace(' KOSONG (AHLI BAHARU)','');
+  const avgPct   = Math.round(senaraiLap.reduce((s,r)=>s+parseFloat(r.PERATUS||r.peratus||0),0)/senaraiLap.length);
+  const wAvg     = avgPct>=80?'#00E676':avgPct>=60?'#FFD700':'#FF5177';
+  const terbaik  = Math.max(...senaraiLap.map(r=>parseFloat(r.PERATUS||r.peratus||0)));
+  const wTerbaik = terbaik>=80?'#00E676':terbaik>=60?'#FFD700':'#FF5177';
+
+  let html = '';
+
+  // ── Header dengan butang kembali ──
+  html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <button onclick="renderLaporanSenarai()" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;cursor:pointer;font-size:16px"><i class="ti ti-arrow-left"></i></button>
+    <div style="flex:1">
+      <div style="font-size:15px;font-weight:800;color:#fff">${nama}</div>
+      <div style="font-size:11px;color:var(--muted)">${bengkung} · ${senaraiLap.length} laporan</div>
+    </div>
+    <button onclick="bukaBuatLaporan()" style="padding:7px 10px;font-size:11px;font-weight:700;border-radius:8px;background:linear-gradient(135deg,var(--c3),#00C853);border:none;color:#fff;cursor:pointer"><i class="ti ti-plus"></i> Baru</button>
+  </div>`;
+
+  // ── Ringkasan pesilat ──
+  html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
+    <div style="background:rgba(108,99,255,.12);border:1px solid rgba(108,99,255,.3);border-radius:10px;padding:10px;text-align:center">
+      <div style="font-size:20px;font-weight:900;color:#6C63FF">${senaraiLap.length}</div>
+      <div style="font-size:9px;color:var(--muted)">Jumlah</div>
+    </div>
+    <div style="background:${wAvg}18;border:1px solid ${wAvg}44;border-radius:10px;padding:10px;text-align:center">
+      <div style="font-size:20px;font-weight:900;color:${wAvg}">${avgPct}%</div>
+      <div style="font-size:9px;color:var(--muted)">Purata</div>
+    </div>
+    <div style="background:${wTerbaik}18;border:1px solid ${wTerbaik}44;border-radius:10px;padding:10px;text-align:center">
+      <div style="font-size:20px;font-weight:900;color:${wTerbaik}">${Math.round(terbaik)}%</div>
+      <div style="font-size:9px;color:var(--muted)">Terbaik</div>
+    </div>
+  </div>`;
+
+  // ── Bar trend ──
+  if (senaraiLap.length > 1) {
+    const maxPct = 100;
+    html += '<div style="margin-bottom:14px"><div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:600">📈 TREND PENILAIAN (terbaru → lama)</div>';
+    html += '<div style="display:flex;align-items:flex-end;gap:4px;height:50px">';
+    senaraiLap.slice(0,8).reverse().forEach(r => {
+      const pct   = parseFloat(r.PERATUS||r.peratus||0);
+      const h     = Math.max(6, Math.round(pct/maxPct*46));
+      const w     = pct>=80?'#00E676':pct>=60?'#FFD700':'#FF5177';
+      const tkhStr= fmtT(r.TARIKH||r.tarikh||'').substring(0,5);
+      html += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+        <div style="font-size:7px;color:${w};font-weight:700">${Math.round(pct)}%</div>
+        <div style="width:100%;height:${h}px;background:${w};border-radius:3px 3px 0 0;opacity:.8"></div>
+        <div style="font-size:7px;color:var(--muted)">${tkhStr}</div>
+      </div>`;
+    });
+    html += '</div></div>';
+  }
+
+  // ── Senarai laporan ──
+  html += '<div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:8px">REKOD PENILAIAN</div>';
+  senaraiLap.forEach((r, idx) => {
+    const id      = r.ID_LAPORAN||r.id_laporan||'';
+    const pct     = parseFloat(r.PERATUS||r.peratus||0);
+    const warna   = pct>=80?'#00E676':pct>=60?'#FFD700':'#FF5177';
+    const tarikh  = fmtT(r.TARIKH||r.tarikh||'');
+    const bakat   = r.BAKAT||r.bakat||'BELUM DIKENALPASTI';
+    const markah  = r.JUMLAH_MARKAH||r.jumlah_markah||0;
+    const markahMax = r.MARKAH_MAX||r.markah_max||0;
+    const catatan = r.CATATAN||r.catatan||'';
+    const bakatIkon = bakat==='SILAT SENI'?'🌸':bakat==='OLAHRAGA'?'⚡':bakat==='KEDUA-DUANYA'?'🏆':'❓';
+    const safeId  = id.replace(/'/g,"\\'");
+    const safeNm  = (nama||'').replace(/'/g,"\\'");
+
+    html += `<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div style="flex-shrink:0;width:14px;height:14px;border-radius:50%;background:${warna};opacity:.8"></div>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:700;color:#fff">${tarikh} ${idx===0?'<span style="font-size:9px;background:rgba(255,215,0,.2);color:#FFD700;border-radius:4px;padding:1px 5px;margin-left:4px">Terkini</span>':''}</div>
+          <div style="font-size:10px;color:var(--muted)">${bakatIkon} ${bakat}${catatan?' · '+catatan:''}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:16px;font-weight:900;color:${warna}">${Math.round(pct)}%</div>
+          ${markahMax?`<div style="font-size:9px;color:var(--muted)">${markah}/${markahMax}</div>`:''}
+        </div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button onclick="lihatDetailLaporan('${safeId}')" style="flex:1;padding:6px;font-size:11px;font-weight:700;border-radius:8px;background:rgba(41,121,255,.15);border:1px solid rgba(41,121,255,.3);color:var(--c4);cursor:pointer"><i class="ti ti-eye"></i> Lihat</button>
+        <button onclick="editLaporan('${safeId}','${bakat}','${catatan.replace(/'/g,"\\'")}')" style="flex:1;padding:6px;font-size:11px;font-weight:700;border-radius:8px;background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.25);color:var(--c2);cursor:pointer"><i class="ti ti-pencil"></i> Edit</button>
+        <button onclick="padamLaporanAdmin('${safeId}','${safeNm}')" style="padding:6px 10px;font-size:11px;border-radius:8px;background:rgba(255,23,68,.12);border:1px solid rgba(255,23,68,.25);color:var(--c6);cursor:pointer"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>`;
+  });
+
+  main.innerHTML = html;
+}
+
 function tapisLap(j) { tapisLaporan=j; clearApiCache('senarai'); renderLaporan(); }
+
 
 async function lihatDetailLaporan(id) {
   tunjukToast('Memuatkan...','ok');
