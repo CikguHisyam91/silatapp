@@ -3941,64 +3941,55 @@ function fmtT(val) {
 // ── MENU LAPORAN ──────────────────────────────────────────────
 let tapisLaporan = 'SEMUA', cariLaporan = '';
 
-// ── VIEW STATE ─────────────────────────────────────────────────
-let _semuaLaporan = [];
-let _lapPelilhNama = '';
+// ── LAPORAN: STATE ────────────────────────────────────────────
+let _semuaLaporan = [], _semuaAhliAktif = [];
+let _lapKpSkrg = '', _lapNamaSkrg = '', _lapBengkungSkrg = '';
 let cariPesilat = '';
 
+// ── LAPORAN: ENTRY POINT ──────────────────────────────────────
 async function renderLaporan() {
   const main = getMain();
-  main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan laporan...</span></div>';
+  main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan...</span></div>';
   try {
-    const data = await apiC('senarai_laporan',{},60);
-    _semuaLaporan = Array.isArray(data) ? data : [];
+    const [ahliRaw, lapRaw] = await Promise.all([
+      apiC('senarai_ahli', {status:'AKTIF'}, 300),
+      api('senarai_laporan', {})
+    ]);
+    _semuaAhliAktif = ahliRaw || [];
+    _semuaLaporan   = Array.isArray(lapRaw) ? lapRaw : [];
+    cariPesilat     = '';
     renderLaporanSenarai();
   } catch(e) {
     main.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'
-      + '<div style="font-size:13px;color:var(--muted)">Senarai Laporan</div>'
-      + '<button onclick="bukaBuatLaporan()" style="padding:8px 14px;font-size:12px;font-weight:700;border-radius:10px;background:linear-gradient(135deg,var(--c3),#00C853);border:none;color:#fff;cursor:pointer"><i class="ti ti-plus"></i> Buat Laporan</button>'
+      + '<div style="font-size:13px;color:var(--muted)">Laporan Pesilat</div>'
+      + '<button onclick="bukaBuatLaporan()" style="padding:7px 12px;font-size:12px;font-weight:700;border-radius:8px;background:linear-gradient(135deg,var(--c3),#00C853);border:none;color:#fff;cursor:pointer"><i class="ti ti-plus"></i> Buat Laporan</button>'
       + '</div><div class="kosong"><i class="ti ti-wifi-off"></i><p>' + e.message + '</p>'
-      + '<button class="btn btn-outline" onclick="clearApiCache(\'senarai_laporan\');renderLaporan()">Cuba Semula</button></div>';
+      + '<button class="btn btn-outline" onclick="renderLaporan()">Cuba Semula</button></div>';
   }
 }
 
-// ── VIEW 1: SENARAI PESILAT ────────────────────────────────────
+// ── VIEW 1: SENARAI SEMUA PESILAT ─────────────────────────────
 function renderLaporanSenarai() {
   const main = getMain();
-  const semua = _semuaLaporan;
 
-  // Kumpulkan mengikut pesilat
-  const byKP = {};
-  semua.forEach(r => {
-    const kp = r.NO_KP || r.no_kp || '?';
-    if (!byKP[kp]) byKP[kp] = {
-      kp, nama: r.NAMA_PENUH || r.nama || '—',
-      bengkung: (r.BENGKUNG_SEMASA || r.bengkung || '—').replace('BENGKUNG ','').replace(' KOSONG (AHLI BAHARU)',''),
-      laporan: []
-    };
-    byKP[kp].laporan.push(r);
+  // Bina map laporan mengikut no_kp
+  const lapByKP = {};
+  _semuaLaporan.forEach(r => {
+    const kp = r.NO_KP || r.no_kp || '';
+    if (!lapByKP[kp]) lapByKP[kp] = [];
+    lapByKP[kp].push(r);
   });
 
-  // Sort laporan setiap pesilat (terbaru dulu) + kira purata
-  const senarai = Object.values(byKP).map(p => {
-    p.laporan.sort((a,b) => String(b.TARIKH||b.tarikh||'').localeCompare(String(a.TARIKH||a.tarikh||'')));
-    p.terkini  = p.laporan[0];
-    p.pctTkni  = parseFloat(p.terkini?.PERATUS || p.terkini?.peratus || 0);
-    p.jumlah   = p.laporan.length;
-    return p;
-  }).sort((a,b) => a.nama.localeCompare(b.nama));
-
-  // Statistik header
-  const total   = semua.length;
-  const bilSiswa= senarai.length;
-  const bulanIni= semua.filter(r => {
-    const t = new Date(r.TARIKH||r.tarikh||'');
-    return !isNaN(t) && t.getFullYear()===new Date().getFullYear() && t.getMonth()===new Date().getMonth();
-  }).length;
-
   // Tapis carian
-  const q = cariPesilat.trim().toUpperCase();
-  const tampil = q ? senarai.filter(p => p.nama.toUpperCase().includes(q)) : senarai;
+  const q = (cariPesilat || '').trim().toUpperCase();
+  const ahli = q
+    ? _semuaAhliAktif.filter(a => (a.nama||'').toUpperCase().includes(q))
+    : _semuaAhliAktif;
+
+  // Statistik
+  const totalLap   = _semuaLaporan.length;
+  const adaLap     = _semuaAhliAktif.filter(a => lapByKP[a.no_kp]?.length).length;
+  const belumLap   = _semuaAhliAktif.length - adaLap;
 
   let html = '';
 
@@ -4010,12 +4001,12 @@ function renderLaporanSenarai() {
 
   // ── Kad Ringkasan ──
   html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">';
-  [['📋',total,'Jumlah','rgba(41,121,255,.15)','rgba(41,121,255,.4)','#6C63FF'],
-   ['🥋',bilSiswa,'Pesilat','rgba(0,200,83,.15)','rgba(0,200,83,.4)','#00E676'],
-   ['📅',bulanIni,'Bulan Ini','rgba(255,215,0,.15)','rgba(255,215,0,.4)','#FFD700']
+  [['📋', totalLap, 'Jumlah Laporan', 'rgba(41,121,255,.15)', 'rgba(41,121,255,.4)', '#6C63FF'],
+   ['✅', adaLap,   'Ada Laporan',    'rgba(0,200,83,.15)',   'rgba(0,200,83,.4)',   '#00E676'],
+   ['⏳', belumLap, 'Belum Ada',      'rgba(255,160,0,.15)',  'rgba(255,160,0,.4)',  '#FFB300']
   ].forEach(([ikon,val,lbl,bg,bd,warna]) => {
-    html += `<div style="background:${bg};border:1.5px solid ${bd};border-radius:12px;padding:10px 6px;text-align:center">
-      <div style="font-size:18px;margin-bottom:2px">${ikon}</div>
+    html += `<div style="background:${bg};border:1.5px solid ${bd};border-radius:12px;padding:10px 6px;text-align:center;cursor:${lbl==='Jumlah Laporan'?'pointer':'default'}" ${lbl==='Jumlah Laporan'?'onclick="cariPesilat=\'\';renderLaporanSenarai()"':''}>
+      <div style="font-size:16px;margin-bottom:2px">${ikon}</div>
       <div style="font-size:18px;font-weight:900;color:${warna}">${val}</div>
       <div style="font-size:9px;color:var(--muted)">${lbl}</div></div>`;
   });
@@ -4030,141 +4021,185 @@ function renderLaporanSenarai() {
         + '</div>';
 
   // ── Senarai Pesilat ──
-  if (!tampil.length) {
+  if (!ahli.length) {
     html += '<div class="kosong"><i class="ti ti-user-off"></i><p>Tiada pesilat dijumpai</p></div>';
   } else {
-    tampil.forEach(p => {
-      const pct   = p.pctTkni;
-      const warna = pct>=80?'#00E676':pct>=60?'#FFD700':'#FF5177';
-      const bdWarna = pct>=80?'rgba(0,230,118,.3)':pct>=60?'rgba(255,215,0,.3)':'rgba(255,81,119,.3)';
-      const tkhStr= p.terkini ? fmtT(p.terkini.TARIKH||p.terkini.tarikh||'') : '—';
-      const safeKP= (p.kp||'').replace(/'/g,"\\'");
-      const safeNama = (p.nama||'').replace(/'/g,"\\'");
+    ahli.forEach(a => {
+      const laps     = lapByKP[a.no_kp] || [];
+      const jumlah   = laps.length;
+      const bengkung = (a.bengkung||'—').replace('BENGKUNG ','').replace(' KOSONG (AHLI BAHARU)','').replace('KOSONG (AHLI BAHARU)','');
+      const safeKP   = (a.no_kp||'').replace(/'/g, "\\'");
+      const safeNama = (a.nama||'').replace(/'/g, "\\'");
+      const safeBkg  = bengkung.replace(/'/g, "\\'");
 
-      html += `<div class="senarai-item" onclick="renderLaporanPerPesilat('${safeKP}','${safeNama}')" style="cursor:pointer;margin-bottom:8px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:rgba(255,255,255,.03)">
-        <div class="avatar" style="background:linear-gradient(135deg,rgba(108,99,255,.3),rgba(108,99,255,.1));border:1.5px solid rgba(108,99,255,.4);color:#a99fff;font-size:16px;font-weight:800">${(p.nama||'?')[0]}</div>
-        <div class="item-info">
-          <div class="item-nama">${p.nama}</div>
-          <div class="item-sub" style="display:flex;gap:8px;align-items:center">
-            <span>${p.bengkung}</span>
-            <span style="background:rgba(255,255,255,.08);border-radius:99px;padding:1px 7px;font-size:9px">${p.jumlah} laporan</span>
-            <span style="color:var(--muted);font-size:10px">${tkhStr}</span>
+      // Ambil peratus terkini jika ada laporan
+      let pctStr = '', pctWarna = 'rgba(255,255,255,.3)';
+      if (jumlah > 0) {
+        laps.sort((x,y) => String(y.TARIKH||y.tarikh||'').localeCompare(String(x.TARIKH||x.tarikh||'')));
+        const pct = parseFloat(laps[0].PERATUS||laps[0].peratus||0);
+        pctStr  = Math.round(pct) + '%';
+        pctWarna = pct>=80?'#00E676':pct>=60?'#FFD700':'#FF5177';
+      }
+
+      html += `<div onclick="renderLaporanPerPesilat('${safeKP}','${safeNama}','${safeBkg}')"
+        style="display:flex;align-items:center;gap:12px;padding:12px 14px;margin-bottom:8px;
+        background:${jumlah>0?'rgba(255,255,255,.03)':'rgba(255,160,0,.04)'};
+        border:1px solid ${jumlah>0?'rgba(255,255,255,.08)':'rgba(255,160,0,.15)'};
+        border-radius:12px;cursor:pointer;transition:.15s"
+        onmouseenter="this.style.background='rgba(255,255,255,.07)'"
+        onmouseleave="this.style.background='${jumlah>0?'rgba(255,255,255,.03)':'rgba(255,160,0,.04)'}'">
+        <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,rgba(108,99,255,.3),rgba(108,99,255,.1));border:1.5px solid rgba(108,99,255,.4);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#a99fff;flex-shrink:0">
+          ${(a.nama||'?')[0].toUpperCase()}
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:700;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${a.nama||'—'}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:6px">
+            <span>${bengkung}</span>
+            ${jumlah>0
+              ? `<span style="background:rgba(0,200,83,.15);color:#00E676;border-radius:99px;padding:1px 7px;font-size:9px;font-weight:700">${jumlah} laporan</span>`
+              : `<span style="background:rgba(255,160,0,.15);color:#FFB300;border-radius:99px;padding:1px 7px;font-size:9px;font-weight:700">Belum ada laporan</span>`}
           </div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
-          <div style="width:40px;height:40px;border-radius:50%;border:2.5px solid ${bdWarna};background:${warna}18;display:flex;align-items:center;justify-content:center">
-            <span style="font-size:10px;font-weight:900;color:${warna}">${Math.round(pct)}%</span>
-          </div>
-          <i class="ti ti-chevron-right" style="color:var(--muted);font-size:12px"></i>
+          ${jumlah>0
+            ? `<div style="width:36px;height:36px;border-radius:50%;border:2px solid ${pctWarna}44;background:${pctWarna}15;display:flex;align-items:center;justify-content:center"><span style="font-size:9px;font-weight:900;color:${pctWarna}">${pctStr}</span></div>`
+            : `<div style="width:36px;height:36px;border-radius:50%;border:2px solid rgba(255,160,0,.3);background:rgba(255,160,0,.1);display:flex;align-items:center;justify-content:center"><i class="ti ti-plus" style="color:#FFB300;font-size:14px"></i></div>`}
+          <i class="ti ti-chevron-right" style="color:var(--muted);font-size:11px"></i>
         </div>
       </div>`;
     });
   }
 
   main.innerHTML = html;
+  // Focus carian
+  setTimeout(() => { document.getElementById('inp-cari-pesilat')?.focus(); }, 100);
 }
 
 // ── VIEW 2: LAPORAN PER PESILAT ────────────────────────────────
-function renderLaporanPerPesilat(kp, nama) {
+function renderLaporanPerPesilat(kp, nama, bengkung) {
+  _lapKpSkrg     = kp;
+  _lapNamaSkrg   = nama;
+  _lapBengkungSkrg = bengkung;
+
   const main = getMain();
-  const senaraiLap = _semuaLaporan
+
+  // Ambil laporan pesilat ini sahaja
+  const laps = _semuaLaporan
     .filter(r => (r.NO_KP||r.no_kp||'') === kp)
     .sort((a,b) => String(b.TARIKH||b.tarikh||'').localeCompare(String(a.TARIKH||a.tarikh||'')));
 
-  if (!senaraiLap.length) { tunjukToast('Tiada laporan untuk pesilat ini','ralat'); return; }
+  const safeNama = (nama||'').replace(/'/g, "\\'");
+  const safeKP   = (kp||'').replace(/'/g, "\\'");
 
-  const bengkung = (senaraiLap[0]?.BENGKUNG_SEMASA||senaraiLap[0]?.bengkung||'—').replace('BENGKUNG ','').replace(' KOSONG (AHLI BAHARU)','');
-  const avgPct   = Math.round(senaraiLap.reduce((s,r)=>s+parseFloat(r.PERATUS||r.peratus||0),0)/senaraiLap.length);
-  const wAvg     = avgPct>=80?'#00E676':avgPct>=60?'#FFD700':'#FF5177';
-  const terbaik  = Math.max(...senaraiLap.map(r=>parseFloat(r.PERATUS||r.peratus||0)));
-  const wTerbaik = terbaik>=80?'#00E676':terbaik>=60?'#FFD700':'#FF5177';
+  // Statistik
+  const avgPct     = laps.length ? Math.round(laps.reduce((s,r)=>s+parseFloat(r.PERATUS||r.peratus||0),0)/laps.length) : 0;
+  const terbaik    = laps.length ? Math.max(...laps.map(r=>parseFloat(r.PERATUS||r.peratus||0))) : 0;
+  const wAvg       = avgPct>=80?'#00E676':avgPct>=60?'#FFD700':'#FF5177';
+  const wTerbaik   = terbaik>=80?'#00E676':terbaik>=60?'#FFD700':'#FF5177';
 
   let html = '';
 
-  // ── Header dengan butang kembali ──
+  // ── Butang Kembali + Info Pesilat ──
   html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-    <button onclick="renderLaporanSenarai()" style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;cursor:pointer;font-size:16px"><i class="ti ti-arrow-left"></i></button>
-    <div style="flex:1">
-      <div style="font-size:15px;font-weight:800;color:#fff">${nama}</div>
-      <div style="font-size:11px;color:var(--muted)">${bengkung} · ${senaraiLap.length} laporan</div>
+    <button onclick="renderLaporanSenarai()" style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.1);border:none;color:#fff;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center"><i class="ti ti-arrow-left"></i></button>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:15px;font-weight:800;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${nama}</div>
+      <div style="font-size:10px;color:var(--muted)">${bengkung||'—'}</div>
     </div>
-    <button onclick="bukaBuatLaporan()" style="padding:7px 10px;font-size:11px;font-weight:700;border-radius:8px;background:linear-gradient(135deg,var(--c3),#00C853);border:none;color:#fff;cursor:pointer"><i class="ti ti-plus"></i> Baru</button>
+    <button onclick="bukaBuatLaporan()" style="padding:7px 10px;font-size:11px;font-weight:700;border-radius:8px;background:linear-gradient(135deg,var(--c3),#00C853);border:none;color:#fff;cursor:pointer"><i class="ti ti-plus"></i> Tambah</button>
   </div>`;
 
-  // ── Ringkasan pesilat ──
-  html += `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">
-    <div style="background:rgba(108,99,255,.12);border:1px solid rgba(108,99,255,.3);border-radius:10px;padding:10px;text-align:center">
-      <div style="font-size:20px;font-weight:900;color:#6C63FF">${senaraiLap.length}</div>
-      <div style="font-size:9px;color:var(--muted)">Jumlah</div>
-    </div>
-    <div style="background:${wAvg}18;border:1px solid ${wAvg}44;border-radius:10px;padding:10px;text-align:center">
-      <div style="font-size:20px;font-weight:900;color:${wAvg}">${avgPct}%</div>
-      <div style="font-size:9px;color:var(--muted)">Purata</div>
-    </div>
-    <div style="background:${wTerbaik}18;border:1px solid ${wTerbaik}44;border-radius:10px;padding:10px;text-align:center">
-      <div style="font-size:20px;font-weight:900;color:${wTerbaik}">${Math.round(terbaik)}%</div>
-      <div style="font-size:9px;color:var(--muted)">Terbaik</div>
-    </div>
-  </div>`;
-
-  // ── Bar trend ──
-  if (senaraiLap.length > 1) {
-    const maxPct = 100;
-    html += '<div style="margin-bottom:14px"><div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-weight:600">📈 TREND PENILAIAN (terbaru → lama)</div>';
-    html += '<div style="display:flex;align-items:flex-end;gap:4px;height:50px">';
-    senaraiLap.slice(0,8).reverse().forEach(r => {
-      const pct   = parseFloat(r.PERATUS||r.peratus||0);
-      const h     = Math.max(6, Math.round(pct/maxPct*46));
-      const w     = pct>=80?'#00E676':pct>=60?'#FFD700':'#FF5177';
-      const tkhStr= fmtT(r.TARIKH||r.tarikh||'').substring(0,5);
-      html += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
-        <div style="font-size:7px;color:${w};font-weight:700">${Math.round(pct)}%</div>
-        <div style="width:100%;height:${h}px;background:${w};border-radius:3px 3px 0 0;opacity:.8"></div>
-        <div style="font-size:7px;color:var(--muted)">${tkhStr}</div>
-      </div>`;
-    });
-    html += '</div></div>';
-  }
-
-  // ── Senarai laporan ──
-  html += '<div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:8px">REKOD PENILAIAN</div>';
-  senaraiLap.forEach((r, idx) => {
-    const id      = r.ID_LAPORAN||r.id_laporan||'';
-    const pct     = parseFloat(r.PERATUS||r.peratus||0);
-    const warna   = pct>=80?'#00E676':pct>=60?'#FFD700':'#FF5177';
-    const tarikh  = fmtT(r.TARIKH||r.tarikh||'');
-    const bakat   = r.BAKAT||r.bakat||'BELUM DIKENALPASTI';
-    const markah  = r.JUMLAH_MARKAH||r.jumlah_markah||0;
-    const markahMax = r.MARKAH_MAX||r.markah_max||0;
-    const catatan = r.CATATAN||r.catatan||'';
-    const bakatIkon = bakat==='SILAT SENI'?'🌸':bakat==='OLAHRAGA'?'⚡':bakat==='KEDUA-DUANYA'?'🏆':'❓';
-    const safeId  = id.replace(/'/g,"\\'");
-    const safeNm  = (nama||'').replace(/'/g,"\\'");
-
-    html += `<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:12px;margin-bottom:8px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-        <div style="flex-shrink:0;width:14px;height:14px;border-radius:50%;background:${warna};opacity:.8"></div>
-        <div style="flex:1">
-          <div style="font-size:12px;font-weight:700;color:#fff">${tarikh} ${idx===0?'<span style="font-size:9px;background:rgba(255,215,0,.2);color:#FFD700;border-radius:4px;padding:1px 5px;margin-left:4px">Terkini</span>':''}</div>
-          <div style="font-size:10px;color:var(--muted)">${bakatIkon} ${bakat}${catatan?' · '+catatan:''}</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:16px;font-weight:900;color:${warna}">${Math.round(pct)}%</div>
-          ${markahMax?`<div style="font-size:9px;color:var(--muted)">${markah}/${markahMax}</div>`:''}
-        </div>
+  // ── Belum ada laporan ──
+  if (!laps.length) {
+    html += `<div style="text-align:center;padding:40px 20px;background:rgba(255,160,0,.05);border:1.5px dashed rgba(255,160,0,.3);border-radius:16px">
+      <div style="font-size:40px;margin-bottom:12px">📋</div>
+      <div style="font-size:14px;font-weight:700;color:#FFB300;margin-bottom:6px">${nama}</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:20px">Belum ada laporan penilaian untuk pesilat ini.</div>
+      <button onclick="bukaBuatLaporan()" style="padding:12px 24px;font-size:13px;font-weight:700;border-radius:10px;background:linear-gradient(135deg,var(--c3),#00C853);border:none;color:#fff;cursor:pointer">
+        <i class="ti ti-clipboard-plus"></i> Rekod Laporan Pertama
+      </button>
+    </div>`;
+  } else {
+    // ── Ringkasan ──
+    html += `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+      <div style="background:rgba(108,99,255,.12);border:1px solid rgba(108,99,255,.3);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:20px;font-weight:900;color:#6C63FF">${laps.length}</div>
+        <div style="font-size:9px;color:var(--muted)">Laporan</div>
       </div>
-      <div style="display:flex;gap:6px">
-        <button onclick="lihatDetailLaporan('${safeId}')" style="flex:1;padding:6px;font-size:11px;font-weight:700;border-radius:8px;background:rgba(41,121,255,.15);border:1px solid rgba(41,121,255,.3);color:var(--c4);cursor:pointer"><i class="ti ti-eye"></i> Lihat</button>
-        <button onclick="editLaporan('${safeId}','${bakat}','${catatan.replace(/'/g,"\\'")}')" style="flex:1;padding:6px;font-size:11px;font-weight:700;border-radius:8px;background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.25);color:var(--c2);cursor:pointer"><i class="ti ti-pencil"></i> Edit</button>
-        <button onclick="padamLaporanAdmin('${safeId}','${safeNm}')" style="padding:6px 10px;font-size:11px;border-radius:8px;background:rgba(255,23,68,.12);border:1px solid rgba(255,23,68,.25);color:var(--c6);cursor:pointer"><i class="ti ti-trash"></i></button>
+      <div style="background:${wAvg}18;border:1px solid ${wAvg}44;border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:20px;font-weight:900;color:${wAvg}">${avgPct}%</div>
+        <div style="font-size:9px;color:var(--muted)">Purata</div>
+      </div>
+      <div style="background:${wTerbaik}18;border:1px solid ${wTerbaik}44;border-radius:10px;padding:10px;text-align:center">
+        <div style="font-size:20px;font-weight:900;color:${wTerbaik}">${Math.round(terbaik)}%</div>
+        <div style="font-size:9px;color:var(--muted)">Terbaik</div>
       </div>
     </div>`;
-  });
+
+    // ── Graf Trend (kalau >1 laporan) ──
+    if (laps.length > 1) {
+      const sebalik = laps.slice().reverse();
+      html += '<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px;margin-bottom:14px">';
+      html += '<div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:8px">📈 TREND PENILAIAN</div>';
+      html += '<div style="display:flex;align-items:flex-end;gap:3px;height:52px">';
+      sebalik.slice(0,10).forEach(r => {
+        const pct = parseFloat(r.PERATUS||r.peratus||0);
+        const bh  = Math.max(6, Math.round(pct/100*46));
+        const w   = pct>=80?'#00E676':pct>=60?'#FFD700':'#FF5177';
+        const tdt = fmtT(r.TARIKH||r.tarikh||'').substring(0,5);
+        html += `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:0">
+          <div style="font-size:7px;color:${w};font-weight:700">${Math.round(pct)}%</div>
+          <div style="width:80%;height:${bh}px;background:${w};border-radius:3px 3px 0 0;opacity:.85"></div>
+          <div style="font-size:7px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;text-align:center">${tdt}</div>
+        </div>`;
+      });
+      html += '</div></div>';
+    }
+
+    // ── Senarai Laporan ──
+    html += '<div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:8px;letter-spacing:.5px">REKOD PENILAIAN — TERBARU DAHULU</div>';
+
+    laps.forEach((r, idx) => {
+      const id      = r.ID_LAPORAN||r.id_laporan||'';
+      const pct     = parseFloat(r.PERATUS||r.peratus||0);
+      const warna   = pct>=80?'#00E676':pct>=60?'#FFD700':'#FF5177';
+      const tarikh  = fmtT(r.TARIKH||r.tarikh||'');
+      const bakat   = r.BAKAT||r.bakat||'BELUM DIKENALPASTI';
+      const markah  = r.JUMLAH_MARKAH||r.jumlah_markah||0;
+      const mMax    = r.MARKAH_MAX||r.markah_max||0;
+      const catatan = (r.CATATAN||r.catatan||'').replace(/'/g,"\\'");
+      const safeId  = id.replace(/'/g, "\\'");
+      const bakatIkon = bakat==='SILAT SENI'?'🌸':bakat==='OLAHRAGA'?'⚡':bakat==='KEDUA-DUANYA'?'🏆':'❓';
+
+      html += `<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-left:3px solid ${warna};border-radius:12px;padding:12px 14px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+              <span style="font-size:12px;font-weight:800;color:#fff">${tarikh}</span>
+              ${idx===0?'<span style="font-size:9px;background:rgba(255,215,0,.2);color:#FFD700;border-radius:4px;padding:1px 6px">Terkini</span>':''}
+            </div>
+            <div style="font-size:10px;color:var(--muted)">${bakatIkon} ${bakat}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:20px;font-weight:900;color:${warna}">${Math.round(pct)}%</div>
+            ${mMax?`<div style="font-size:9px;color:var(--muted)">${markah}/${mMax} markah</div>`:''}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button onclick="lihatDetailLaporan('${safeId}')" style="flex:1;padding:7px;font-size:11px;font-weight:700;border-radius:8px;background:rgba(41,121,255,.15);border:1px solid rgba(41,121,255,.3);color:var(--c4);cursor:pointer"><i class="ti ti-eye"></i> Lihat</button>
+          <button onclick="editLaporan('${safeId}','${bakat}','${catatan}')" style="flex:1;padding:7px;font-size:11px;font-weight:700;border-radius:8px;background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.3);color:var(--c2);cursor:pointer"><i class="ti ti-pencil"></i> Edit</button>
+          <button onclick="padamLaporanAdmin('${safeId}','${safeNama}')" style="padding:7px 10px;font-size:11px;border-radius:8px;background:rgba(255,23,68,.12);border:1px solid rgba(255,23,68,.3);color:var(--c6);cursor:pointer"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>`;
+    });
+  }
 
   main.innerHTML = html;
 }
 
+// ── FUNGSI SOKONGAN ───────────────────────────────────────────
 function tapisLap(j) { tapisLaporan=j; clearApiCache('senarai'); renderLaporan(); }
+
 
 
 async function lihatDetailLaporan(id) {
@@ -4223,7 +4258,7 @@ function editLaporan(id, bakatSedia, catatanSedia) {
   h += '</select></div>';
   h += '<div class="form-kump"><label class="form-label">Catatan Jurulatih</label>';
   h += '<textarea class="form-input" id="el-catatan" rows="3">'+catatanSedia+'</textarea></div>';
-  h += '<button onclick="simpanEditLaporanById(id)" class="btn btn-pri btn-blok"><i class="ti ti-device-floppy"></i> Simpan</button>';
+  h += '<button onclick="simpanEditLaporanById(\'' + id + '\')" class="btn btn-pri btn-blok"><i class="ti ti-device-floppy"></i> Simpan</button>';
   h += '</div>';
   modal.innerHTML = h;
   document.body.appendChild(modal);
@@ -4238,9 +4273,13 @@ async function simpanEditLaporanById(id) {
   try {
     await apiPost({tindakan:'kemaskini_laporan', id_laporan:id, bakat, catatan});
     document.getElementById('modal-edit-lap')?.remove();
-    tunjukToast('Laporan dikemaskini!','ok');
-    clearApiCache('senarai');
-    renderLaporan();
+    tunjukToast('✅ Laporan dikemaskini!','ok');
+    clearApiCache('senarai_laporan');
+    // Refresh data dan kembali ke paparan pesilat yang sama
+    const lapBaru = await api('senarai_laporan', {});
+    _semuaLaporan = Array.isArray(lapBaru) ? lapBaru : [];
+    if (_lapKpSkrg) renderLaporanPerPesilat(_lapKpSkrg, _lapNamaSkrg, _lapBengkungSkrg);
+    else renderLaporanSenarai();
   } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
 }
 
@@ -4250,8 +4289,11 @@ async function padamLaporanAdmin(id, nama) {
   try {
     await apiPost({tindakan:'padam_laporan', id_laporan:id});
     tunjukToast('✅ Laporan dipadamkan','ok');
-    clearApiCache('senarai');
-    renderLaporan();
+    clearApiCache('senarai_laporan');
+    const lapBaru2 = await api('senarai_laporan', {});
+    _semuaLaporan = Array.isArray(lapBaru2) ? lapBaru2 : [];
+    if (_lapKpSkrg) renderLaporanPerPesilat(_lapKpSkrg, _lapNamaSkrg, _lapBengkungSkrg);
+    else renderLaporanSenarai();
   } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
 }
 
