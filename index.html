@@ -1236,21 +1236,25 @@ async function muatTurunSenaraiBeratPDF() {
     const tarikhCetak = new Date().toLocaleDateString('ms-MY',{day:'2-digit',month:'long',year:'numeric'});
 
     // Kumpulkan mengikut kategori usia
+    // API senarai_ahli_bmi kembalikan: {berat, tinggi, bmi, nama, kategori_usia, kelas_berat}
     const kumpulan = {};
+    const USIA_HAD = {
+      'PRA DINI':'9-10 tahun','DINI':'11-12 tahun','PRA BELIA':'13-14 tahun',
+      'BELIA':'15-17 tahun','PRA REMAJA':'18-20 tahun','REMAJA':'21-25 tahun',
+      'DEWASA':'26-35 tahun','VETERAN':'36+ tahun'
+    };
     ahli.forEach(a => {
-      const usia = kiraUsiaKompetisi(a.TARIKH_LAHIR||a.tarikh_lahir, a.NO_KP||a.no_kp);
-      const katU = katUsiaLabel(usia);
-      if (!katU) return;
-      const berat  = parseFloat(a.BERAT_KG||a.berat_kg)||0;
-      const tinggi = parseFloat(a.TINGGI_CM||a.tinggi_cm)||0;
-      const bmi    = (berat&&tinggi) ? Math.round(berat/Math.pow(tinggi/100,2)*10)/10 : null;
-      // Guna RUJUKAN_BERAT yang dah ada
-      const kelasObj = cariKelasBeratHardcode(katU.label, berat);
-      const kelas = kelasObj ? kelasObj.kelas : (berat ? '—' : '—');
-      const wKelas = kelas==='—' ? '#aaa' : '#00C853';
-      if (!kumpulan[katU.label]) kumpulan[katU.label] = {had:katU.had, ahli:[]};
-      kumpulan[katU.label].ahli.push({
-        nama: a.NAMA_PENUH||a.nama||'—', berat, tinggi, bmi, kelas, wKelas
+      const katLabel = a.kategori_usia || '';
+      if (!katLabel) return;
+      const berat  = parseFloat(a.berat)||0;
+      const tinggi = parseFloat(a.tinggi)||0;
+      const bmi    = a.bmi || ((berat&&tinggi) ? Math.round(berat/Math.pow(tinggi/100,2)*10)/10 : null);
+      const kelas  = a.kelas_berat || (berat ? '—' : '—');
+      const wKelas = (!kelas||kelas==='—') ? '#aaa' : '#00C853';
+      const had    = USIA_HAD[katLabel] || '';
+      if (!kumpulan[katLabel]) kumpulan[katLabel] = {had, ahli:[]};
+      kumpulan[katLabel].ahli.push({
+        nama: a.nama||'—', berat, tinggi, bmi, kelas, wKelas
       });
     });
 
