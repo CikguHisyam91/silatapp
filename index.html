@@ -1228,79 +1228,118 @@ async function muatSenaraiKelasBerat() {
 }
 
 async function muatTurunSenaraiBeratPDF() {
-  tunjukToast('⏳ Menjana PDF senarai berat...', 'ok');
+  tunjukToast('⏳ Menjana senarai...', 'ok');
   try {
-    const {jsPDF} = window.jspdf;
-    const doc = new jsPDF('p','mm','a4');
-    const W=210;
-    // Muat data
-    // Guna hardcode data - tak perlu rujukan API
     const ahli = await apiC('senarai_ahli_bmi',{},180);
-    const rujukan = []; // tidak digunakan - guna RUJUKAN_BERAT
-    // Header
-    doc.setFillColor(8,80,65);doc.rect(0,0,W,38,'F');
-    doc.setTextColor(255,255,255);
-    doc.setFontSize(14);doc.setFont('helvetica','bold');
-    doc.text('SENARAI KELAS BERAT PESILAT',W/2,16,{align:'center'});
-    doc.setFontSize(9);doc.setFont('helvetica','normal');
-    doc.text('Gelanggang Seri Mutiara Gegak Gempita',W/2,24,{align:'center'});
-    doc.text('Dijana: '+new Date().toLocaleDateString('ms-MY'),W/2,30,{align:'center'});
-    doc.setFillColor(29,158,117);doc.rect(0,36,W,3,'F');
-    // Kumpul data
-    const kumpulan={};
-    ahli.forEach(a=>{
-      const usia=kiraUsiaKompetisi(a.TARIKH_LAHIR||a.tarikh_lahir,a.NO_KP||a.no_kp);
-      const katU=katUsiaLabel(usia);
-      if(!katU)return;
-      const berat=parseFloat(a.BERAT_KG||a.berat_kg)||0;
-      const tinggi=parseFloat(a.TINGGI_CM||a.tinggi_cm)||0;
-      const bmi=(berat&&tinggi)?Math.round(berat/Math.pow(tinggi/100,2)*10)/10:null;
-      let kelas='—';
-      for(const r of rujukan){
-        if(!(r.KATEGORI_USIA||'').toUpperCase().includes(katU.label))continue;
-        const mn=parseFloat(r['BERAT_MIN_(KG)']||r.BERAT_MIN||0);
-        const mx=parseFloat(r['BERAT_MAX_(KG)']||r.BERAT_MAX||999);
-        if(berat>=mn&&berat<mx){kelas=r.KELAS;break;}
-      }
-      const k=katU.label;
-      if(!kumpulan[k])kumpulan[k]={had:katU.had,ahli:[]};
-      kumpulan[k].ahli.push({nama:a.NAMA_PENUH||a.nama,berat,bmi,kelas});
-    });
-    let y=46;
-    Object.entries(kumpulan).forEach(([kat,{had,ahli:list}])=>{
-      if(y>260){doc.addPage();y=20;}
-      // Header kategori
-      doc.setFillColor(8,80,65);doc.roundedRect(10,y,W-20,8,2,2,'F');
-      doc.setTextColor(255,255,255);doc.setFontSize(9);doc.setFont('helvetica','bold');
-      doc.text(kat+' ('+had+')',14,y+5.5);y+=12;
-      // Header jadual
-      doc.setFillColor(240,249,246);doc.rect(10,y,W-20,6,'F');
-      doc.setTextColor(8,80,65);doc.setFontSize(7.5);doc.setFont('helvetica','bold');
-      doc.text('BIL',13,y+4.5);doc.text('NAMA PESILAT',22,y+4.5);
-      doc.text('BERAT',130,y+4.5);doc.text('BMI',148,y+4.5);doc.text('KELAS',162,y+4.5);y+=8;
-      // Data
-      list.sort((a,b)=>(a.berat||0)-(b.berat||0)).forEach((p,i)=>{
-        if(y>278){doc.addPage();y=20;}
-        if(i%2===0){doc.setFillColor(250,250,250);doc.rect(10,y,W-20,6,'F');}
-        doc.setTextColor(40,40,40);doc.setFont('helvetica','normal');doc.setFontSize(7.5);
-        doc.text(String(i+1),13,y+4.5);
-        doc.text(doc.splitTextToSize(p.nama,100)[0]||p.nama,22,y+4.5);
-        doc.text(p.berat?p.berat+'kg':'—',130,y+4.5);
-        doc.text(p.bmi?String(p.bmi):'—',148,y+4.5);
-        doc.setFont('helvetica','bold');doc.setTextColor(8,80,65);
-        doc.text(p.kelas,162,y+4.5);y+=6;
+    const tetapan = await apiC('tetapan',{},600);
+    const namaG = tetapan?.NAMA_GELANGGANG || 'Gelanggang Seri Mutiara';
+    const tarikhCetak = new Date().toLocaleDateString('ms-MY',{day:'2-digit',month:'long',year:'numeric'});
+
+    // Kumpulkan mengikut kategori usia
+    const kumpulan = {};
+    ahli.forEach(a => {
+      const usia = kiraUsiaKompetisi(a.TARIKH_LAHIR||a.tarikh_lahir, a.NO_KP||a.no_kp);
+      const katU = katUsiaLabel(usia);
+      if (!katU) return;
+      const berat  = parseFloat(a.BERAT_KG||a.berat_kg)||0;
+      const tinggi = parseFloat(a.TINGGI_CM||a.tinggi_cm)||0;
+      const bmi    = (berat&&tinggi) ? Math.round(berat/Math.pow(tinggi/100,2)*10)/10 : null;
+      // Guna RUJUKAN_BERAT yang dah ada
+      const kelasObj = cariKelasBeratHardcode(katU.label, berat);
+      const kelas = kelasObj ? kelasObj.kelas : (berat ? '—' : '—');
+      const wKelas = kelas==='—' ? '#aaa' : '#00C853';
+      if (!kumpulan[katU.label]) kumpulan[katU.label] = {had:katU.had, ahli:[]};
+      kumpulan[katU.label].ahli.push({
+        nama: a.NAMA_PENUH||a.nama||'—', berat, tinggi, bmi, kelas, wKelas
       });
-      y+=6;
     });
-    // Footer
-    const yF=H=doc.internal.pageSize.height-12;
-    doc.setFillColor(8,80,65);doc.rect(0,yF,W,12,'F');
-    doc.setTextColor(255,255,255);doc.setFontSize(7);doc.setFont('helvetica','normal');
-    doc.text('Seri Mutiara Apps · Ilmu · Adab · Keberanian · Petua · Persilatan · Warisan',W/2,yF+8,{align:'center'});
-    doc.save('SenaraiBerat_SeriMutiara_'+new Date().getFullYear()+'.pdf');
-    tunjukToast('✅ PDF senarai berat dimuat turun!','ok');
-  }catch(e){tunjukToast('Gagal jana PDF: '+e.message,'ralat');}
+
+    // Jana HTML untuk print
+    let jadualHtml = '';
+    let jumlahSemua = 0, jumlahKelas = 0;
+    Object.entries(kumpulan).sort().forEach(([kat,{had,ahli:list}]) => {
+      list.sort((a,b) => (a.berat||0)-(b.berat||0));
+      jumlahSemua += list.length;
+      jumlahKelas += list.filter(p=>p.kelas!=='—').length;
+      jadualHtml += `
+      <div class="kat-blok">
+        <div class="kat-hdr">${kat} <span class="kat-had">(${had})</span></div>
+        <table>
+          <thead><tr><th>Bil.</th><th>Nama Pesilat</th><th>Berat</th><th>Tinggi</th><th>BMI</th><th>Kelas</th></tr></thead>
+          <tbody>
+            ${list.map((p,i) => `<tr class="${i%2===0?'alt':''}">
+              <td class="ctr">${i+1}</td>
+              <td>${p.nama}</td>
+              <td class="ctr">${p.berat?p.berat+'kg':'—'}</td>
+              <td class="ctr">${p.tinggi?p.tinggi+'cm':'—'}</td>
+              <td class="ctr">${p.bmi||'—'}</td>
+              <td class="ctr"><span class="badge-kelas" style="color:${p.wKelas}">${p.kelas}</span></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+    });
+
+    const htmlDoc = `<!DOCTYPE html>
+<html lang="ms"><head><meta charset="UTF-8">
+<title>Senarai Kelas Berat — ${namaG}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#1a1a1a;padding:15mm 12mm}
+.header{text-align:center;margin-bottom:20px;padding-bottom:12px;border-bottom:3px double #085041}
+.nama-org{font-size:17pt;font-weight:700;color:#085041;letter-spacing:1px}
+.tajuk{font-size:13pt;font-weight:700;color:#333;margin:6px 0 4px;text-transform:uppercase;letter-spacing:2px}
+.sub{font-size:9pt;color:#666}
+.ringkasan{display:flex;gap:20px;justify-content:center;margin:14px 0;padding:10px;background:#f0faf5;border-radius:8px}
+.ring-item{text-align:center}.ring-val{font-size:18pt;font-weight:900;color:#085041}.ring-lbl{font-size:8pt;color:#555}
+.kat-blok{margin-bottom:18px;break-inside:avoid}
+.kat-hdr{background:#085041;color:#fff;padding:6px 12px;font-size:10pt;font-weight:700;border-radius:6px 6px 0 0}
+.kat-had{font-size:8pt;font-weight:400;opacity:.85}
+table{width:100%;border-collapse:collapse;font-size:8.5pt}
+thead tr{background:#e8f5ef}
+th{padding:6px 8px;text-align:left;font-weight:700;font-size:8pt;color:#085041;border-bottom:1.5px solid #085041}
+td{padding:5px 8px;border-bottom:1px solid #e0e0e0;vertical-align:middle}
+tr.alt td{background:#f8fbf9}
+.ctr{text-align:center}.badge-kelas{font-weight:900;font-size:10pt}
+.footer{margin-top:24px;text-align:center;font-size:7.5pt;color:#888;border-top:1px solid #ddd;padding-top:8px}
+.no-print{text-align:center;margin-bottom:14px}
+@media print{.no-print{display:none}body{padding:8mm}}
+</style></head>
+<body>
+<div class="no-print">
+  <button onclick="window.print()" style="padding:10px 28px;font-size:13px;font-weight:700;background:#085041;color:#fff;border:none;border-radius:8px;cursor:pointer;margin-right:8px">🖨️ Cetak / Simpan PDF</button>
+  <button onclick="window.close()" style="padding:10px 20px;font-size:13px;background:#eee;border:1px solid #ccc;border-radius:8px;cursor:pointer">Tutup</button>
+</div>
+
+<div class="header">
+  <div style="font-size:28px;margin-bottom:6px">🥋</div>
+  <div class="nama-org">${namaG}</div>
+  <div class="tajuk">Senarai Kelas Berat Pesilat</div>
+  <div class="sub">Dicetak: ${tarikhCetak}</div>
+</div>
+
+<div class="ringkasan">
+  <div class="ring-item"><div class="ring-val">${ahli.length}</div><div class="ring-lbl">Jumlah Pesilat</div></div>
+  <div class="ring-item"><div class="ring-val">${jumlahKelas}</div><div class="ring-lbl">Dah Ada Kelas</div></div>
+  <div class="ring-item"><div class="ring-val">${jumlahSemua-jumlahKelas}</div><div class="ring-lbl">Belum Ada Kelas</div></div>
+  <div class="ring-item"><div class="ring-val">${Object.keys(kumpulan).length}</div><div class="ring-lbl">Kategori Usia</div></div>
+</div>
+
+${jadualHtml}
+
+<div class="footer">Jana oleh SilatApp SeriMutiara · ${tarikhCetak} · Dokumen pentadbiran — SULIT</div>
+</body></html>`;
+
+    const win = window.open('','_blank','width=950,height=750,scrollbars=yes');
+    win.document.write(htmlDoc);
+    win.document.close();
+    tunjukToast('✅ Senarai berat berjaya dijana!','ok');
+  } catch(e) {
+    tunjukToast('Gagal: '+e.message,'ralat');
+    console.error('muatTurunSenaraiBeratPDF:', e);
+  }
 }
+
 
 // ── PDPA Utilities ────────────────────────────────────────────
 function maskKP(kp) {
