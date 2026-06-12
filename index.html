@@ -3988,6 +3988,7 @@ let tapisLaporan = 'SEMUA', cariLaporan = '';
 let _semuaLaporan = [], _semuaAhliAktif = [];
 let _lapKpSkrg = '', _lapNamaSkrg = '', _lapBengkungSkrg = '';
 let cariPesilat = '';
+let filterStatusLap = 'SEMUA'; // SEMUA | ADA | BELUM
 
 // ── LAPORAN: ENTRY POINT ──────────────────────────────────────
 async function renderLaporan() {
@@ -4023,11 +4024,16 @@ function renderLaporanSenarai() {
     lapByKP[kp].push(r);
   });
 
-  // Tapis carian
+  // Tapis carian + status laporan
   const q = (cariPesilat || '').trim().toUpperCase();
-  const ahli = q
+  let ahli = q
     ? _semuaAhliAktif.filter(a => (a.nama||'').toUpperCase().includes(q))
     : _semuaAhliAktif;
+  if (filterStatusLap === 'ADA') {
+    ahli = ahli.filter(a => (lapByKP[a.no_kp]||[]).length > 0);
+  } else if (filterStatusLap === 'BELUM') {
+    ahli = ahli.filter(a => !(lapByKP[a.no_kp]||[]).length);
+  }
 
   // Statistik
   const totalLap   = _semuaLaporan.length;
@@ -4037,21 +4043,23 @@ function renderLaporanSenarai() {
   let html = '';
 
   // ── Header ──
+  const labelFilter = {SEMUA:'📋 Laporan Pesilat', ADA:'✅ Pesilat Ada Laporan', BELUM:'⏳ Pesilat Belum Ada Laporan'}[filterStatusLap];
   html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">'
-        + '<div style="flex:1;font-size:14px;font-weight:800;color:#fff">📋 Laporan Pesilat</div>'
+        + '<div style="flex:1;font-size:14px;font-weight:800;color:#fff">'+labelFilter+'</div>'
         + '<button onclick="bukaBuatLaporan()" style="padding:7px 12px;font-size:11px;font-weight:700;border-radius:8px;background:linear-gradient(135deg,var(--c3),#00C853);border:none;color:#fff;cursor:pointer"><i class="ti ti-plus"></i> Buat Laporan</button>'
         + '</div>';
 
   // ── Kad Ringkasan ──
   html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">';
-  [['📋', totalLap, 'Jumlah Laporan', 'rgba(41,121,255,.15)', 'rgba(41,121,255,.4)', '#6C63FF'],
-   ['✅', adaLap,   'Ada Laporan',    'rgba(0,200,83,.15)',   'rgba(0,200,83,.4)',   '#00E676'],
-   ['⏳', belumLap, 'Belum Ada',      'rgba(255,160,0,.15)',  'rgba(255,160,0,.4)',  '#FFB300']
-  ].forEach(([ikon,val,lbl,bg,bd,warna]) => {
-    html += `<div style="background:${bg};border:1.5px solid ${bd};border-radius:12px;padding:10px 6px;text-align:center;cursor:${lbl==='Jumlah Laporan'?'pointer':'default'}" ${lbl==='Jumlah Laporan'?'onclick="cariPesilat=\'\';renderLaporanSenarai()"':''}>
+  [['📋', totalLap, 'Jumlah Laporan', 'rgba(41,121,255,.15)', 'rgba(41,121,255,.4)', '#6C63FF', 'SEMUA'],
+   ['✅', adaLap,   'Ada Laporan',    'rgba(0,200,83,.15)',   'rgba(0,200,83,.4)',   '#00E676', 'ADA'],
+   ['⏳', belumLap, 'Belum Ada',      'rgba(255,160,0,.15)',  'rgba(255,160,0,.4)',  '#FFB300', 'BELUM']
+  ].forEach(([ikon,val,lbl,bg,bd,warna,kunci]) => {
+    const aktif = filterStatusLap === kunci;
+    html += `<div onclick="filterStatusLap='${kunci}';renderLaporanSenarai()" style="background:${bg};border:1.5px solid ${aktif?warna:bd};border-radius:12px;padding:10px 6px;text-align:center;cursor:pointer;${aktif?'box-shadow:0 0 0 2px '+warna+'44;transform:scale(1.02)':''};transition:.15s">
       <div style="font-size:16px;margin-bottom:2px">${ikon}</div>
       <div style="font-size:18px;font-weight:900;color:${warna}">${val}</div>
-      <div style="font-size:9px;color:var(--muted)">${lbl}</div></div>`;
+      <div style="font-size:9px;color:var(--muted);font-weight:${aktif?'700':'400'}">${lbl}${aktif?' ✓':''}</div></div>`;
   });
   html += '</div>';
 
@@ -4065,7 +4073,10 @@ function renderLaporanSenarai() {
 
   // ── Senarai Pesilat ──
   if (!ahli.length) {
-    html += '<div class="kosong"><i class="ti ti-user-off"></i><p>Tiada pesilat dijumpai</p></div>';
+    const msgKosong = filterStatusLap==='ADA' ? 'Tiada pesilat dengan laporan dijumpai'
+                    : filterStatusLap==='BELUM' ? '🎉 Semua pesilat sudah ada laporan!'
+                    : 'Tiada pesilat dijumpai';
+    html += '<div class="kosong"><i class="ti ti-user-off"></i><p>'+msgKosong+'</p></div>';
   } else {
     ahli.forEach(a => {
       const laps     = lapByKP[a.no_kp] || [];
