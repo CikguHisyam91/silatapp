@@ -2472,10 +2472,22 @@ async function renderKewangan() {
       html += '<span style="font-size:9px;font-weight:700;color:var(--c2);text-align:right;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap">Amaun / Baki</span>';
       html += '</div>';
 
-      let bilNo = 0;
-      let balasBawa = 0;
+      // Pra-kira "baki bawa masuk" setiap bulan (mesti kronologi: lama→baru)
+      const sortedBulanKeys = Object.keys(bulanMap).sort(); // lama dulu
+      const bawaMap = {};
+      let _runBaki = 0;
+      sortedBulanKeys.forEach(k => {
+        bawaMap[k] = _runBaki;
+        const itemsK = bulanMap[k];
+        _runBaki = itemsK[itemsK.length-1]?.baki || _runBaki;
+      });
 
-      Object.entries(bulanMap).forEach(([bln, items]) => {
+      let bilNo = 0;
+
+      // Papar terbaru dahulu
+      sortedBulanKeys.slice().reverse().forEach(bln => {
+        const items = bulanMap[bln];
+        const balasBawa = bawaMap[bln];
         const [y,m] = bln.split('-');
         const namaBln = BULAN_PENUH[parseInt(m)-1]||m;
         const tMasuk  = items.filter(t=>t.jenis==='PENDAPATAN').reduce((s,t)=>s+(t.jumlah||0),0);
@@ -2559,7 +2571,7 @@ async function renderKewangan() {
         html += '<span style="font-size:11px;font-weight:800;color:'+(bakiTutup>=0?'#FFD700':'#FF5177')+'">'+fmt(bakiTutup)+'</span>';
         html += '</div></div>';
 
-        balasBawa = bakiTutup;
+        // balasBawa sudah pre-calculated
       });
 
       // Baki akhir tahun
