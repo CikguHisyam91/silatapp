@@ -4143,8 +4143,15 @@ function renderLaporanSenarai() {
   }
 
   main.innerHTML = html;
-  // Focus carian
-  setTimeout(() => { document.getElementById('inp-cari-pesilat')?.focus(); }, 100);
+  // Focus carian + letak kursor di hujung teks (elak susunan terbalik)
+  setTimeout(() => {
+    const inp = document.getElementById('inp-cari-pesilat');
+    if (inp) {
+      inp.focus();
+      const len = inp.value.length;
+      inp.setSelectionRange(len, len);
+    }
+  }, 0);
 }
 
 // ── VIEW 2: LAPORAN PER PESILAT ────────────────────────────────
