@@ -290,6 +290,40 @@ document.addEventListener('click', e => {
   }
 });
 
+
+// ── Reset borang selepas simpan — kekal di halaman, sedia rekod baru ──
+function resetBorangLaporan() {
+  pesilat = null;
+  semuaItem = [];
+  statusItem = {};
+  bakats = 'BELUM DIKENALPASTI';
+  fotoBase64 = '';
+
+  document.getElementById('inp-cari').value = '';
+  document.getElementById('profil-dipilih').style.display = 'none';
+  document.getElementById('senarai-item').innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">Pilih pesilat untuk muatkan item penilaian.</div>';
+  document.getElementById('catatan-guru').value = '';
+
+  // Reset gambar
+  const kotak = document.getElementById('pratonton-gambar');
+  if (kotak) kotak.innerHTML = '<span id="gambar-placeholder">📷</span>';
+
+  // Reset skor
+  kiraSkor();
+
+  // Reset butang bakat (.bakat-btn)
+  document.querySelectorAll('.bakat-btn').forEach(b => b.classList.remove('aktif'));
+
+  // Reset butang simpan
+  const btn = document.getElementById('btn-simpan');
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ti ti-device-floppy"></i> Simpan Laporan';
+
+  // Scroll ke atas + fokus carian
+  window.scrollTo({top:0, behavior:'smooth'});
+  setTimeout(() => document.getElementById('inp-cari')?.focus(), 300);
+}
+
 async function pilihPesilat(noKp) {
   pesilat = semuaAhli.find(a => a.no_kp === noKp);
   if (!pesilat) return;
@@ -459,7 +493,7 @@ async function simpanLaporan() {
     });
 
     tunjukToast('✅ Laporan berjaya disimpan!', 'ok');
-    setTimeout(() => window.location.href = 'index.html', 1500);
+    setTimeout(resetBorangLaporan, 1200);
   } catch(e) {
     tunjukToast('Gagal: ' + e.message, 'ralat');
     btn.disabled = false;
