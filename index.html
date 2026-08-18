@@ -2274,6 +2274,7 @@ async function hantarBayarInline(kp, nama) {
       catatan: catatanRekod
     });
     tunjukToast('✅ Bayaran ' + nama.split(' ')[0] + ' direkod! RM' + jumlah.toFixed(2), 'ok');
+    clearApiCache('lejer'); // yuran masuk lejer — pastikan fresh
     // Kemaskini cache tanpa reload penuh
     const idx = dataYuranCache.findIndex(a => String(a.no_kp) === String(kp));
     if (idx !== -1) {
@@ -2459,8 +2460,9 @@ async function renderKewangan() {
   const main = getMain();
   main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan lejer...</span></div>';
   try {
-    clearApiCache('lejer'); // pastikan sentiasa fresh
-    const d = await api('lejer_kewangan',{tahun:tahunKewangan});
+    // Guna cache 90 saat — laju bila buka semula. Data fresh dijamin selepas rekod/edit
+    // sebab clearApiCache('lejer') dipanggil dalam simpan/edit/padam.
+    const d = await apiC('lejer_kewangan',{tahun:tahunKewangan},90);
     _lejerData = d.transaksi || []; // simpan untuk edit/padam
     const r = d.ringkasan || {};
     const fmt  = v => 'RM ' + Math.abs(parseFloat(v)||0).toFixed(2);
