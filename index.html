@@ -2,7 +2,7 @@
 <html lang="ms">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>SilatApp ⚔️</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1A0A3E">
@@ -35,16 +35,50 @@
   --c7:#00BCD4;--c7d:#007A8A;--c7s:0 6px 0 #004A55,0 10px 20px rgba(0,188,212,.3);
 }
 [data-theme="light"]{
-  --bg:#E8F4FF;--bg2:#F0E8FF;
-  --panel:#FFFFFF;--panel2:#F5F0FF;
-  --txt:#1A1A3E;--muted:#5566AA;
+  --bg:#EEF3FB;--bg2:#E4ECF7;
+  --panel:#FFFFFF;--panel2:#F4F7FC;
+  --txt:#1E2340;--muted:#6B7399;
 }
+/* ── Day mode: penyesuaian menyeluruh untuk mesra mata ── */
+[data-theme="light"] body{background:linear-gradient(ellipse at top,#E4ECF7 0%,#EEF3FB 60%)}
+[data-theme="light"] body::before{background-image:radial-gradient(circle,rgba(30,40,90,.05) 1px,transparent 1px)}
+[data-theme="light"] #header{background:rgba(255,255,255,.85);border-bottom:2px solid rgba(30,40,90,.1);color:#1E2340}
+[data-theme="light"] #header h1{filter:saturate(1.15)}
+[data-theme="light"] .hdr-btn{background:rgba(30,40,90,.06);border:1.5px solid rgba(30,40,90,.15);color:#1E2340}
+[data-theme="light"] #page-header{background:rgba(255,255,255,.7);border-bottom:1px solid rgba(30,40,90,.1)}
+[data-theme="light"] .page-tajuk{color:#1E2340}
+[data-theme="light"] .kad,[data-theme="light"] .senarai-item,[data-theme="light"] .item-kehadiran{background:#FFFFFF;border-color:rgba(30,40,90,.1);box-shadow:0 1px 4px rgba(30,40,90,.06)}
+[data-theme="light"] .kad-tajuk,[data-theme="light"] .item-nama,[data-theme="light"] .seksyen-tajuk{color:#1E2340}
+[data-theme="light"] .item-sub{color:#6B7399}
+[data-theme="light"] .form-input,[data-theme="light"] .form-inp,[data-theme="light"] input,[data-theme="light"] select,[data-theme="light"] textarea{background:#F4F7FC;border-color:rgba(30,40,90,.15);color:#1E2340}
+[data-theme="light"] .form-input::placeholder,[data-theme="light"] input::placeholder{color:#9AA3C0}
+[data-theme="light"] .kotak-carian{background:#FFFFFF;border-color:rgba(30,40,90,.12)}
+[data-theme="light"] .kotak-carian input{color:#1E2340}
+[data-theme="light"] .modal{background:#FFFFFF;color:#1E2340}
+[data-theme="light"] .modal-tajuk{color:#1E2340}
+[data-theme="light"] .form-label{color:#5A6288}
+[data-theme="light"] .tab-nav,[data-theme="light"] .navbar{background:rgba(255,255,255,.9);border-color:rgba(30,40,90,.1)}
+[data-theme="light"] .muat,[data-theme="light"] .kosong{color:#6B7399}
+[data-theme="light"] .avatar{color:#fff}
+[data-theme="light"] .tarikh-bar{background:#FFFFFF;border-color:rgba(30,40,90,.12)}
+[data-theme="light"] .tarikh-bar input{color:#1E2340}
+[data-theme="light"] .badge.abu{background:rgba(30,40,90,.08);color:#6B7399}
+[data-theme="light"] table th{color:#3A4270}
+[data-theme="light"] table td{border-color:rgba(30,40,90,.08)}
+[data-theme="light"] .btn-outline{background:#FFFFFF}
 
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html{height:100%}
 body{height:100%;font-family:var(--font-b);background:radial-gradient(ellipse at top,var(--bg2) 0%,var(--bg) 60%);color:var(--txt);overflow:hidden;transition:.3s}
 button{cursor:pointer;border:none;background:none;font-family:inherit}
 input,select,textarea{font-family:var(--font-b)}
+/* Elak iOS auto-zoom bila fokus input — font mesti >=16px pada mobile */
+@media(max-width:480px){
+  input,select,textarea{font-size:16px !important}
+  .form-input,.form-inp{font-size:16px !important}
+}
+/* Sasaran sentuhan minimum 40px untuk jari (keserasian mudah alih) */
+button,.game-btn,.toggle-hadir,.hdr-btn{touch-action:manipulation}
 
 /* ── Stars background ── */
 body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.15) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
@@ -1788,6 +1822,7 @@ async function renderKehadiran() {
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <div style="font-size:13px;font-weight:800;color:#00E676">
             ✅ Sudah Hadir: <span id="jum-hadir" style="font-size:16px">0</span> orang
+            <span id="status-simpan-hadir" style="display:none;align-items:center;gap:4px;font-size:10px;color:var(--c2);font-weight:600;margin-left:6px"><i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i>menyimpan</span>
           </div>
           <button onclick="tandaSemuaHadir()" style="padding:6px 12px;font-size:11px;font-weight:700;border-radius:8px;background:rgba(0,200,83,.15);border:1.5px solid var(--c3);color:var(--c3);cursor:pointer">
             Semua Hadir
@@ -1878,37 +1913,75 @@ function paparSenaraiKehadiran() {
     : '<div style="font-size:12px;color:var(--c3);padding:10px;text-align:center;font-weight:700">✅ Semua murid sudah hadir!</div>';
 }
 
-async function togHadir(no_kp) {
+// Baris gilir untuk hantar kehadiran secara batch (pantas + tiada keciciran)
+let _hadirQueue = {};   // {no_kp: status}
+let _hadirTimer = null;
+let _hadirSaving = false;
+
+function togHadir(no_kp) {
   const tarikh = document.getElementById('inp-tarikh-hadir')?.value;
   if (!tarikh) { tunjukToast('Pilih tarikh dahulu!', 'ralat'); return; }
 
-  // Toggle status
+  // 1) Kemas kini UI SERTA-MERTA (optimistic — terasa laju berdesup)
   statusHadir[no_kp] = !statusHadir[no_kp];
+  _hadirQueue[no_kp] = statusHadir[no_kp] ? 'HADIR' : 'TIDAK HADIR';
+  paparSenaraiKehadiran();
 
-  // Tunjuk spinner saving
-  const sp = document.getElementById('saving-' + no_kp);
-  if (sp) sp.style.display = 'inline';
+  // Tunjuk penunjuk "menyimpan..." kecil pada header
+  tunjukPenyimpanHadir(true);
 
-  // Disable toggle sementara
-  const tog = document.getElementById('tog-' + no_kp);
-  if (tog) { tog.style.pointerEvents = 'none'; tog.style.opacity = '0.5'; }
+  // 2) Kumpul & hantar batch setiap 600ms selepas toggle terakhir
+  clearTimeout(_hadirTimer);
+  _hadirTimer = setTimeout(hantarBatchHadir, 600);
+}
+
+async function hantarBatchHadir() {
+  if (_hadirSaving) { _hadirTimer = setTimeout(hantarBatchHadir, 300); return; }
+  const tarikh = document.getElementById('inp-tarikh-hadir')?.value;
+  if (!tarikh) return;
+
+  const pending = { ..._hadirQueue };
+  const keys = Object.keys(pending);
+  if (!keys.length) { tunjukPenyimpanHadir(false); return; }
+
+  _hadirSaving = true;
+  _hadirQueue = {}; // kosongkan queue — toggle baru akan masuk batch seterusnya
+
+  const masa  = new Date().toTimeString().slice(0,5);
+  const rekod = keys.map(no_kp => {
+    const ahli = (dataAhliCache||[]).find(a => a.no_kp === no_kp);
+    return { no_kp, nama: ahli?.nama || '', tarikh, status: pending[no_kp], masa };
+  });
 
   try {
-    const ahli = (dataAhliCache||[]).find(a => a.no_kp === no_kp);
-    const nama = ahli?.nama || '';
-    await apiPost({
-      tindakan: 'rekod_kehadiran',
-      rekod: [{ no_kp, nama, tarikh, status: statusHadir[no_kp] ? 'HADIR' : 'TIDAK HADIR', masa: new Date().toTimeString().slice(0,5) }],
-      edit_mode: true
-    });
-    // Refresh paparan (sort semula)
-    paparSenaraiKehadiran();
+    await apiPost({ tindakan:'rekod_kehadiran', rekod, tarikh, masa, edit_mode: true });
+    clearApiCache('kehadiran');
   } catch(e) {
-    // Rollback
-    statusHadir[no_kp] = !statusHadir[no_kp];
-    tunjukToast('Gagal simpan: ' + e.message, 'ralat');
+    // Rollback hanya yang gagal — masukkan semula ke queue untuk cuba lagi
+    keys.forEach(no_kp => {
+      statusHadir[no_kp] = (pending[no_kp] !== 'HADIR');
+      _hadirQueue[no_kp] = pending[no_kp]; // simpan semula untuk retry
+    });
+    tunjukToast('⚠️ Gagal simpan sebahagian — cuba semula...', 'ralat');
     paparSenaraiKehadiran();
+    _hadirSaving = false;
+    _hadirTimer = setTimeout(hantarBatchHadir, 1500); // auto-retry
+    return;
   }
+
+  _hadirSaving = false;
+
+  // Kalau ada toggle baru masuk semasa hantar tadi, hantar lagi
+  if (Object.keys(_hadirQueue).length) {
+    _hadirTimer = setTimeout(hantarBatchHadir, 200);
+  } else {
+    tunjukPenyimpanHadir(false);
+  }
+}
+
+function tunjukPenyimpanHadir(tunjuk) {
+  const el = document.getElementById('status-simpan-hadir');
+  if (el) el.style.display = tunjuk ? 'inline-flex' : 'none';
 }
 
 async function tandaSemuaHadir() {
@@ -4893,6 +4966,15 @@ function togDarkMode() {
     localStorage.setItem('silatapp-theme', 'light');
   }
 }
+
+// ── Safeguard: elak tinggalkan halaman semasa kehadiran belum tersimpan ──
+window.addEventListener('beforeunload', function(e) {
+  if (_hadirSaving || Object.keys(_hadirQueue||{}).length > 0) {
+    e.preventDefault();
+    e.returnValue = 'Kehadiran masih menyimpan. Tunggu sekejap sebelum keluar.';
+    return e.returnValue;
+  }
+});
 
 // ── Mula ─────────────────────────────────────────────────────
 loadDashboardStats();
