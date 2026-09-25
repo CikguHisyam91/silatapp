@@ -8,7 +8,6 @@
 <meta name="theme-color" content="#1A0A3E">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SilatApp">
-<link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -622,6 +621,19 @@ let halamanLepas = null;
 let dataAhliCache = null;
 let statusHadir = {};
 
+// ── Tarikh hari ini (waktu tempatan, bukan UTC) ──────────────
+function tarikhHariIni() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+// Senarai tahun untuk pilihan (2024 hingga tahun hadapan) — tidak perlu dikemaskini setiap tahun
+function senaraiTahunPilihan() {
+  const akhir = new Date().getFullYear() + 1, senarai = [];
+  for (let y = 2024; y <= akhir; y++) senarai.push(y);
+  return senarai;
+}
+
 // ── Format tarikh ─────────────────────────────────────────────
 function formatTarikh(val) {
   if (!val || val === 'undefined' || val === '') return '—';
@@ -1004,7 +1016,7 @@ async function simpanYuranPendaftaran(noKp) {
     await apiPost({
       tindakan: 'tambah_yuran', no_kp: noKp, jenis_yuran: 'PENDAFTARAN',
       bulan: bulanSkrg, tahun: tahunSkrg, jumlah: jml,
-      kaedah_bayar: 'TUNAI', tarikh_bayar: new Date().toISOString().split('T')[0],
+      kaedah_bayar: 'TUNAI', tarikh_bayar: tarikhHariIni(),
       catatan: 'Yuran pendaftaran ahli baru'
     });
     clearApiCache('yuran'); clearApiCache('dashboard');
@@ -1056,7 +1068,7 @@ async function jalanCarian(q) {
     const hasil = await api('cari_ahli',{q});
     if(!hasil.length){ el.innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px">Tiada hasil</div>'; return; }
     el.innerHTML = hasil.slice(0,8).map(a=>`
-      <div onclick="document.getElementById('panel-carian-global').remove();navigasi('pesilat');setTimeout(()=>bukaProfil('${a.no_kp}'),600)"
+      <div onclick="document.getElementById('panel-carian-global').remove();bukaProfilAhli('${a.no_kp}')"
         style="display:flex;align-items:center;gap:10px;padding:10px;background:rgba(255,255,255,.05);border-radius:10px;margin-bottom:6px;cursor:pointer;border:1px solid rgba(255,255,255,.08)">
         <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--c1),var(--c2));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">${(a.nama||'?')[0]}</div>
         <div style="flex:1;min-width:0">
@@ -1219,8 +1231,18 @@ async function apiC(tindakan, params={}, ttl=180) {
   _apiCache[k] = {data, ts:Date.now()};
   return data;
 }
+// Data berkait — bila satu jenis data berubah, cache lain yang bergantung padanya turut dibuang
+const _cacheBerkait = {
+  kehadiran: ['stat_hadir', 'dashboard'],
+  yuran    : ['status_yuran', 'ringkasan_kewangan', 'lejer', 'dashboard'],
+  lejer    : ['ringkasan_kewangan', 'status_yuran', 'dashboard'],
+};
 function clearApiCache(prefix='') {
-  Object.keys(_apiCache).forEach(k=>{ if(!prefix||k.startsWith(prefix)) delete _apiCache[k]; });
+  const sasaran = prefix ? [prefix, ...(_cacheBerkait[prefix]||[])] : null;
+  Object.keys(_apiCache).forEach(k=>{
+    const t = k.split('|')[0];
+    if(!sasaran || sasaran.some(p=>t.startsWith(p))) delete _apiCache[k];
+  });
 }
 
 
@@ -1424,6 +1446,7 @@ function muatSemula() {
 }
 
 function escapeAttr(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function jsArg(s) { return escapeAttr(String(s==null?'':s).replace(/\\/g,'\\\\').replace(/'/g,"\\'")); }
 function escapeHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function getMain() {
   return document.getElementById('page-content') || document.getElementById('main');
@@ -1674,7 +1697,7 @@ function exportAhliCSV() {
     a.tarikh_lahir||'', a.kategori||'', (a.bengkung||'').replace(/,/g,' '),
     a.tarikh_daftar||'', a.status||'AKTIF', a.no_tel||''
   ]);
-  muat_turun_csv([hdrs, ...rows], 'Senarai_Ahli_' + new Date().toISOString().split('T')[0] + '.csv');
+  muat_turun_csv([hdrs, ...rows], 'Senarai_Ahli_' + tarikhHariIni() + '.csv');
   tunjukToast('✅ Fail CSV disiapkan!','ok');
 }
 
@@ -1809,7 +1832,7 @@ async function loadKelasBeratProfil(tarikh, noKp, berat) {
 // ── HALAMAN: Kehadiran ───────────────────────────────────────
 async function renderKehadiran() {
   const main = getMain();
-  const hari = new Date().toISOString().split('T')[0];
+  const hari = tarikhHariIni();
   statusHadir = {};
 
   try {
@@ -1860,16 +1883,23 @@ async function muatStatusHadir() {
   if (panel)   panel.style.display   = 'none';
 
   // Reset status semua ke false dulu
-  statusHadir = {};
-  (dataAhliCache||[]).forEach(a => { statusHadir[a.no_kp] = false; });
+  const statusBaru = {};
+  (dataAhliCache||[]).forEach(a => { statusBaru[a.no_kp] = false; });
 
   try {
     const rekod = await api('kehadiran', {tarikh});
     rekod.forEach(r => {
       const kp = r.NO_KP || r.no_kp;
-      if (kp) statusHadir[kp] = (r.STATUS_KEHADIRAN || r.status || '') === 'HADIR';
+      if (kp) statusBaru[kp] = String(r.STATUS_KEHADIRAN || r.status || '').toUpperCase() === 'HADIR';
     });
-  } catch(e) { /* senyap - guna semua false */ }
+  } catch(e) { tunjukToast('Gagal muatkan rekod kehadiran — semak internet', 'ralat'); }
+
+  // Tarikh ditukar semasa sedang memuatkan — abaikan keputusan lama
+  if (document.getElementById('inp-tarikh-hadir')?.value !== tarikh) return;
+
+  // Kekalkan tanda yang belum sempat disimpan untuk tarikh ini
+  Object.values(_hadirQueue).forEach(p => { if (p.tarikh === tarikh) statusBaru[p.no_kp] = p.status === 'HADIR'; });
+  statusHadir = statusBaru;
 
   if (loading) loading.style.display = 'none';
   if (panel)   panel.style.display   = 'block';
@@ -1920,9 +1950,10 @@ function paparSenaraiKehadiran() {
 }
 
 // Baris gilir untuk hantar kehadiran secara batch (pantas + tiada keciciran)
-let _hadirQueue = {};   // {no_kp: status}
+let _hadirQueue = {};   // {'tarikh|no_kp': {no_kp, tarikh, status}}
 let _hadirTimer = null;
 let _hadirSaving = false;
+let _hadirCubaan = 0;   // bilangan cubaan semula berturut-turut yang gagal
 
 function togHadir(no_kp) {
   const tarikh = document.getElementById('inp-tarikh-hadir')?.value;
@@ -1930,7 +1961,8 @@ function togHadir(no_kp) {
 
   // 1) Kemas kini UI SERTA-MERTA (optimistic — terasa laju berdesup)
   statusHadir[no_kp] = !statusHadir[no_kp];
-  _hadirQueue[no_kp] = statusHadir[no_kp] ? 'HADIR' : 'TIDAK HADIR';
+  // Tarikh disimpan bersama setiap rekod — elak rekod masuk tarikh lain jika tarikh ditukar sebelum sempat dihantar
+  _hadirQueue[tarikh + '|' + no_kp] = { no_kp, tarikh, status: statusHadir[no_kp] ? 'HADIR' : 'TIDAK HADIR' };
   paparSenaraiKehadiran();
 
   // Tunjuk penunjuk "menyimpan..." kecil pada header
@@ -1943,41 +1975,52 @@ function togHadir(no_kp) {
 
 async function hantarBatchHadir() {
   if (_hadirSaving) { _hadirTimer = setTimeout(hantarBatchHadir, 300); return; }
-  const tarikh = document.getElementById('inp-tarikh-hadir')?.value;
-  if (!tarikh) return;
 
   const pending = { ..._hadirQueue };
   const keys = Object.keys(pending);
   if (!keys.length) { tunjukPenyimpanHadir(false); return; }
 
+  // Hantar satu tarikh sahaja setiap kali
+  const tarikh = pending[keys[0]].tarikh;
+  const batch  = keys.filter(k => pending[k].tarikh === tarikh);
+
   _hadirSaving = true;
-  _hadirQueue = {}; // kosongkan queue — toggle baru akan masuk batch seterusnya
+  batch.forEach(k => delete _hadirQueue[k]); // toggle baru akan masuk batch seterusnya
 
   const masa  = new Date().toTimeString().slice(0,5);
-  const rekod = keys.map(no_kp => {
-    const ahli = (dataAhliCache||[]).find(a => a.no_kp === no_kp);
-    return { no_kp, nama: ahli?.nama || '', tarikh, status: pending[no_kp], masa };
+  const rekod = batch.map(k => {
+    const p = pending[k];
+    const ahli = (dataAhliCache||[]).find(a => a.no_kp === p.no_kp);
+    return { no_kp: p.no_kp, nama: ahli?.nama || '', tarikh, status: p.status, masa };
   });
 
   try {
     await apiPost({ tindakan:'rekod_kehadiran', rekod, tarikh, masa, edit_mode: true });
     clearApiCache('kehadiran');
+    _hadirCubaan = 0;
   } catch(e) {
-    // Rollback hanya yang gagal — masukkan semula ke queue untuk cuba lagi
-    keys.forEach(no_kp => {
-      statusHadir[no_kp] = (pending[no_kp] !== 'HADIR');
-      _hadirQueue[no_kp] = pending[no_kp]; // simpan semula untuk retry
-    });
-    tunjukToast('⚠️ Gagal simpan sebahagian — cuba semula...', 'ralat');
-    paparSenaraiKehadiran();
+    // Masukkan semula ke queue (kecuali jika sudah ada toggle lebih baru untuk murid yang sama)
+    batch.forEach(k => { if (!_hadirQueue[k]) _hadirQueue[k] = pending[k]; });
     _hadirSaving = false;
-    _hadirTimer = setTimeout(hantarBatchHadir, 1500); // auto-retry
+    _hadirCubaan++;
+    if (_hadirCubaan <= 3) {
+      tunjukToast('⚠️ Gagal simpan — cuba semula (' + _hadirCubaan + '/3)...', 'ralat');
+      _hadirTimer = setTimeout(hantarBatchHadir, 1500 * _hadirCubaan); // auto-retry
+    } else {
+      // Berhenti cuba — pulihkan paparan supaya sepadan dengan data sebenar dalam sistem
+      const gagal = batch.filter(k => _hadirQueue[k] === pending[k]);
+      gagal.forEach(k => delete _hadirQueue[k]);
+      _hadirCubaan = 0;
+      tunjukPenyimpanHadir(false);
+      tunjukToast('❌ Kehadiran ' + gagal.length + ' murid gagal disimpan. Semak internet & tanda semula.', 'ralat');
+      if (document.getElementById('inp-tarikh-hadir')?.value === tarikh) muatStatusHadir();
+    }
     return;
   }
 
   _hadirSaving = false;
 
-  // Kalau ada toggle baru masuk semasa hantar tadi, hantar lagi
+  // Kalau ada toggle baru masuk semasa hantar tadi (atau tarikh lain), hantar lagi
   if (Object.keys(_hadirQueue).length) {
     _hadirTimer = setTimeout(hantarBatchHadir, 200);
   } else {
@@ -2006,7 +2049,9 @@ async function tandaSemuaHadir() {
 
   try {
     const masa = new Date().toTimeString().slice(0,5);
-    const rekod = senarai.map(a => ({ no_kp: a.no_kp, nama: a.nama, tarikh, status: 'HADIR', masa }));
+    // Hantar hanya murid yang berubah — URL lebih pendek & lebih pantas
+    const rekod = belum.map(a => ({ no_kp: a.no_kp, nama: a.nama, tarikh, status: 'HADIR', masa }));
+    belum.forEach(a => { delete _hadirQueue[tarikh + '|' + a.no_kp]; });
     await apiPost({ tindakan:'rekod_kehadiran', rekod, tarikh, masa, edit_mode: true });
     clearApiCache('kehadiran');
     tunjukToast('✅ Semua kehadiran disimpan!', 'ok');
@@ -2085,7 +2130,7 @@ async function renderYuran() {
             ${BULAN_LIST.map(b => `<option value="${b}" ${b===yuranBulanPilih?'selected':''}>${b}</option>`).join('')}
           </select>
           <select class="form-input" id="sel-tahun-yuran" style="flex:1;padding:9px 10px;font-size:13px" onchange="tukarBulanYuran()">
-            ${[2024,2025,2026,2027,2028].map(y => `<option value="${y}" ${y===parseInt(yuranTahunPilih)?'selected':''}>${y}</option>`).join('')}
+            ${senaraiTahunPilihan().map(y => `<option value="${y}" ${y===parseInt(yuranTahunPilih)?'selected':''}>${y}</option>`).join('')}
           </select>
         </div>
       </div>
@@ -2172,7 +2217,7 @@ function renderSenaraiYuran() {
   el.innerHTML = senarai.map(a => {
     const kat = a.kategori?.includes('RENDAH')?'Sekolah Rendah':a.kategori?.includes('MENENGAH')?'Sekolah Menengah':'Dewasa';
     const safeKp = (a.no_kp||'').toString();
-    const safeNama = (a.nama||'').replace(/'/g,"\'");
+    const safeNama = jsArg(a.nama);
     if (a.sudah_bayar) {
       const nmSudah = String(a.nama||'—');
       const tBayar = a.tarikh_bayar ? formatTarikh(a.tarikh_bayar) : '—';
@@ -2276,7 +2321,7 @@ async function hantarBayarInline(kp, nama) {
       bulan: bulanRekod,
       tahun: tahunRekod,
       jumlah, kaedah_bayar: kaedah,
-      tarikh_bayar: new Date().toISOString().split('T')[0],
+      tarikh_bayar: tarikhHariIni(),
       catatan: catatanRekod
     });
     tunjukToast('✅ Bayaran ' + nama.split(' ')[0] + ' direkod! RM' + jumlah.toFixed(2), 'ok');
@@ -2370,7 +2415,7 @@ function tapisPesilat(q) {
   timerCariPesilat = setTimeout(() => {
     if (!dataPesilat) return;
     const hasil = q ? dataPesilat.filter(a =>
-      a.nama.toLowerCase().includes(q.toLowerCase()) || a.no_kp.includes(q)
+      String(a.nama||'').toLowerCase().includes(q.toLowerCase()) || a.no_kp.includes(q)
     ) : dataPesilat;
     paparJadualPesilat(hasil);
   }, 250);
@@ -2485,7 +2530,7 @@ async function renderKewangan() {
 
     // ── Row 1: Tahun + Tambah ──────────────────────────────────
     html += '<div style="display:flex;gap:6px;align-items:center;margin-bottom:12px;flex-wrap:wrap">';
-    [2024,2025,2026,2027].forEach(y => {
+    senaraiTahunPilihan().forEach(y => {
       const ak = y===tahunKewangan;
       html += '<button onclick="tukarTahunKewangan('+y+')" style="padding:5px 12px;font-size:12px;font-weight:700;border-radius:8px;'
             + 'border:1.5px solid '+(ak?'var(--c2)':'rgba(255,255,255,.2)')+';'
@@ -2603,7 +2648,7 @@ async function renderKewangan() {
           const dd = _tN.length>=10 ? _tN.substring(8,10)+'/'+_tN.substring(5,7) : _tN.substring(0,5);
           const bkVal = parseFloat(t.baki)||0;
           const bolehEdit = t.sumber === 'KEWANGAN' && t.id;
-          const idSafe = (t.id||'').replace(/'/g,"\\\\'");
+          const idSafe = jsArg(t.id);
           const zebra = idx%2===0 ? 'rgba(255,255,255,.015)' : 'transparent';
           const warnaAmt = isMasuk ? '#00E676' : '#FF5177';
           const prefix   = isMasuk ? '+' : '-';
@@ -3057,7 +3102,7 @@ async function modalTambahTandingan() {
   const ahli = dataAhliCache || await apiC('senarai_ahli',{status:'AKTIF'},300);
   const modal = document.createElement('div');
   modal.className = 'modal-bg'; modal.id = 'modal-tandingan';
-  const hari = new Date().toISOString().split('T')[0];
+  const hari = tarikhHariIni();
   let h = '<div class="modal">';
   h += '<div class="modal-tajuk" style="color:#FFD700">🏆 Tambah Rekod Pertandingan<div class="modal-tutup" onclick="closeModal(\'modal-tandingan\')"><i class="ti ti-x"></i></div></div>';
   h += '<div class="form-kump"><label class="form-label">Pesilat *</label><select class="form-input" id="td-no-kp">';
@@ -3165,7 +3210,7 @@ async function renderGaleri() {
 function modalTambahGaleri() {
   const modal = document.createElement('div');
   modal.className = 'modal-bg'; modal.id = 'modal-galeri';
-  const hari = new Date().toISOString().split('T')[0];
+  const hari = tarikhHariIni();
   let h = '<div class="modal">';
   h += '<div class="modal-tajuk" style="color:#29B6F6">📸 Tambah Foto Latihan<div class="modal-tutup" onclick="closeModal(\'modal-galeri\')"><i class="ti ti-x"></i></div></div>';
   h += '<div class="form-kump"><label class="form-label">Tajuk Sesi *</label><input class="form-input" id="gal-tajuk" type="text" placeholder="cth: Latihan Minggu 1 Jun 2026"></div>';
@@ -3404,7 +3449,7 @@ function bukaModalKewangan(jenis) {
   const KAT_MASUK  = ['SUMBANGAN','DERMA','GERAN','JUALAN','LAIN-LAIN'];
   const KAT_KELUAR = ['PERALATAN','PENGANGKUTAN','PERTANDINGAN','SERAGAM','MAKANAN','BAYARAN DEWAN','LAIN-LAIN'];
   const kategori   = isMasuk ? KAT_MASUK : KAT_KELUAR;
-  const tarHari    = new Date().toISOString().substring(0,10);
+  const tarHari    = tarikhHariIni();
   const modal = document.createElement('div');
   modal.className = 'modal-bg'; modal.id = 'modal-kew';
   let h = '<div class="modal">';
@@ -3521,7 +3566,7 @@ function bukaModalLatihan() {
         </div>
         <div class="form-kump">
           <label class="form-label">Tarikh Mula</label>
-          <input class="form-input" id="lt-mula" type="date" value="${new Date().toISOString().split('T')[0]}">
+          <input class="form-input" id="lt-mula" type="date" value="${tarikhHariIni()}">
         </div>
       </div>
       <button class="btn btn-pri btn-blok" onclick="simpanLatihan()">
@@ -4528,7 +4573,7 @@ function bukaModalYuran(no_kp, nama) {
   if (sel) Array.from(sel.options).forEach(o => { if (o.value === (yuranBulanPilih||bulanSkrg)) o.selected = true; });
   const selThn = document.querySelector('#form-yuran input[name="tahun"]');
   if (selThn) selThn.value = yuranTahunPilih || tahunSkrg;
-  document.getElementById('yuran-tarikh').value = new Date().toISOString().split('T')[0];
+  document.getElementById('yuran-tarikh').value = tarikhHariIni();
   bukaModal('modal-yuran');
 }
 
@@ -4681,7 +4726,7 @@ async function sahkanKecualiBulan(idx) {
       tindakan: 'tambah_yuran', no_kp: 'SEDEKAH', jenis_yuran: 'DIKECUALIKAN',
       bulan, tahun: String(tahun), jumlah: 0, jumlah_bayar: 0,
       catatan: s.label + ' — Carry forward ke ' + next.bulan + ' ' + next.tahun,
-      kaedah_bayar: 'SISTEM', tarikh_bayar: new Date().toISOString().split('T')[0]
+      kaedah_bayar: 'SISTEM', tarikh_bayar: tarikhHariIni()
     });
 
     // Auto carry forward untuk yang dah bayar bulan ini
@@ -4702,7 +4747,7 @@ async function sahkanKecualiBulan(idx) {
             tahun: String(next.tahun),
             jumlah: jml,
             kaedah_bayar: 'CARRY_FORWARD',
-            tarikh_bayar: new Date().toISOString().split('T')[0],
+            tarikh_bayar: tarikhHariIni(),
             catatan: 'CF dari ' + bulan + ' ' + tahun + ' (' + s.label.split(' ').slice(1).join(' ') + ')'
           });
           cfBerjaya++;
@@ -4788,12 +4833,12 @@ function cariAhliPukal(q) {
   if (!q) { dd.style.display='none'; return; }
   const dipilih = senaraiPukal.map(a => a.no_kp);
   const hasil = (dataYuranCache||[])
-    .filter(a => !a.sudah_bayar && !dipilih.includes(a.no_kp) && a.nama.toLowerCase().includes(q.toLowerCase()))
+    .filter(a => !a.sudah_bayar && !dipilih.includes(a.no_kp) && String(a.nama||'').toLowerCase().includes(q.toLowerCase()))
     .slice(0, 8);
   if (!hasil.length) { dd.style.display='none'; return; }
   dd.style.display = 'block';
   dd.innerHTML = hasil.map(a => `
-    <div onclick="pilihAhliPukal('${a.no_kp}','${a.nama.replace(/'/g,"\'")}')"
+    <div onclick="pilihAhliPukal('${jsArg(a.no_kp)}','${jsArg(a.nama)}')"
       style="padding:10px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;font-weight:700">
       ${a.nama}
       <span style="font-size:10px;color:var(--muted);margin-left:6px">${a.kategori?.includes('RENDAH')?'SR':a.kategori?.includes('MENENGAH')?'SM':'DWS'}</span>
@@ -4836,7 +4881,7 @@ async function hantarPukal() {
   btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Menyimpan...';
   const bulan  = yuranBulanPilih || bulanSkrg;
   const tahun  = yuranTahunPilih || tahunSkrg;
-  const tarikh = new Date().toISOString().split('T')[0];
+  const tarikh = tarikhHariIni();
   let berjaya = 0, gagal = 0;
   for (const a of senaraiPukal) {
     try {
@@ -4986,7 +5031,7 @@ window.addEventListener('beforeunload', function(e) {
 
 // ── Mula ─────────────────────────────────────────────────────
 loadDashboardStats();
-(function(){ const t=localStorage.getItem('silatapp-theme'); if(t==='dark'){document.body.setAttribute('data-theme','dark');const i=document.getElementById('ikon-darkmode');if(i)i.className='ti ti-sun';} })();
+(function(){ const t=localStorage.getItem('silatapp-theme'); if(t==='light'){document.body.setAttribute('data-theme','light');const i=document.getElementById('ikon-darkmode');if(i)i.className='ti ti-sun';} })();
 </script>
 
 </body>

@@ -1,0 +1,35 @@
+{
+  "name": "Portal Ibu Bapa — Seri Mutiara",
+  "short_name": "Ibu Bapa",
+  "description": "Portal Ibu Bapa Gelanggang Seri Mutiara Gegak Gempita",
+  "start_url": "/silatapp/parent.html",
+  "scope": "/silatapp/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#085041",
+  "theme_color": "#085041",
+  "icons": [
+    {
+      "src": "favicon-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "apple-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>Portal Ibu Bapa — Seri Mutiara</title>
 <meta name="theme-color" content="#085041">
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="manifest-parent.json">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -281,12 +281,15 @@ function renderTab(tab) {
   else if(tab==='silibus') renderSilibus();
 }
 
+// Tahun lahir daripada 2 digit awal No. KP (≤ tahun semasa → 20xx, selainnya 19xx)
+function tahunDariKP(yy){return yy<=new Date().getFullYear()%100?2000+yy:1900+yy;}
+function statusHadir(r){return String(r.STATUS_KEHADIRAN||r.status||'HADIR').toUpperCase();}
 function kiraUsia(tarikh,noKp) {
   let tL=null;
   if(tarikh&&tarikh.length>=6) tL=new Date(tarikh);
   else if(noKp&&noKp.length>=6){
     const yy=parseInt(noKp.substring(0,2)),mm=noKp.substring(2,4),dd=noKp.substring(4,6);
-    tL=new Date((yy<=30?2000+yy:1900+yy)+'-'+mm+'-'+dd);
+    tL=new Date(tahunDariKP(yy)+'-'+mm+'-'+dd);
   }
   if(!tL||isNaN(tL.getTime())) return null;
   const now=new Date();let u=now.getFullYear()-tL.getFullYear();
@@ -466,9 +469,10 @@ function prosesGambar(input) {
       try {
         await apiPost({tindakan:'simpan_foto_pesilat',no_kp:dataAnak.NO_KP,foto_base64:b64});
         dataAnak.FOTO_BASE64=b64;toast('✅ Gambar disimpan!');renderProfil();
-      }catch(e){dataAnak.FOTO_BASE64=b64;renderProfil();toast('Gambar dikemaskini',true);}
+      }catch(e){toast('Gagal simpan gambar: '+e.message,false);}
     };img.src=e.target.result;
   };reader.readAsDataURL(file);
+  input.value=''; // benarkan pilih gambar yang sama semula
 }
 
 async function muatYuranParent() {
@@ -507,11 +511,11 @@ async function renderKehadiran() {
     dataKehadiran=data;
     const tahun=new Date().getFullYear(),bSkrg=new Date().getMonth();
     const tahunIni=data.filter(r=>{const t=new Date(r.tarikh||r.TARIKH||'');return !isNaN(t)&&t.getFullYear()===tahun;});
-    const hadirT=tahunIni.filter(r=>(r.STATUS_KEHADIRAN||r.status||'HADIR')==='HADIR').length;
-    const tidakT=tahunIni.filter(r=>r.STATUS_KEHADIRAN==='TIDAK HADIR').length;
+    const hadirT=tahunIni.filter(r=>statusHadir(r)==='HADIR').length;
+    const tidakT=tahunIni.filter(r=>statusHadir(r)==='TIDAK HADIR').length;
     const jT=hadirT+tidakT,pctT=jT>0?Math.round(hadirT/jT*100):0;
     const bulanIni=data.filter(r=>{const t=new Date(r.tarikh||r.TARIKH||'');return !isNaN(t)&&t.getFullYear()===tahun&&t.getMonth()===bSkrg;});
-    const hadirB=bulanIni.filter(r=>(r.STATUS_KEHADIRAN||r.status||'HADIR')==='HADIR').length;
+    const hadirB=bulanIni.filter(r=>statusHadir(r)==='HADIR').length;
     const jB=bulanIni.length,pctB=jB>0?Math.round(hadirB/jB*100):0;
     const r=46,circ=2*Math.PI*r,dash=circ*pctT/100;
     const donut=`<svg width="110" height="110" viewBox="0 0 110 110">
@@ -521,7 +525,7 @@ async function renderKehadiran() {
     </svg>`;
     const ikutBulan={};
     for(let b=0;b<12;b++) ikutBulan[b]={hadir:0,jum:0};
-    tahunIni.forEach(r=>{const b=new Date(r.tarikh||r.TARIKH||'').getMonth();ikutBulan[b].jum++;if((r.STATUS_KEHADIRAN||r.status||'HADIR')==='HADIR')ikutBulan[b].hadir++;});
+    tahunIni.forEach(r=>{const b=new Date(r.tarikh||r.TARIKH||'').getMonth();ikutBulan[b].jum++;if(statusHadir(r)==='HADIR')ikutBulan[b].hadir++;});
 
     main.innerHTML=`
       <div class="hadir-hero">
@@ -558,11 +562,11 @@ async function renderKehadiran() {
       <div class="kad">
         <div class="kad-tajuk">🕐 Rekod Terkini</div>
         ${data.slice().sort((a,b)=>new Date(b.tarikh||b.TARIKH||0)-new Date(a.tarikh||a.TARIKH||0)).slice(0,10).map(r=>{
-          const hadir=(r.STATUS_KEHADIRAN||r.status||'HADIR')==='HADIR';
+          const st=statusHadir(r),hadir=st==='HADIR';
           return `<div class="rekod-item">
             <div class="rekod-dot" style="background:${hadir?'#1D9E75':'#E53935'}"></div>
             <div class="rekod-tarikh">${fmtT(r.tarikh||r.TARIKH||'')}</div>
-            <span class="rekod-badge ${hadir?'badge-hadir':'badge-tidak'}">${r.STATUS_KEHADIRAN}</span>
+            <span class="rekod-badge ${hadir?'badge-hadir':'badge-tidak'}">${st}</span>
           </div>`;
         }).join('')}
       </div>
@@ -660,6 +664,9 @@ async function renderLaporan() {
     const a=dataAnak;
     const berat=parseFloat(a.BERAT_KG)||0,tinggi=parseFloat(a.TINGGI_CM)||0;
     const bmi=(berat>0&&tinggi>0)?Math.round(berat/Math.pow(tinggi/100,2)*10)/10:null;
+    const _uK=kiraUsiaKompetitiParent(a.NO_KP,a.TARIKH_LAHIR)||kiraUsia(a.TARIKH_LAHIR,a.NO_KP);
+    const _katK=_uK?katUsiaP(_uK):null;
+    const _kelasK=_katK?cariKelasP(_katK.label,berat):null;
     const labelBakat=b=>b==='SILAT SENI'?'🌸 Silat Seni':b==='OLAHRAGA'?'⚡ Olahraga':b==='KEDUA-DUANYA'?'🏆 Kedua-dua':'❓ Belum Pasti';
 
     main.innerHTML=`
@@ -673,7 +680,7 @@ async function renderLaporan() {
           <div style="text-align:center;padding:10px;background:#f8fafb;border-radius:10px;border-bottom:3px solid ${warnaBMI(bmi)}">
             <div style="font-size:18px;font-weight:800;color:${warnaBMI(bmi)}">${bmi||'—'}</div><div style="font-size:9px;color:#888">BMI · ${labelBMI(bmi)}</div></div>
           <div style="text-align:center;padding:10px;background:#f8fafb;border-radius:10px;border-bottom:3px solid #7B1FA2">
-            <div style="font-size:14px;font-weight:800;color:#7B1FA2">C</div><div style="font-size:9px;color:#888">Kelas</div></div>
+            <div style="font-size:14px;font-weight:800;color:#7B1FA2">${_kelasK?_kelasK.kelas:'—'}</div><div style="font-size:9px;color:#888">Kelas</div></div>
         </div>
       </div>
       ${!senarai||!senarai.length?`<div class="kad" style="text-align:center;padding:30px;color:#aaa"><div style="font-size:32px;margin-bottom:8px">📋</div><div style="font-size:14px;font-weight:600">Tiada laporan lagi</div><div style="font-size:12px;margin-top:4px">Laporan akan diisi oleh jurulatih selepas penilaian</div></div>`
@@ -866,6 +873,7 @@ async function renderSilibus() {
       <div id="panel-video" style="display:none"></div>
       <button class="btn-keluar" onclick="keluar()"><i class="ti ti-logout"></i> Log Keluar</button>
     `;
+    muatProgressSilibus();
   }catch(e){main.innerHTML=`<div style="text-align:center;padding:30px;color:#aaa">Gagal: ${e.message}</div>`;}
 }
 
@@ -873,18 +881,17 @@ async function renderSilibus() {
 // ── PROGRESS SILIBUS ─────────────────────────────────────────
 async function muatProgressSilibus() {
   const panel = document.getElementById('panel-progress-silibus');
-  if (!panel) return;
+  if (!panel || !dataAnak) return;
   try {
-    const laporan = await api('laporan_pesilat', {no_kp: dataAnak.NO_KP || dataAnak.no_kp});
-    const semua = Array.isArray(laporan) ? laporan : (laporan.senarai || []);
-    
-    // Kira markah mengikut kategori
+    const semua = await api('senarai_laporan', {no_kp: dataAnak.NO_KP}) || [];
+
+    // Kira markah mengikut bengkung (setiap laporan penilaian jurulatih)
     const markahByKat = {};
     semua.forEach(l => {
-      const k = l.KATEGORI || l.kategori || 'LAIN';
+      const k = l.BENGKUNG_SEMASA || 'LAIN';
       if (!markahByKat[k]) markahByKat[k] = {total:0, lulus:0, markah:[]};
       markahByKat[k].total++;
-      const m = parseFloat(l.MARKAH || l.markah || 0);
+      const m = parseFloat(l.PERATUS) || 0;
       markahByKat[k].markah.push(m);
       if (m >= 60) markahByKat[k].lulus++;
     });
@@ -905,7 +912,7 @@ async function muatProgressSilibus() {
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
         <div style="text-align:center;flex-shrink:0">
           <div style="font-size:26px;font-weight:900;color:${warnaGlobal}">${pctGlobal}%</div>
-          <div style="font-size:10px;color:#888">${totalLulus}/${totalItem} lulus</div>
+          <div style="font-size:10px;color:#888">${totalLulus}/${totalItem} laporan lulus</div>
         </div>
         <div style="flex:1">
           <div style="background:rgba(0,0,0,.08);border-radius:99px;height:10px;overflow:hidden">
@@ -923,7 +930,7 @@ async function muatProgressSilibus() {
       html += `<div style="margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
           <span style="color:#333;font-weight:600">${k.length > 20 ? k.substring(0,18)+'…' : k}</span>
-          <span style="color:${warna};font-weight:700">${avgM} markah · ${pct}%</span>
+          <span style="color:${warna};font-weight:700">Purata ${avgM}% · ${pct}% lulus</span>
         </div>
         <div style="background:rgba(0,0,0,.08);border-radius:99px;height:6px;overflow:hidden">
           <div style="background:${warna};height:100%;width:${pct}%;border-radius:99px"></div>
@@ -1041,7 +1048,8 @@ function katUsiaP(u) {
   if(u<=10) return {label:'PRA DINI',had:'9-10 tahun'};if(u<=12) return {label:'DINI',had:'11-12 tahun'};
   if(u<=14) return {label:'PRA REMAJA',had:'13-14 tahun'};if(u<=16) return {label:'REMAJA',had:'15-16 tahun'};
   if(u<=20) return {label:'SUKMA',had:'16-20 tahun'};if(u<=35) return {label:'TERBUKA',had:'21-35 tahun'};
-  return {label:'MASTER',had:'35+ tahun'};
+  if(u<=45) return {label:'MASTER 2',had:'35-45 tahun'};
+  return {label:'MASTER 1',had:'45+ tahun'};
 }
 
 // Umur kompetisi — guna TAHUN LAHIR sahaja (standard Silat Malaysia)
@@ -1049,7 +1057,7 @@ function kiraUsiaKompetitiParent(noKp, tarikh) {
   let tahunLahir = null;
   if (noKp && noKp.length >= 6) {
     const yy = parseInt(String(noKp).substring(0,2));
-    tahunLahir = yy<=30 ? 2000+yy : 1900+yy;
+    tahunLahir = tahunDariKP(yy);
   } else if (tarikh) {
     const d = new Date(tarikh);
     if (!isNaN(d)) tahunLahir = d.getFullYear();
@@ -1061,15 +1069,17 @@ function kiraUsiaKompetitiParent(noKp, tarikh) {
 async function semakTunggakanParent() {
   if(!dataAnak) return;
   try {
-    const rekod = await api('yuran',{no_kp:dataAnak.NO_KP});
-    const [rekodSistem] = await Promise.all([api('yuran',{no_kp:'SEDEKAH'})]);
+    const [rekod, rekodSistem] = await Promise.all([
+      api('yuran',{no_kp:dataAnak.NO_KP}),
+      api('yuran',{no_kp:'SEDEKAH'})
+    ]);
     const tahun = new Date().getFullYear();
     const bulanSkrg = new Date().getMonth();
     const belumBayar = [];
     BULAN_P.forEach((bP,i)=>{
       if(i>bulanSkrg) return;
       const bayar = rekod.find(r=>(r.BULAN||'').toUpperCase()===bP&&String(r.TAHUN)===String(tahun)&&r.STATUS_PENGESAHAN==='SELESAI');
-      const dikecuali = (rekodSistem||[]).find(r=>(r.BULAN||'').toUpperCase()===bP&&String(r.TAHUN)===String(tahun));
+      const dikecuali = (rekodSistem||[]).find(r=>(r.BULAN||'').toUpperCase()===bP&&String(r.TAHUN)===String(tahun)&&(r.JENIS_YURAN==='DIKECUALIKAN'||r.JENIS_YURAN==='TIADA_BAYARAN'||r.JENIS_YURAN==='SEDEKAH'));
       if(!bayar&&!dikecuali) belumBayar.push(BULAN_S[i]);
     });
     if(belumBayar.length===0) return;

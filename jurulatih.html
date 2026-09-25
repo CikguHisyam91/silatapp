@@ -152,6 +152,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycby9urwBschyHvugUo0a2QxO
 let dataSilibus = [];
 let kategoriAktif = 'SEMUA';
 let videoTerbuka = null;
+let videoTapis = [];
 let namaJurulatih = '';
 
 // ── API ──────────────────────────────────────────────────────
@@ -256,14 +257,16 @@ async function renderSilibus() {
 function paparSilibus(kategoriSet) {
   const main = document.getElementById('portal-content');
   const kats  = kategoriSet || ['SEMUA'];
-  const tapis = kategoriAktif === 'SEMUA' ? dataSilibus : dataSilibus.filter(s => (s.KATEGORI||'LAIN-LAIN') === kategoriAktif);
+  const tapis = kategoriAktif === 'SEMUA' ? dataSilibus : dataSilibus.filter(s => (s.KATEGORI||'LAIN-LAIN').trim() === kategoriAktif);
+  videoTapis = tapis;
+  videoTerbuka = null; // grid dilukis semula — tiada video yang terbuka
 
   let html = '';
 
   // Kategori pills
   html += '<div class="kat-scroll">';
-  kats.forEach(k => {
-    html += '<div class="kat-pill ' + (k === kategoriAktif ? 'aktif' : '') + '" onclick="tukarKat(\'' + k + '\')">' + k + '</div>';
+  kats.forEach((k, i) => {
+    html += '<div class="kat-pill ' + (k === kategoriAktif ? 'aktif' : '') + '" onclick="tukarKat(' + i + ')">' + k + '</div>';
   });
   html += '</div>';
 
@@ -280,7 +283,7 @@ function paparSilibus(kategoriSet) {
       const fid  = m ? m[1] : '';
       const thumb = fid ? 'https://lh3.googleusercontent.com/d/' + fid + '=w400' : '';
       const tags  = (s.BENGKUNG_TAG||'').split(',').filter(Boolean);
-      html += '<div class="video-kad" id="vkad-' + i + '" ' + (s.LINK ? 'onclick="mainVideo('+i+',\''+s.LINK+'\')"' : '') + '>';
+      html += '<div class="video-kad" id="vkad-' + i + '" ' + (s.LINK ? 'onclick="mainVideo('+i+')"' : '') + '>';
       // Thumbnail
       html += '<div class="video-thumb">';
       if (thumb) {
@@ -313,18 +316,19 @@ function paparSilibus(kategoriSet) {
   main.innerHTML = html;
 }
 
-function tukarKat(kat) {
-  kategoriAktif = kat;
+function tukarKat(idx) {
   // Kumpul semula kategori
   const kategoriSet = ['SEMUA'];
   dataSilibus.forEach(s => {
     const k = (s.KATEGORI||'LAIN-LAIN').trim();
     if (!kategoriSet.includes(k)) kategoriSet.push(k);
   });
+  kategoriAktif = kategoriSet[idx] || 'SEMUA';
   paparSilibus(kategoriSet);
 }
 
-function mainVideo(idx, link) {
+function mainVideo(idx) {
+  const link = (videoTapis[idx] || {}).LINK || '';
   const player = document.getElementById('vplay-' + idx);
   const frame  = document.getElementById('vframe-' + idx);
   if (!player || !frame) return;

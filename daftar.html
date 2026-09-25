@@ -86,7 +86,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
         </div>
         <div class="form-kump">
           <label class="form-label">Tarikh Lahir</label>
-          <input class="form-input" id="f-tl" type="date">
+          <input class="form-input" id="f-tl" type="date" oninput="this.dataset.auto='0'">
         </div>
       </div>
 
@@ -186,11 +186,17 @@ function apiPost(data) {
 
 function kiraUsiaAuto(nokp) {
   const el = document.getElementById('usia-preview');
+  const tl = document.getElementById('f-tl');
+  nokp = String(nokp||'').replace(/\D/g,'');
   if (nokp.length < 6) { el.textContent=''; return; }
-  const yy=parseInt(nokp.substring(0,2)),mm=nokp.substring(2,4),dd=nokp.substring(4,6);
-  const tL = new Date((yy<=30?2000+yy:1900+yy)+'-'+mm+'-'+dd);
-  if (isNaN(tL)) { el.textContent=''; return; }
-  const now=new Date(); let u=now.getFullYear()-tL.getFullYear();
+  const yy=parseInt(nokp.substring(0,2),10), mm=parseInt(nokp.substring(2,4),10), dd=parseInt(nokp.substring(4,6),10);
+  const now = new Date();
+  // Tahun 2 digit: jika tidak melebihi tahun semasa → 20xx, selainnya → 19xx
+  const tahun = (yy <= now.getFullYear() % 100) ? 2000+yy : 1900+yy;
+  const tL = new Date(tahun, mm-1, dd);
+  // Tolak tarikh tidak sah (cth: bulan 13 atau 31 Februari)
+  if (isNaN(tL) || tL.getMonth() !== mm-1 || tL.getDate() !== dd || tL > now) { el.textContent=''; return; }
+  let u=now.getFullYear()-tL.getFullYear();
   if(now.getMonth()<tL.getMonth()||(now.getMonth()===tL.getMonth()&&now.getDate()<tL.getDate()))u--;
   const kat = u<=12?'Sekolah Rendah':u<=17?'Sekolah Menengah':'Dewasa';
   el.textContent = '📅 Usia: '+u+' tahun — '+kat;
@@ -199,9 +205,11 @@ function kiraUsiaAuto(nokp) {
   if(u<=12) sel.value='SEKOLAH RENDAH (12 TAHUN KE BAWAH)';
   else if(u<=17) sel.value='SEKOLAH MENENGAH (17 TAHUN KE BAWAH)';
   else sel.value='DEWASA (18 TAHUN KE ATAS)';
-  // Auto isi tarikh lahir
-  const tl = document.getElementById('f-tl');
-  if(!tl.value) tl.value=(yy<=30?2000+yy:1900+yy)+'-'+mm+'-'+dd;
+  // Auto isi tarikh lahir (dikemaskini jika No. KP diperbetulkan, kecuali pengguna isi sendiri)
+  if(!tl.value || tl.dataset.auto==='1') {
+    tl.value = tahun+'-'+String(mm).padStart(2,'0')+'-'+String(dd).padStart(2,'0');
+    tl.dataset.auto='1';
+  }
 }
 
 function setProgress(pct) {

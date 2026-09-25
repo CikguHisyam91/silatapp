@@ -268,7 +268,7 @@ function cariPesilat(q) {
   timerCari = setTimeout(() => {
     const senarai = document.getElementById('senarai-carian');
     if (!q) { senarai.classList.remove('buka'); return; }
-    const hasil = semuaAhli.filter(a => a.nama.toLowerCase().includes(q.toLowerCase()) || a.no_kp.includes(q)).slice(0, 8);
+    const hasil = semuaAhli.filter(a => String(a.nama||'').toLowerCase().includes(q.toLowerCase()) || String(a.no_kp||'').includes(q)).slice(0, 8);
     if (!hasil.length) { senarai.classList.remove('buka'); return; }
     senarai.innerHTML = hasil.map(a => `
       <div class="item-carian" onclick="pilihPesilat('${a.no_kp}')">
@@ -327,6 +327,11 @@ function resetBorangLaporan() {
 async function pilihPesilat(noKp) {
   pesilat = semuaAhli.find(a => a.no_kp === noKp);
   if (!pesilat) return;
+
+  // Kosongkan gambar pesilat sebelum ini — elak gambar tersilap disimpan untuk pesilat lain
+  fotoBase64 = '';
+  const kotakGambar = document.getElementById('pratonton-gambar');
+  if (kotakGambar) kotakGambar.innerHTML = '<span id="gambar-placeholder">📷</span>';
   document.getElementById('senarai-carian').classList.remove('buka');
   document.getElementById('inp-cari').value = pesilat.nama;
 
@@ -339,7 +344,8 @@ async function pilihPesilat(noKp) {
   // Load gambar sedia ada jika ada
   try {
     const profil = await api('profil_ahli', {no_kp: noKp});
-    if (profil.FOTO_BASE64 && profil.FOTO_BASE64.length > 10) {
+    if (pesilat?.no_kp !== noKp) return; // pengguna sudah pilih pesilat lain
+    if (!fotoBase64 && profil.FOTO_BASE64 && profil.FOTO_BASE64.length > 10) {
       paparGambar(profil.FOTO_BASE64);
     }
   } catch(e) {}
@@ -443,6 +449,7 @@ function prosesGambar(input) {
     img.src = e.target.result;
   };
   reader.readAsDataURL(file);
+  input.value = ''; // benarkan pilih fail yang sama sekali lagi
 }
 
 function paparGambar(base64) {
