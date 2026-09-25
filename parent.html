@@ -266,6 +266,7 @@ async function login() {
     renderTab('profil');err.textContent='';
     // Isu 8: Semak tunggakan yuran selepas login
     setTimeout(()=>semakTunggakanParent(),800);
+    setTimeout(()=>hantarKomenTertunda(),2000);
   }catch(e){err.textContent=e.message==='Ahli tidak dijumpai'?'No. KP tidak dijumpai. Semak semula.':'Gagal sambung. Cuba lagi.';}
 }
 
@@ -816,14 +817,43 @@ async function janaPDF(l,items) {
   toast('✅ PDF berjaya dimuat turun!');
 }
 
-function hantarKomen(id) {
-  const teks=document.getElementById('km'+id)?.value?.trim();
+// Maklum balas: hantar ke sistem (sheet MAKLUM_BALAS). Jika gagal, simpan sementara
+// dalam telefon dan cuba hantar semula secara automatik pada log masuk seterusnya.
+const KUNCI_KOMEN_TERTUNDA='komen_belum_hantar';
+function bacaKomenTertunda(){try{return JSON.parse(localStorage.getItem(KUNCI_KOMEN_TERTUNDA)||'[]');}catch(e){return [];}}
+function simpanKomenTertunda(senarai){try{localStorage.setItem(KUNCI_KOMEN_TERTUNDA,JSON.stringify(senarai));}catch(e){}}
+
+async function hantarKomen(id) {
+  const inp=document.getElementById('km'+id);
+  const teks=inp?.value?.trim();
   if(!teks){toast('Sila tulis maklum balas dahulu',false);return;}
-  const sedia=JSON.parse(localStorage.getItem('komen_laporan')||'[]');
-  sedia.push({id,teks,tarikh:new Date().toLocaleDateString('ms-MY'),nama:dataAnak.NAMA_PENUH});
-  localStorage.setItem('komen_laporan',JSON.stringify(sedia));
-  toast('✅ Maklum balas dihantar. Terima kasih!');
-  document.getElementById('km'+id).value='';
+  if(teks.length>2000){toast('Maklum balas terlalu panjang (maks 2000 aksara)',false);return;}
+  const btn=inp?.parentElement?.querySelector('.btn-komen');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Menghantar...';}
+  const komen={tindakan:'simpan_maklum_balas',no_kp:dataAnak.NO_KP,nama:dataAnak.NAMA_PENUH||'',id_laporan:id,teks};
+  try {
+    await apiPost(komen);
+    toast('✅ Maklum balas dihantar kepada jurulatih. Terima kasih!');
+    if(inp) inp.value='';
+  } catch(e) {
+    const q=bacaKomenTertunda(); q.push(komen); simpanKomenTertunda(q);
+    toast('⚠️ Belum dapat dihantar. Disimpan & akan dihantar semula secara automatik.',false);
+    if(inp) inp.value='';
+  } finally {
+    if(btn){btn.disabled=false;btn.textContent='Hantar ✉️';}
+  }
+}
+
+// Cuba hantar semula maklum balas yang tertunda (dipanggil selepas log masuk)
+async function hantarKomenTertunda() {
+  const q=bacaKomenTertunda();
+  if(!q.length) return;
+  const baki=[];
+  for(const k of q){
+    try{ await apiPost(k); }catch(e){ baki.push(k); }
+  }
+  simpanKomenTertunda(baki);
+  if(baki.length<q.length) toast('✅ '+(q.length-baki.length)+' maklum balas tertunda telah dihantar.');
 }
 
 // ── SILIBUS ───────────────────────────────────────────────────
