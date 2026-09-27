@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <title>Portal Ibu Bapa — Seri Mutiara</title>
-<meta name="theme-color" content="#085041">
+<meta name="theme-color" content="#0E1014">
 <link rel="manifest" href="manifest-parent.json">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-icon.png">
@@ -12,142 +12,165 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SeriMutiara">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
+/* Tema gelap minimalis — selaras dengan SilatApp utama */
+:root{
+  --bg:#0E1014;--surface:#16191F;--surface-2:#1C2027;--surface-3:#242933;
+  --line:rgba(255,255,255,.07);--line-2:rgba(255,255,255,.12);
+  --txt:#E8EAED;--muted:#8A919E;
+  --accent:#E2B55A;--accent-rgb:226,181,90;--on-accent:#1A1406;
+  --ok:#4CC38A;--ok-rgb:76,195,138;
+  --bad:#F2706B;--bad-rgb:242,112,107;
+  --warn:#E9A23B;--warn-rgb:233,162,59;
+  --info:#6AA9F5;--info-rgb:106,169,245;
+  --violet:#A391F5;--violet-rgb:163,145,245;
+  --font-b:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  color-scheme:dark;
+}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{min-height:100%;font-family:'Poppins',sans-serif;background:#F0F4F8;color:#1A2332;font-size:15px}
-button{cursor:pointer;border:none;font-family:inherit}input,select,textarea{font-family:'Poppins',sans-serif}
-.portal-header{background:linear-gradient(135deg,#085041 0%,#0D7055 60%,#1D9E75 100%);color:#fff;padding:16px 20px 0}
-.portal-header-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-.portal-logo{width:44px;height:44px;border-radius:50%;object-fit:contain;background:#fff;padding:3px;flex-shrink:0}
-.portal-subtitle{font-size:11px;opacity:.75;font-weight:500}
-.portal-nama{font-size:18px;font-weight:700;line-height:1.2}
-.portal-nav{display:flex;gap:0;border-top:1px solid rgba(255,255,255,.15);margin:0 -20px}
-.ptab{flex:1;padding:12px 4px;text-align:center;font-size:11px;font-weight:600;color:rgba(255,255,255,.6);border-bottom:3px solid transparent;cursor:pointer;transition:.2s;white-space:nowrap}
-.ptab.aktif{color:#fff;border-bottom-color:#9FE1CB}
-#portal-main{padding:16px;max-width:700px;margin:0 auto}
-#login-box{max-width:360px;margin:60px auto;background:#fff;border-radius:20px;padding:32px 24px;box-shadow:0 8px 40px rgba(8,80,65,.12);text-align:center}
-.login-logo{width:80px;height:80px;border-radius:50%;object-fit:contain;background:#f0f9f6;padding:8px;margin:0 auto 16px;display:block}
-.login-tajuk{font-size:20px;font-weight:700;color:#085041;margin-bottom:4px}
-.login-sub{font-size:12px;color:#888;margin-bottom:24px}
-.login-inp{width:100%;padding:12px 16px;border:2px solid #E2E8F0;border-radius:10px;font-size:16px;text-align:center;letter-spacing:2px;outline:none;transition:.2s;margin-bottom:12px}
-.login-inp:focus{border-color:#1D9E75}
-.login-btn{width:100%;padding:13px;background:linear-gradient(135deg,#085041,#1D9E75);color:#fff;border-radius:10px;font-size:15px;font-weight:700}
-.login-error{color:#E53E3E;font-size:12px;margin-top:8px;min-height:18px}
-.kad{background:#fff;border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
-.kad-tajuk{font-size:12px;font-weight:700;color:#085041;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
-.profil-hero{background:linear-gradient(135deg,#085041,#1D9E75);border-radius:16px;padding:20px;margin-bottom:12px;display:flex;align-items:center;gap:16px;position:relative;overflow:hidden}
-.profil-hero::before{content:'';position:absolute;top:-20px;right:-20px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.08)}
+html,body{min-height:100%;font-family:var(--font-b);background:var(--bg);color:var(--txt);font-size:15px;-webkit-font-smoothing:antialiased}
+button{cursor:pointer;border:none;font-family:inherit;color:inherit;background:none}input,select,textarea{font-family:var(--font-b)}
+@media(max-width:480px){input,select,textarea{font-size:16px !important}}
+
+/* ── Header portal ── */
+.portal-header{background:var(--bg);border-bottom:1px solid var(--line);padding:14px 16px 0;position:sticky;top:0;z-index:50}
+.portal-header-top{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.portal-logo{width:38px;height:38px;border-radius:50%;object-fit:contain;background:var(--surface-2);padding:3px;flex-shrink:0}
+.portal-subtitle{font-size:11px;color:var(--muted)}
+.portal-nama{font-size:16px;font-weight:700;line-height:1.25}
+.portal-nav{display:flex;margin:0 -16px;overflow-x:auto}
+.ptab{flex:1;padding:11px 6px;text-align:center;font-size:13px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
+.ptab.aktif{color:var(--txt);border-bottom-color:var(--accent)}
+#portal-main{padding:16px;max-width:640px;margin:0 auto}
+
+/* ── Log masuk ── */
+#login-box{max-width:360px;margin:56px auto;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:28px 22px;text-align:center}
+.login-logo{width:72px;height:72px;border-radius:50%;object-fit:contain;background:var(--surface-2);padding:6px;margin:0 auto 14px;display:block}
+.login-tajuk{font-size:20px;font-weight:700;color:var(--txt);margin-bottom:4px}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:22px}
+.login-inp{width:100%;padding:12px 14px;border:1px solid var(--line-2);border-radius:10px;font-size:16px;text-align:center;letter-spacing:1px;outline:none;margin-bottom:12px;background:var(--surface-2);color:var(--txt)}
+.login-inp:focus{border-color:rgba(var(--accent-rgb),.7)}
+.login-btn{width:100%;padding:13px;background:var(--accent);color:var(--on-accent);border-radius:10px;font-size:15px;font-weight:700}
+.login-error{color:var(--bad);font-size:13px;margin-top:8px;min-height:18px}
+#pdpa-wrap span{color:var(--muted) !important}
+#pdpa-wrap span span{color:var(--txt) !important}
+#pdpa-agree{accent-color:#E2B55A}
+
+/* ── Kad ── */
+.kad{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+.kad-tajuk{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+
+/* ── Profil ── */
+.profil-hero{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:12px;display:flex;align-items:center;gap:16px}
 .foto-wrapper{position:relative;flex-shrink:0;cursor:pointer}
-.foto-bulat{width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid rgba(255,255,255,.4);display:block}
-.foto-default{width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.2);border:3px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff}
-.foto-edit{position:absolute;bottom:0;right:0;width:22px;height:22px;border-radius:50%;background:#FFD700;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px}
-.hero-info{flex:1;color:#fff}
-.hero-nama{font-size:14px;font-weight:700;line-height:1.3;margin-bottom:2px}
-.hero-id{font-size:11px;opacity:.75;margin-bottom:8px}
-.hero-bengkung{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);padding:4px 10px;border-radius:99px;font-size:11px;font-weight:600}
+.foto-bulat{width:68px;height:68px;border-radius:50%;object-fit:cover;display:block}
+.foto-default{width:68px;height:68px;border-radius:50%;background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:var(--txt)}
+.foto-edit{position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;border-radius:50%;background:var(--surface-3);border:2px solid var(--surface);display:flex;align-items:center;justify-content:center;font-size:11px}
+.hero-info{flex:1;min-width:0}
+.hero-nama{font-size:15px;font-weight:700;line-height:1.3;margin-bottom:2px;word-break:break-word}
+.hero-id{font-size:12px;color:var(--muted);margin-bottom:8px}
+.hero-bengkung{display:inline-flex;align-items:center;gap:5px;background:rgba(var(--accent-rgb),.12);color:var(--accent);padding:4px 10px;border-radius:99px;font-size:12px;font-weight:600}
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.stat-kad{background:#fff;border-radius:14px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.05);position:relative;overflow:hidden}
-.stat-kad::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
-.stat-kad.hijau::before{background:linear-gradient(90deg,#085041,#1D9E75)}
-.stat-kad.biru::before{background:linear-gradient(90deg,#2979FF,#448AFF)}
-.stat-kad.oren::before{background:linear-gradient(90deg,#FF6D00,#FF9100)}
-.stat-kad.ungu::before{background:linear-gradient(90deg,#7B1FA2,#AB47BC)}
-.stat-ikon{font-size:22px;margin-bottom:6px}
-.stat-nilai{font-size:22px;font-weight:800;color:#1A2332;line-height:1}
-.stat-unit{font-size:11px;color:#888}
-.stat-lbl{font-size:11px;color:#666;margin-top:2px}
-.stat-note{font-size:9px;color:#AAA;margin-top:4px}
-.bmi-bar{height:6px;background:#E2E8F0;border-radius:99px;overflow:hidden;margin-top:6px}
+.stat-kad{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;position:relative}
+.stat-kad::before{content:'';position:absolute;top:0;left:14px;width:24px;height:2px;border-radius:0 0 2px 2px;background:var(--muted)}
+.stat-kad.hijau::before{background:var(--ok)}
+.stat-kad.biru::before{background:var(--info)}
+.stat-kad.oren::before{background:var(--warn)}
+.stat-kad.ungu::before{background:var(--violet)}
+.stat-ikon{font-size:18px;margin-bottom:6px;opacity:.85}
+.stat-nilai{font-size:22px;font-weight:700;color:var(--txt);line-height:1.1}
+.stat-unit{font-size:11px;color:var(--muted)}
+.stat-lbl{font-size:12px;color:var(--muted);margin-top:2px}
+.stat-note{font-size:11px;color:var(--muted);margin-top:4px}
+.bmi-bar{height:6px;background:var(--surface-3);border-radius:99px;overflow:hidden;margin-top:6px}
 .bmi-fill{height:100%;border-radius:99px;transition:.5s}
+
+/* ── Yuran ── */
 .yuran-bulan-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.ybk{border-radius:10px;padding:8px 4px;text-align:center;border:1.5px solid transparent}
-.ybk.bayar{background:#E8F5E9;border-color:#A5D6A7}
-.ybk.belum{background:#FFEBEE;border-color:#FFCDD2}
-.ybk.tiada{background:#F5F5F5;border-color:#E0E0E0}
-.ybk.akan{background:#FAFAFA;border-color:#EEEEEE;opacity:.5}
-.ybk-bulan{font-size:10px;font-weight:700}
-.ybk.bayar .ybk-bulan{color:#2E7D32}
-.ybk.belum .ybk-bulan{color:#C62828}
-.ybk.tiada .ybk-bulan,.ybk.akan .ybk-bulan{color:#9E9E9E}
-.ybk-ikon{font-size:16px;margin:3px 0}
-.ybk-rm{font-size:9px;font-weight:600}
-.ybk.bayar .ybk-rm{color:#388E3C}
-.ybk.belum .ybk-rm{color:#D32F2F}
-.yuran-legend{display:flex;gap:12px;margin-top:8px;font-size:10px;color:#888}
-.hadir-hero{display:flex;align-items:center;gap:20px;padding:20px;background:linear-gradient(135deg,#085041,#1D9E75);border-radius:16px;color:#fff;margin-bottom:12px}
+.ybk{border-radius:10px;padding:8px 4px;text-align:center;background:var(--surface-2);border:1px solid transparent}
+.ybk.bayar{background:rgba(var(--ok-rgb),.1);border-color:rgba(var(--ok-rgb),.25)}
+.ybk.belum{background:rgba(var(--bad-rgb),.1);border-color:rgba(var(--bad-rgb),.25)}
+.ybk.akan{opacity:.4}
+.ybk-bulan{font-size:11px;font-weight:600;color:var(--muted)}
+.ybk.bayar .ybk-bulan,.ybk.bayar .ybk-rm{color:var(--ok)}
+.ybk.belum .ybk-bulan,.ybk.belum .ybk-rm{color:var(--bad)}
+.ybk-ikon{font-size:14px;margin:3px 0}
+.ybk-rm{font-size:10px;font-weight:600;color:var(--muted)}
+.yuran-legend{display:flex;gap:12px;margin-top:10px;font-size:11px;color:var(--muted);flex-wrap:wrap}
+
+/* ── Kehadiran ── */
+.hadir-hero{display:flex;align-items:center;gap:20px;padding:18px;background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-bottom:12px}
+.hadir-hero circle:last-child{stroke:var(--ok)}
 .donut-wrap{position:relative;flex-shrink:0}
 .donut-pct{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
-.donut-num{font-size:22px;font-weight:800;line-height:1}
-.donut-lbl{font-size:9px;opacity:.8}
+.donut-num{font-size:22px;font-weight:700;line-height:1}
+.donut-lbl{font-size:10px;color:var(--muted)}
 .hadir-stats{flex:1}
-.hadir-stat-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.15)}
+.hadir-stat-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)}
 .hadir-stat-row:last-child{border-bottom:none}
-.hadir-stat-lbl{font-size:12px;opacity:.85}
-.hadir-stat-val{font-size:12px;font-weight:700}
-.bulan-kad{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
-.bulan-bar{height:8px;background:#E2E8F0;border-radius:99px;overflow:hidden;margin:6px 0}
-.rekod-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #F0F4F8}
+.hadir-stat-lbl{font-size:13px;color:var(--muted)}
+.hadir-stat-val{font-size:13px;font-weight:600}
+.bulan-kad{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.bulan-bar{height:6px;background:var(--surface-3);border-radius:99px;overflow:hidden;margin:6px 0}
+.rekod-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
 .rekod-item:last-child{border-bottom:none}
-.rekod-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.rekod-tarikh{flex:1;font-size:13px;font-weight:500}
-.rekod-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px}
-.badge-hadir{background:#E8F5E9;color:#2E7D32}
-.badge-tidak{background:#FFEBEE;color:#C62828}
-.laporan-kad{background:#fff;border-radius:16px;margin-bottom:16px;box-shadow:0 4px 16px rgba(0,0,0,.08);overflow:hidden}
-.laporan-header{padding:16px;background:linear-gradient(135deg,#085041,#1D9E75);color:#fff}
-.laporan-header-row{display:flex;justify-content:space-between;align-items:flex-start}
+.rekod-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.rekod-tarikh{flex:1;font-size:14px}
+.rekod-badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px}
+.badge-hadir{background:rgba(var(--ok-rgb),.12);color:var(--ok)}
+.badge-tidak{background:rgba(var(--bad-rgb),.12);color:var(--bad)}
+
+/* ── Laporan ── */
+.laporan-kad{background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-bottom:14px;overflow:hidden}
+.laporan-header{padding:16px;border-bottom:1px solid var(--line)}
+.laporan-header-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .laporan-bengkung{font-size:15px;font-weight:700;margin-bottom:4px}
-.laporan-tarikh{font-size:11px;opacity:.8}
-.laporan-bakat{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.2);padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;margin-top:8px}
-.skor-bulat{width:60px;height:60px;border-radius:50%;background:rgba(255,255,255,.2);border:3px solid rgba(255,255,255,.5);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
-.skor-num{font-size:16px;font-weight:800;line-height:1}
-.skor-sub{font-size:8px;opacity:.9}
+.laporan-tarikh{font-size:12px;color:var(--muted)}
+.laporan-bakat{display:inline-flex;align-items:center;gap:4px;background:var(--surface-3);padding:3px 10px;border-radius:99px;font-size:12px;font-weight:500;margin-top:8px}
+.skor-bulat{width:60px;height:60px;border-radius:50%;border:2px solid var(--line-2);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0}
+.skor-num{font-size:16px;font-weight:700;line-height:1}
+.skor-sub{font-size:9px;color:var(--muted)}
 .laporan-body{padding:16px}
 .skor-bar-wrap{margin-bottom:12px}
-.skor-bar-label{display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:4px}
-.skor-bar{height:10px;background:#E2E8F0;border-radius:99px;overflow:hidden}
+.skor-bar-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:4px}
+.skor-bar{height:6px;background:var(--surface-3);border-radius:99px;overflow:hidden}
 .skor-fill{height:100%;border-radius:99px;transition:1s}
-.catatan-box{background:#F0F9F6;border-left:3px solid #1D9E75;border-radius:0 8px 8px 0;padding:10px 12px;margin-bottom:12px}
-.catatan-lbl{font-size:10px;font-weight:700;color:#085041;text-transform:uppercase;margin-bottom:4px}
-.catatan-teks{font-size:13px;color:#374151;line-height:1.5}
+.catatan-box{background:var(--surface-2);border-left:2px solid var(--accent);border-radius:0 8px 8px 0;padding:10px 12px;margin-bottom:12px}
+.catatan-lbl{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+.catatan-teks{font-size:14px;color:var(--txt);line-height:1.5}
 .item-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px}
-.item-kad{background:#F8FAFC;border-radius:8px;padding:8px 10px;border-left:3px solid #E2E8F0}
-.item-kad.cemerlang{border-color:#1D9E75;background:#F0F9F6}
-.item-kad.sederhana{border-color:#FF9100;background:#FFF8F0}
-.item-kad.lemah{border-color:#E53935;background:#FFF5F5}
-.item-nama{font-size:11px;font-weight:600;color:#374151;margin-bottom:3px}
-.item-status{font-size:10px;font-weight:700}
-.item-kad.cemerlang .item-status{color:#085041}
-.item-kad.sederhana .item-status{color:#E65100}
-.item-kad.lemah .item-status{color:#C62828}
-.btn-pdf{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px;background:linear-gradient(135deg,#085041,#1D9E75);color:#fff;border-radius:10px;font-size:13px;font-weight:700;margin-bottom:10px}
-.btn-lihat{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;background:#F0F9F6;color:#085041;border-radius:10px;font-size:12px;font-weight:600;border:1px solid #A5D6A7;margin-bottom:10px;cursor:pointer}
+.item-kad{background:var(--surface-2);border-radius:8px;padding:8px 10px;border-left:2px solid var(--line-2)}
+.item-kad.cemerlang{border-color:var(--ok)}
+.item-kad.sederhana{border-color:var(--warn)}
+.item-kad.lemah{border-color:var(--bad)}
+.item-nama{font-size:12px;font-weight:600;color:var(--txt);margin-bottom:3px}
+.item-status{font-size:11px;font-weight:600;color:var(--muted)}
+.item-kad.cemerlang .item-status{color:var(--ok)}
+.item-kad.sederhana .item-status{color:var(--warn)}
+.item-kad.lemah .item-status{color:var(--bad)}
+.btn-pdf{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px;background:var(--accent);color:var(--on-accent);border-radius:10px;font-size:14px;font-weight:700;margin-bottom:10px}
+.btn-lihat{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;background:transparent;color:var(--txt);border-radius:10px;font-size:13px;font-weight:600;border:1px solid var(--line-2);margin-bottom:10px;cursor:pointer}
+
+/* ── Silibus ── */
 .kat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.kat-btn{border-radius:14px;padding:16px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:.1s;border:2px solid transparent;border-bottom-width:4px;position:relative;overflow:hidden}
-.kat-btn::before{content:'';position:absolute;top:0;left:0;right:0;height:40%;background:rgba(255,255,255,.15);border-radius:12px 12px 50% 50%}
-.kat-btn:active{transform:translateY(3px);border-bottom-width:1px}
-.kat-ikon{font-size:28px;position:relative;z-index:1}
-.kat-nama{font-size:12px;font-weight:700;color:#fff;text-align:center;position:relative;z-index:1;line-height:1.3}
-.kat-count{position:absolute;top:6px;right:6px;background:rgba(255,255,255,.3);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:99px;z-index:1}
-.video-panel{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.kat-btn{background:var(--surface) !important;box-shadow:none !important;border:1px solid var(--line) !important;border-radius:14px;padding:16px 12px;display:flex;flex-direction:column;align-items:flex-start;gap:6px;cursor:pointer;position:relative;min-height:112px}
+.kat-btn:active{background:var(--surface-2) !important}
+.kat-ikon{font-size:22px}
+.kat-nama{font-size:13px;font-weight:600;color:var(--txt);line-height:1.3}
+.kat-btn div[style]{color:var(--muted) !important}
+.kat-count{position:absolute;top:10px;right:10px;background:rgba(var(--ok-rgb),.12);color:var(--ok);font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px}
+.video-panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.video-panel > div > div[onclick]{background:var(--surface-2) !important;box-shadow:none !important}
 .video-panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.video-panel-tajuk{font-size:14px;font-weight:700;color:#085041}
-.btn-tutup-video{background:#F0F4F8;border-radius:8px;padding:4px 10px;font-size:12px;color:#666;cursor:pointer}
-.vid-item{display:flex;align-items:center;gap:10px;padding:10px;background:#F8FAFC;border-radius:10px;margin-bottom:8px;cursor:pointer;border:1.5px solid #E2E8F0}
-.vid-thumb{width:48px;height:36px;border-radius:6px;background:linear-gradient(135deg,#085041,#1D9E75);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.8);font-size:16px;flex-shrink:0;overflow:hidden}
-.vid-thumb img{width:100%;height:100%;object-fit:cover}
-.vid-info{flex:1;min-width:0}
-.vid-nama{font-size:13px;font-weight:600;color:#1A2332;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.vid-kat{font-size:10px;color:#888;margin-top:2px}
-.vid-embed{width:100%;aspect-ratio:16/9;border-radius:8px;overflow:hidden;margin-top:8px;display:none}
-.vid-embed iframe{width:100%;height:100%;border:none}
-.btn-keluar{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;color:#E53E3E;font-size:14px;font-weight:600;background:#FFF5F5;border-radius:12px;margin-top:4px}
-.muat{display:flex;align-items:center;justify-content:center;gap:10px;padding:30px;color:#888;font-size:13px}
+.video-panel-tajuk{font-size:14px;font-weight:700;color:var(--txt)}
+.btn-tutup-video{background:var(--surface-3);border-radius:8px;padding:5px 10px;font-size:12px;color:var(--muted);cursor:pointer}
+.btn-keluar{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:12px;color:var(--bad);font-size:14px;font-weight:600;background:transparent;border:1px solid var(--line-2);border-radius:12px;margin-top:4px}
+.muat{display:flex;align-items:center;justify-content:center;gap:10px;padding:30px;color:var(--muted);font-size:13px}
 @keyframes spin{to{transform:rotate(360deg)}}
 .spin{animation:spin 1s linear infinite}
-.toast-el{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:#085041;color:#fff;padding:10px 20px;border-radius:99px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:.3s;white-space:nowrap;max-width:90vw}
+.toast-el{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface-3) !important;border:1px solid var(--line-2);color:var(--txt);padding:10px 16px;border-radius:12px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:.25s;max-width:calc(100vw - 32px);text-align:center;pointer-events:none}
 .toast-el.nampak{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 </head>
@@ -162,7 +185,7 @@ button{cursor:pointer;border:none;font-family:inherit}input,select,textarea{font
       <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer">
         <input type="checkbox" id="pdpa-agree" style="margin-top:3px;width:14px;height:14px;flex-shrink:0"
           onchange="if(this.checked)localStorage.setItem('pdpa_setuju','1')">
-        <span style="font-size:11px;color:#666;line-height:1.5">Saya bersetuju data peribadi anak saya digunakan oleh Gelanggang Seri Mutiara untuk tujuan pengurusan keahlian mengikut <span onclick="bukaPdpaParent()" style="color:#085041;font-weight:700;cursor:pointer;text-decoration:underline">Notis PDPA</span>.</span>
+        <span style="font-size:11px;color:var(--muted);line-height:1.5">Saya bersetuju data peribadi anak saya digunakan oleh Gelanggang Seri Mutiara untuk tujuan pengurusan keahlian mengikut <span onclick="bukaPdpaParent()" style="color:var(--ok);font-weight:700;cursor:pointer;text-decoration:underline">Notis PDPA</span>.</span>
       </label>
     </div>
 
@@ -228,7 +251,7 @@ function apiPost(data) {
 let toastT;
 function toast(msg,ok=true) {
   const el=document.getElementById('toast-msg');
-  el.textContent=msg;el.style.background=ok?'#085041':'#C62828';
+  el.textContent=msg;el.style.background=ok?'#4CC38A':'#F2706B';
   el.classList.add('nampak');clearTimeout(toastT);
   toastT=setTimeout(()=>el.classList.remove('nampak'),3000);
 }
@@ -300,10 +323,10 @@ function katUsia(u) {
   if(u<=20) return 'SUKMA (16-20)';if(u<=35) return 'TERBUKA (21-35)';
   if(u<=45) return 'MASTER 2 (35-45)';return 'MASTER 1 (45+)';
 }
-function warnaBMI(b){if(!b)return'#9E9E9E';if(b<18.5)return'#2979FF';if(b<23)return'#085041';if(b<27.5)return'#FF6D00';return'#C62828';}
+function warnaBMI(b){if(!b)return'#8A919E';if(b<18.5)return'#6AA9F5';if(b<23)return'#4CC38A';if(b<27.5)return'#E9A23B';return'#F2706B';}
 function labelBMI(b){if(!b)return'—';if(b<18.5)return'Kurus';if(b<23)return'Normal';if(b<27.5)return'Lebih Berat';return'Obes';}
 function pctBMI(b){if(!b)return 0;const mn=10,mx=40;return Math.min(100,Math.max(0,Math.round((b-mn)/(mx-mn)*100)));}
-function wPct(p){return p>=90?'#085041':p>=75?'#1D9E75':p>=60?'#FF9100':'#C62828';}
+function wPct(p){return p>=90?'#4CC38A':p>=75?'#4CC38A':p>=60?'#E9A23B':'#F2706B';}
 function fmtT(val){
   if(!val||val==='undefined'||val===''||val===null) return '—';
   // Handle format panjang dari Google Sheets: "Fri May 15 2026 00:00:00 GMT+0800..."
@@ -366,31 +389,31 @@ async function renderProfil() {
         <div class="stat-nilai">${usia||'—'}</div>
         <div class="stat-unit">TAHUN</div>
         <div class="stat-lbl">Usia</div>
-        <div style="font-size:10px;font-weight:700;color:#085041;background:#E8F5E9;border-radius:6px;padding:2px 6px;margin-top:4px;display:inline-block">${kUs.split('(')[0].trim()}</div>
+        <div style="font-size:10px;font-weight:700;color:var(--ok);background:var(--surface-2);border-radius:6px;padding:2px 6px;margin-top:4px;display:inline-block">${kUs.split('(')[0].trim()}</div>
         <div class="stat-note">${kUs.includes('(')?kUs.split('(')[1]?.replace(')',''):'—'}</div>
       </div>
       <div class="stat-kad biru"><div class="stat-ikon">${(a.JANTINA||'').includes('LELAKI')?'♂️':'♀️'}</div><div class="stat-nilai" style="font-size:13px;padding-top:6px">${a.JANTINA||'—'}</div><div class="stat-lbl" style="margin-top:6px">Jantina</div><div class="stat-note">${a.KATEGORI?.includes('RENDAH')?'Sekolah Rendah':a.KATEGORI?.includes('MENENGAH')?'Sekolah Menengah':'Dewasa'}</div></div>
-      <div class="stat-kad oren"><div class="stat-ikon">⚖️</div><div class="stat-nilai">${berat||'—'}</div><div class="stat-unit">KG · Berat Badan</div><div style="margin-top:4px;font-size:10px;font-weight:700;color:${_kelasObj?'#E65100':'#aaa'}">${_kelasLabel}</div></div>
+      <div class="stat-kad oren"><div class="stat-ikon">⚖️</div><div class="stat-nilai">${berat||'—'}</div><div class="stat-unit">KG · Berat Badan</div><div style="margin-top:4px;font-size:10px;font-weight:700;color:${_kelasObj?'#E9A23B':'#8A919E'}">${_kelasLabel}</div></div>
       <div class="stat-kad ungu"><div class="stat-ikon">📏</div><div class="stat-nilai">${tinggi||'—'}</div><div class="stat-unit">CM · Tinggi Badan</div><div class="stat-lbl" style="margin-top:4px;font-size:10px">${bmi?'BMI: '+bmi+' ('+labelBMI(bmi)+')':'Belum diisi'}</div></div>
     </div>
     <!-- Kad Info Pertandingan -->
-    <div style="background:linear-gradient(135deg,#1A0050,#2D0070);border-radius:16px;padding:16px;margin-bottom:12px;border:1px solid rgba(255,215,0,.3)">
-      <div style="font-size:11px;font-weight:700;color:#FFD700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">🏆 Info Pertandingan</div>
+    <div style="background:var(--surface);border-radius:16px;padding:16px;margin-bottom:12px;border:1px solid rgba(var(--accent-rgb),.3)">
+      <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">🏆 Info Pertandingan</div>
       ${_kUsFull && _kelasObj ? `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-        <div style="background:rgba(108,99,255,.2);border:1px solid rgba(108,99,255,.4);border-radius:12px;padding:12px;text-align:center">
+        <div style="background:rgba(var(--violet-rgb),.2);border:1px solid rgba(var(--violet-rgb),.4);border-radius:12px;padding:12px;text-align:center">
           <div style="font-size:10px;color:rgba(255,255,255,.6);margin-bottom:4px">KATEGORI USIA</div>
-          <div style="font-size:18px;font-weight:900;color:#A78BFA">${_kUsFull.label}</div>
+          <div style="font-size:18px;font-weight:900;color:var(--violet)">${_kUsFull.label}</div>
           <div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:3px">${_kUsFull.had}</div>
         </div>
-        <div style="background:rgba(255,160,0,.2);border:1px solid rgba(255,160,0,.4);border-radius:12px;padding:12px;text-align:center">
+        <div style="background:rgba(var(--warn-rgb),.2);border:1px solid rgba(var(--warn-rgb),.4);border-radius:12px;padding:12px;text-align:center">
           <div style="font-size:10px;color:rgba(255,255,255,.6);margin-bottom:4px">KELAS BERAT</div>
-          <div style="font-size:28px;font-weight:900;color:#FFD700">${_kelasObj.kelas}</div>
+          <div style="font-size:28px;font-weight:900;color:var(--accent)">${_kelasObj.kelas}</div>
           <div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:3px">${_kelasObj.mn} – ${_kelasObj.mx} kg</div>
         </div>
       </div>
-      <div style="margin-top:10px;background:rgba(255,215,0,.08);border-radius:8px;padding:8px 12px;font-size:11px;color:rgba(255,255,255,.7);text-align:center">
-        📋 Sesuai didaftarkan dalam kategori <strong style="color:#FFD700">${_kUsFull.label} · Kelas ${_kelasObj.kelas}</strong>
+      <div style="margin-top:10px;background:rgba(var(--accent-rgb),.08);border-radius:8px;padding:8px 12px;font-size:11px;color:rgba(255,255,255,.7);text-align:center">
+        📋 Sesuai didaftarkan dalam kategori <strong style="color:var(--accent)">${_kUsFull.label} · Kelas ${_kelasObj.kelas}</strong>
       </div>` : `
       <div style="text-align:center;padding:12px;color:rgba(255,255,255,.4);font-size:12px">
         ${!berat ? '⚠️ Isi berat anak terlebih dahulu untuk dapatkan kelas pertandingan' : '❓ Kelas pertandingan tidak dijumpai — semak berat semula'}
@@ -401,15 +424,15 @@ async function renderProfil() {
       <div class="kad-tajuk">📊 Indeks Jisim Badan (BMI)</div>
       ${bmi?`<div style="display:flex;align-items:center;gap:16px;margin-bottom:10px">
         <div style="font-size:40px;font-weight:800;color:${warnaBMI(bmi)}">${bmi}</div>
-        <div><div style="font-size:18px;font-weight:700;color:${warnaBMI(bmi)}">${labelBMI(bmi)}</div><div style="font-size:11px;color:#888">${berat}kg · ${tinggi}cm</div></div>
+        <div><div style="font-size:18px;font-weight:700;color:${warnaBMI(bmi)}">${labelBMI(bmi)}</div><div style="font-size:11px;color:var(--muted)">${berat}kg · ${tinggi}cm</div></div>
       </div>
       <div class="bmi-bar"><div class="bmi-fill" style="width:${pctBMI(bmi)}%;background:${warnaBMI(bmi)}"></div></div>
-      <div style="display:flex;justify-content:space-between;font-size:9px;color:#aaa;margin-top:4px"><span>Kurus</span><span>Normal</span><span>Lebih</span><span>Obes</span></div>`
-      :'<div style="text-align:center;color:#aaa;padding:12px;font-size:13px">Berat/tinggi belum diisi. Hubungi jurulatih.</div>'}
-      <button onclick="bukaUpdateBerat()" style="width:100%;padding:10px;background:#F0F9F6;color:#085041;border-radius:8px;font-size:12px;font-weight:600;border:1.5px solid #A5D6A7;margin-top:10px">⚖️ Kemaskini Berat & Tinggi Anak</button>
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:4px"><span>Kurus</span><span>Normal</span><span>Lebih</span><span>Obes</span></div>`
+      :'<div style="text-align:center;color:var(--muted);padding:12px;font-size:13px">Berat/tinggi belum diisi. Hubungi jurulatih.</div>'}
+      <button onclick="bukaUpdateBerat()" style="width:100%;padding:10px;background:var(--surface-2);color:var(--ok);border-radius:8px;font-size:12px;font-weight:600;border:1.5px solid var(--line-2);margin-top:10px">⚖️ Kemaskini Berat & Tinggi Anak</button>
     </div>
     <div class="kad">
-      <div style="font-size:12px;font-weight:700;color:#085041;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;gap:6px">💰 Status Yuran ${new Date().getFullYear()}</div>
+      <div style="font-size:12px;font-weight:700;color:var(--ok);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;gap:6px">💰 Status Yuran ${new Date().getFullYear()}</div>
       <div id="grid-yuran-parent"><div class="muat"><i class="ti ti-loader-2 spin"></i></div></div>
     </div>
     <button class="btn-keluar" onclick="keluar()"><i class="ti ti-logout"></i> Log Keluar</button>
@@ -421,20 +444,20 @@ function bukaUpdateBerat() {
   const m=document.createElement('div');
   m.id='modal-berat-p';
   m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:flex-end;backdrop-filter:blur(4px)';
-  m.innerHTML=`<div style="background:#fff;border-radius:20px 20px 0 0;width:100%;padding:24px;max-width:500px;margin:0 auto">
-    <div style="font-size:16px;font-weight:700;color:#085041;margin-bottom:4px">⚖️ Kemaskini Berat & Tinggi</div>
-    <div style="font-size:12px;color:#888;margin-bottom:16px">Kemaskini selepas sesi timbang bersama jurulatih</div>
+  m.innerHTML=`<div style="background:var(--surface-2);border-radius:20px 20px 0 0;width:100%;padding:24px;max-width:500px;margin:0 auto">
+    <div style="font-size:16px;font-weight:700;color:var(--ok);margin-bottom:4px">⚖️ Kemaskini Berat & Tinggi</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:16px">Kemaskini selepas sesi timbang bersama jurulatih</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-      <div><label style="font-size:11px;font-weight:700;color:#085041;display:block;margin-bottom:6px">BERAT (KG)</label>
+      <div><label style="font-size:11px;font-weight:700;color:var(--ok);display:block;margin-bottom:6px">BERAT (KG)</label>
       <input id="inp-b-p" type="number" min="1" max="200" step="0.1" value="${parseFloat(dataAnak.BERAT_KG)||''}"
-        style="width:100%;padding:12px;border:2px solid #E2E8F0;border-radius:10px;font-size:16px;text-align:center;outline:none"></div>
-      <div><label style="font-size:11px;font-weight:700;color:#085041;display:block;margin-bottom:6px">TINGGI (CM)</label>
+        style="width:100%;padding:12px;border:2px solid var(--line-2);border-radius:10px;font-size:16px;text-align:center;outline:none"></div>
+      <div><label style="font-size:11px;font-weight:700;color:var(--ok);display:block;margin-bottom:6px">TINGGI (CM)</label>
       <input id="inp-t-p" type="number" min="50" max="250" step="0.1" value="${parseFloat(dataAnak.TINGGI_CM)||''}"
-        style="width:100%;padding:12px;border:2px solid #E2E8F0;border-radius:10px;font-size:16px;text-align:center;outline:none"></div>
+        style="width:100%;padding:12px;border:2px solid var(--line-2);border-radius:10px;font-size:16px;text-align:center;outline:none"></div>
     </div>
     <div style="display:flex;gap:10px">
-      <button onclick="document.getElementById('modal-berat-p').remove()" style="flex:1;padding:12px;background:#F0F4F8;border-radius:10px;font-size:14px;font-weight:600;color:#666">Batal</button>
-      <button onclick="simpanBTParent()" style="flex:2;padding:12px;background:linear-gradient(135deg,#085041,#1D9E75);color:#fff;border-radius:10px;font-size:14px;font-weight:700">Simpan</button>
+      <button onclick="document.getElementById('modal-berat-p').remove()" style="flex:1;padding:12px;background:var(--surface-2);border-radius:10px;font-size:14px;font-weight:600;color:var(--muted)">Batal</button>
+      <button onclick="simpanBTParent()" style="flex:2;padding:12px;background:var(--surface);color:#fff;border-radius:10px;font-size:14px;font-weight:700">Simpan</button>
     </div>
   </div>`;
   document.body.appendChild(m);
@@ -496,7 +519,7 @@ async function muatYuranParent() {
     });
     html+='</div><div class="yuran-legend"><span>✅ Bayar</span><span>❌ Belum</span><span>📵 Tiada kutipan</span><span>🚫 Dikecualikan</span></div>';
     el.innerHTML=html;
-  }catch(e){if(el)el.innerHTML='<div style="font-size:12px;color:#aaa;padding:8px">Gagal muatkan status yuran</div>';}
+  }catch(e){if(el)el.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px">Gagal muatkan status yuran</div>';}
 }
 
 // ── KEHADIRAN ─────────────────────────────────────────────────
@@ -517,7 +540,7 @@ async function renderKehadiran() {
     const r=46,circ=2*Math.PI*r,dash=circ*pctT/100;
     const donut=`<svg width="110" height="110" viewBox="0 0 110 110">
       <circle cx="55" cy="55" r="${r}" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="10"/>
-      <circle cx="55" cy="55" r="${r}" fill="none" stroke="#9FE1CB" stroke-width="10"
+      <circle cx="55" cy="55" r="${r}" fill="none" stroke="#4CC38A" stroke-width="10"
         stroke-dasharray="${dash} ${circ}" stroke-dashoffset="${circ/4}" stroke-linecap="round"/>
     </svg>`;
     const ikutBulan={};
@@ -539,19 +562,19 @@ async function renderKehadiran() {
           <div style="font-size:18px;font-weight:800;color:${wPct(pctB)}">${pctB}%</div>
         </div>
         <div class="bulan-bar"><div style="height:100%;border-radius:99px;background:${wPct(pctB)};width:${pctB}%"></div></div>
-        <div style="font-size:11px;color:#888;margin-top:4px">${hadirB} hadir daripada ${jB} sesi bulan ini</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${hadirB} hadir daripada ${jB} sesi bulan ini</div>
       </div>
       <div class="kad">
         <div class="kad-tajuk">📈 Kehadiran Per Bulan ${tahun}</div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
           ${BULAN_S.map((b,i)=>{
             const d=ikutBulan[i];
-            if(!d.jum) return `<div style="text-align:center;padding:8px 4px;background:#f5f5f5;border-radius:10px;opacity:.4"><div style="font-size:9px;font-weight:600;color:#999">${b}</div><div style="font-size:10px;color:#bbb;margin-top:2px">—</div></div>`;
+            if(!d.jum) return `<div style="text-align:center;padding:8px 4px;background:var(--surface-2);border-radius:10px;opacity:.4"><div style="font-size:9px;font-weight:600;color:var(--muted)">${b}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">—</div></div>`;
             const p=Math.round(d.hadir/d.jum*100),w=wPct(p);
-            return `<div style="text-align:center;padding:8px 4px;background:#fafafa;border-radius:10px;border-bottom:3px solid ${w}">
-              <div style="font-size:9px;font-weight:600;color:#666">${b}</div>
+            return `<div style="text-align:center;padding:8px 4px;background:var(--surface-2);border-radius:10px;border-bottom:3px solid ${w}">
+              <div style="font-size:9px;font-weight:600;color:var(--muted)">${b}</div>
               <div style="font-size:14px;font-weight:800;color:${w};margin:2px 0">${p}%</div>
-              <div style="font-size:9px;color:#aaa">${d.hadir}/${d.jum}</div>
+              <div style="font-size:9px;color:var(--muted)">${d.hadir}/${d.jum}</div>
             </div>`;
           }).join('')}
         </div>
@@ -561,7 +584,7 @@ async function renderKehadiran() {
         ${data.slice().sort((a,b)=>new Date(b.tarikh||b.TARIKH||0)-new Date(a.tarikh||a.TARIKH||0)).slice(0,10).map(r=>{
           const st=statusHadir(r),hadir=st==='HADIR';
           return `<div class="rekod-item">
-            <div class="rekod-dot" style="background:${hadir?'#1D9E75':'#E53935'}"></div>
+            <div class="rekod-dot" style="background:${hadir?'#4CC38A':'#F2706B'}"></div>
             <div class="rekod-tarikh">${fmtT(r.tarikh||r.TARIKH||'')}</div>
             <span class="rekod-badge ${hadir?'badge-hadir':'badge-tidak'}">${st}</span>
           </div>`;
@@ -569,7 +592,7 @@ async function renderKehadiran() {
       </div>
       <button class="btn-keluar" onclick="keluar()"><i class="ti ti-logout"></i> Log Keluar</button>
     `;
-  }catch(e){main.innerHTML=`<div style="text-align:center;padding:30px;color:#aaa">Gagal muatkan kehadiran: ${e.message}</div>`;}
+  }catch(e){main.innerHTML=`<div style="text-align:center;padding:30px;color:var(--muted)">Gagal muatkan kehadiran: ${e.message}</div>`;}
 }
 
 
@@ -605,50 +628,50 @@ async function renderJadual() {
 
     // Banner status minggu ini
     if (adaTangguh) {
-      html += '<div style="background:#FFEBEE;border:2px solid #E53935;border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;gap:12px;align-items:flex-start">';
+      html += '<div style="background:var(--surface-2);border:2px solid var(--line-2);border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;gap:12px;align-items:flex-start">';
       html += '<span style="font-size:24px;flex-shrink:0">⚠️</span>';
-      html += '<div><div style="font-weight:800;color:#C62828;font-size:14px;margin-bottom:2px">Ada Latihan Ditangguhkan</div>';
-      html += '<div style="font-size:12px;color:#666">Semak jadual di bawah untuk maklumat lanjut</div></div></div>';
+      html += '<div><div style="font-weight:800;color:var(--bad);font-size:14px;margin-bottom:2px">Ada Latihan Ditangguhkan</div>';
+      html += '<div style="font-size:12px;color:var(--muted)">Semak jadual di bawah untuk maklumat lanjut</div></div></div>';
     } else {
-      html += '<div style="background:#E8F5E9;border:2px solid #1D9E75;border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;gap:12px;align-items:center">';
+      html += '<div style="background:var(--surface-2);border:2px solid var(--line-2);border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;gap:12px;align-items:center">';
       html += '<span style="font-size:24px">✅</span>';
-      html += '<div><div style="font-weight:800;color:#085041;font-size:14px">Latihan Berjalan Seperti Biasa</div>';
-      html += '<div style="font-size:12px;color:#555">Semua sesi latihan minggu ini seperti jadual</div></div></div>';
+      html += '<div><div style="font-weight:800;color:var(--ok);font-size:14px">Latihan Berjalan Seperti Biasa</div>';
+      html += '<div style="font-size:12px;color:var(--muted)">Semua sesi latihan minggu ini seperti jadual</div></div></div>';
     }
 
     // Senarai jadual
-    html += '<div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Jadual Latihan Mingguan</div>';
+    html += '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Jadual Latihan Mingguan</div>';
 
     jadual.forEach(j => {
       const ditangguh = j.status === 'DITANGGUHKAN';
       const bg    = ditangguh ? '#FFF3F3' : '#F0FAF5';
-      const border= ditangguh ? '#FFCDD2' : '#C8E6C0';
-      const warna = ditangguh ? '#C62828' : '#085041';
+      const border= ditangguh ? 'rgba(242,112,107,.18)' : 'rgba(76,195,138,.18)';
+      const warna = ditangguh ? '#F2706B' : '#4CC38A';
       html += '<div style="background:'+bg+';border:2px solid '+border+';border-radius:14px;padding:14px 16px;margin-bottom:10px">';
       html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
       html += '<div style="font-family:Lilita One,cursive;font-size:16px;color:'+warna+'">'+j.hari+'</div>';
-      html += '<span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;background:'+(ditangguh?'#FFCDD2':'#C8E6C0')+';color:'+warna+'">';
+      html += '<span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;background:'+(ditangguh?'rgba(242,112,107,.18)':'rgba(76,195,138,.18)')+';color:'+warna+'">';
       html += (ditangguh?'🚫 DITANGGUHKAN':'✅ BERJALAN')+'</span></div>';
       html += '<div style="display:flex;flex-direction:column;gap:5px">';
-      html += '<div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="font-size:16px">🕐</span><span style="color:#333;font-weight:600">'+j.masa+'</span></div>';
-      html += '<div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="font-size:16px">📍</span><span style="color:#555">'+j.lokasi+'</span></div>';
+      html += '<div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="font-size:16px">🕐</span><span style="color:var(--txt);font-weight:600">'+j.masa+'</span></div>';
+      html += '<div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="font-size:16px">📍</span><span style="color:var(--muted)">'+j.lokasi+'</span></div>';
       if (ditangguh && j.catatan) {
-        html += '<div style="margin-top:6px;background:#FFEBEE;border-radius:8px;padding:8px 10px;font-size:12px;color:#C62828">';
+        html += '<div style="margin-top:6px;background:var(--surface-2);border-radius:8px;padding:8px 10px;font-size:12px;color:var(--bad)">';
         html += '<strong>Sebab:</strong> '+j.catatan+'</div>';
       }
       html += '</div></div>';
     });
 
     // Nota admin
-    html += '<div style="background:#F5F5F5;border-radius:10px;padding:10px 14px;margin-top:6px">';
-    html += '<div style="font-size:11px;color:#888;text-align:center">📞 Untuk pertanyaan, hubungi jurulatih terus<br>';
+    html += '<div style="background:var(--surface-2);border-radius:10px;padding:10px 14px;margin-top:6px">';
+    html += '<div style="font-size:11px;color:var(--muted);text-align:center">📞 Untuk pertanyaan, hubungi jurulatih terus<br>';
     html += 'Jadual boleh berubah mengikut situasi semasa</div></div>';
 
     html += '<button class="btn-keluar" onclick="keluar()"><i class="ti ti-logout"></i> Log Keluar</button>';
 
     main.innerHTML = html;
   } catch(e) {
-    main.innerHTML = '<div style="text-align:center;padding:30px;color:#aaa">Gagal muatkan jadual: '+e.message+'</div>';
+    main.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">Gagal muatkan jadual: '+e.message+'</div>';
   }
 }
 
@@ -670,20 +693,20 @@ async function renderLaporan() {
       <div class="kad">
         <div class="kad-tajuk">📊 Maklumat Fizikal Semasa</div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
-          <div style="text-align:center;padding:10px;background:#f8fafb;border-radius:10px;border-bottom:3px solid #085041">
-            <div style="font-size:18px;font-weight:800;color:#085041">${berat||'—'}</div><div style="font-size:9px;color:#888">KG · Berat</div></div>
-          <div style="text-align:center;padding:10px;background:#f8fafb;border-radius:10px;border-bottom:3px solid #2979FF">
-            <div style="font-size:18px;font-weight:800;color:#2979FF">${tinggi||'—'}</div><div style="font-size:9px;color:#888">CM · Tinggi</div></div>
-          <div style="text-align:center;padding:10px;background:#f8fafb;border-radius:10px;border-bottom:3px solid ${warnaBMI(bmi)}">
-            <div style="font-size:18px;font-weight:800;color:${warnaBMI(bmi)}">${bmi||'—'}</div><div style="font-size:9px;color:#888">BMI · ${labelBMI(bmi)}</div></div>
-          <div style="text-align:center;padding:10px;background:#f8fafb;border-radius:10px;border-bottom:3px solid #7B1FA2">
-            <div style="font-size:14px;font-weight:800;color:#7B1FA2">${_kelasK?_kelasK.kelas:'—'}</div><div style="font-size:9px;color:#888">Kelas</div></div>
+          <div style="text-align:center;padding:10px;background:var(--surface-2);border-radius:10px;border-bottom:3px solid var(--line-2)">
+            <div style="font-size:18px;font-weight:800;color:var(--ok)">${berat||'—'}</div><div style="font-size:9px;color:var(--muted)">KG · Berat</div></div>
+          <div style="text-align:center;padding:10px;background:var(--surface-2);border-radius:10px;border-bottom:3px solid var(--line-2)">
+            <div style="font-size:18px;font-weight:800;color:var(--info)">${tinggi||'—'}</div><div style="font-size:9px;color:var(--muted)">CM · Tinggi</div></div>
+          <div style="text-align:center;padding:10px;background:var(--surface-2);border-radius:10px;border-bottom:3px solid ${warnaBMI(bmi)}">
+            <div style="font-size:18px;font-weight:800;color:${warnaBMI(bmi)}">${bmi||'—'}</div><div style="font-size:9px;color:var(--muted)">BMI · ${labelBMI(bmi)}</div></div>
+          <div style="text-align:center;padding:10px;background:var(--surface-2);border-radius:10px;border-bottom:3px solid var(--line-2)">
+            <div style="font-size:14px;font-weight:800;color:var(--violet)">${_kelasK?_kelasK.kelas:'—'}</div><div style="font-size:9px;color:var(--muted)">Kelas</div></div>
         </div>
       </div>
-      ${!senarai||!senarai.length?`<div class="kad" style="text-align:center;padding:30px;color:#aaa"><div style="font-size:32px;margin-bottom:8px">📋</div><div style="font-size:14px;font-weight:600">Tiada laporan lagi</div><div style="font-size:12px;margin-top:4px">Laporan akan diisi oleh jurulatih selepas penilaian</div></div>`
+      ${!senarai||!senarai.length?`<div class="kad" style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:32px;margin-bottom:8px">📋</div><div style="font-size:14px;font-weight:600">Tiada laporan lagi</div><div style="font-size:12px;margin-top:4px">Laporan akan diisi oleh jurulatih selepas penilaian</div></div>`
       :[...senarai].reverse().map((l,idx)=>{
         const pct=parseFloat(l.PERATUS)||0;
-        const wS=pct>=80?'#085041':pct>=60?'#FF9100':'#C62828';
+        const wS=pct>=80?'#4CC38A':pct>=60?'#E9A23B':'#F2706B';
         return `<div class="laporan-kad">
           <div class="laporan-header">
             <div class="laporan-header-row">
@@ -709,7 +732,7 @@ async function renderLaporan() {
       }).join('')}
       <button class="btn-keluar" onclick="keluar()"><i class="ti ti-logout"></i> Log Keluar</button>
     `;
-  }catch(e){main.innerHTML=`<div style="text-align:center;padding:30px;color:#aaa">Gagal: ${e.message}</div>`;}
+  }catch(e){main.innerHTML=`<div style="text-align:center;padding:30px;color:var(--muted)">Gagal: ${e.message}</div>`;}
 }
 
 async function muatDetail(id,divId) {
@@ -719,12 +742,12 @@ async function muatDetail(id,divId) {
   try {
     const data=await api('laporan_pesilat',{id_laporan:id});
     const items=data.detail||[];
-    if(!items.length){el.innerHTML='<div style="font-size:12px;color:#aaa;padding:8px">Tiada butiran</div>';return;}
+    if(!items.length){el.innerHTML='<div style="font-size:12px;color:var(--muted);padding:8px">Tiada butiran</div>';return;}
     el.innerHTML='<div class="item-grid">'+items.map(i=>{
       const s=(i.STATUS||i.status||'').toLowerCase();
       return `<div class="item-kad ${s}"><div class="item-nama">${i.NAMA_ITEM||i.nama_item||'—'}</div><div class="item-status">${s==='cemerlang'?'🌟 Cemerlang':s==='sederhana'?'🙂 Sederhana':s==='lemah'?'😟 Lemah':'—'}</div></div>`;
     }).join('')+'</div>';
-  }catch(e){el.innerHTML='<div style="font-size:12px;color:#aaa">Gagal</div>';}
+  }catch(e){el.innerHTML='<div style="font-size:12px;color:var(--muted)">Gagal</div>';}
 }
 
 async function muatPDF(idLaporan) {
@@ -824,7 +847,7 @@ async function renderSilibus() {
       return Object.keys(kumpulanSilibus);
     }
     const kat=katRelevan(bengkung);
-    const wKat={'WIRID 700':'linear-gradient(135deg,#5C35B0,#7B52D4)','BENGKUNG HITAM':'linear-gradient(135deg,#263238,#37474F)','BENGKUNG PUTIH':'linear-gradient(135deg,#7986CB,#5C6BC0)','BENGKUNG BIRU':'linear-gradient(135deg,#1565C0,#1976D2)','BENGKUNG HIJAU':'linear-gradient(135deg,#1B5E20,#2E7D32)','BENGKUNG KUNING':'linear-gradient(135deg,#F57F17,#F9A825)','BENGKUNG MERAH':'linear-gradient(135deg,#B71C1C,#C62828)','TARI TERATAI':'linear-gradient(135deg,#00695C,#00897B)','PECAHAN IBU GAYONG':'linear-gradient(135deg,#4527A0,#5E35B1)','SENAMAN KEKUDA':'linear-gradient(135deg,#37474F,#546E7A)','IBU GAYONG':'linear-gradient(135deg,#BF360C,#D84315)','LAIN-LAIN':'linear-gradient(135deg,#546E7A,#607D8B)'};
+    const wKat={'WIRID 700':'linear-gradient(135deg,#5C35B0,#7B52D4)','BENGKUNG HITAM':'linear-gradient(135deg,#263238,#37474F)','BENGKUNG PUTIH':'linear-gradient(135deg,#7986CB,#5C6BC0)','BENGKUNG BIRU':'linear-gradient(135deg,#6AA9F5,#1976D2)','BENGKUNG HIJAU':'linear-gradient(135deg,#1B5E20,#4CC38A)','BENGKUNG KUNING':'linear-gradient(135deg,#F57F17,#E2B55A)','BENGKUNG MERAH':'linear-gradient(135deg,#B71C1C,#F2706B)','TARI TERATAI':'linear-gradient(135deg,#00695C,#00897B)','PECAHAN IBU GAYONG':'linear-gradient(135deg,#4527A0,#5E35B1)','SENAMAN KEKUDA':'linear-gradient(135deg,#37474F,#546E7A)','IBU GAYONG':'linear-gradient(135deg,#BF360C,#D84315)','LAIN-LAIN':'linear-gradient(135deg,#546E7A,#607D8B)'};
     const ikonKat={'WIRID 700':'📖','BENGKUNG HITAM':'🥷','BENGKUNG PUTIH':'🤍','BENGKUNG BIRU':'💙','BENGKUNG HIJAU':'💚','BENGKUNG KUNING':'💛','BENGKUNG MERAH':'❤️','TARI TERATAI':'🌸','PECAHAN IBU GAYONG':'⚔️','SENAMAN KEKUDA':'🏋️','IBU GAYONG':'🌟','LAIN-LAIN':'📁'};
     const dataSilibus=data;
     const katAktif=Object.keys(kumpulanSilibus).filter(k=>kat.some(r=>k.includes(r)));
@@ -848,14 +871,14 @@ async function renderSilibus() {
     }
 
     main.innerHTML=`
-      <div class=\"kad\" style=\"background:linear-gradient(135deg,#085041,#1D9E75);color:#fff;margin-bottom:12px\">\n        <div style=\"font-size:12px;opacity:.8;margin-bottom:4px\">Tahap Bengkung Semasa</div>\n        <div style=\"font-size:16px;font-weight:700\">🥋 ${bengkung||'—'}</div>\n        <div style=\"font-size:11px;opacity:.7;margin-top:4px\">${dataSilibus.length} pelajaran tersedia mengikut tahap semasa</div>\n      </div>\n      <div id=\"panel-progress-silibus\">\n        <div style=\"font-size:11px;color:#085041;text-align:center;padding:8px\"><i class=\"ti ti-loader-2\"></i></div>\n      </div>
-      ${grid(katAktif,'📚 Pelajaran Tahap Semasa','#085041')}
-      ${grid(katLain,'📁 Semua Bahan Rujukan','#888')}
+      <div class=\"kad\" style=\"background:var(--surface);color:#fff;margin-bottom:12px\">\n        <div style=\"font-size:12px;opacity:.8;margin-bottom:4px\">Tahap Bengkung Semasa</div>\n        <div style=\"font-size:16px;font-weight:700\">🥋 ${bengkung||'—'}</div>\n        <div style=\"font-size:11px;opacity:.7;margin-top:4px\">${dataSilibus.length} pelajaran tersedia mengikut tahap semasa</div>\n      </div>\n      <div id=\"panel-progress-silibus\">\n        <div style=\"font-size:11px;color:var(--ok);text-align:center;padding:8px\"><i class=\"ti ti-loader-2\"></i></div>\n      </div>
+      ${grid(katAktif,'📚 Pelajaran Tahap Semasa','#4CC38A')}
+      ${grid(katLain,'📁 Semua Bahan Rujukan','#8A919E')}
       <div id="panel-video" style="display:none"></div>
       <button class="btn-keluar" onclick="keluar()"><i class="ti ti-logout"></i> Log Keluar</button>
     `;
     muatProgressSilibus();
-  }catch(e){main.innerHTML=`<div style="text-align:center;padding:30px;color:#aaa">Gagal: ${e.message}</div>`;}
+  }catch(e){main.innerHTML=`<div style="text-align:center;padding:30px;color:var(--muted)">Gagal: ${e.message}</div>`;}
 }
 
 
@@ -879,27 +902,27 @@ async function muatProgressSilibus() {
 
     const katList = Object.keys(markahByKat);
     if (!katList.length) {
-      panel.innerHTML = '<div style="background:rgba(8,80,65,.1);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#085041">Belum ada rekod penilaian. Rekod akan dikemaskini oleh jurulatih.</div>';
+      panel.innerHTML = '<div style="background:rgba(var(--ok-rgb),.1);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:var(--ok)">Belum ada rekod penilaian. Rekod akan dikemaskini oleh jurulatih.</div>';
       return;
     }
 
     const totalLulus = Object.values(markahByKat).reduce((s,v)=>s+v.lulus,0);
     const totalItem  = Object.values(markahByKat).reduce((s,v)=>s+v.total,0);
     const pctGlobal  = totalItem > 0 ? Math.round(totalLulus/totalItem*100) : 0;
-    const warnaGlobal = pctGlobal >= 80 ? '#1D9E75' : pctGlobal >= 60 ? '#F9A825' : '#E53935';
+    const warnaGlobal = pctGlobal >= 80 ? '#4CC38A' : pctGlobal >= 60 ? '#E2B55A' : '#F2706B';
 
-    let html = `<div style="background:rgba(8,80,65,.08);border:1px solid rgba(8,80,65,.2);border-radius:12px;padding:12px;margin-bottom:12px">
-      <div style="font-size:12px;font-weight:700;color:#085041;margin-bottom:10px">📊 Kemajuan Penilaian</div>
+    let html = `<div style="background:rgba(var(--ok-rgb),.08);border:1px solid rgba(var(--ok-rgb),.2);border-radius:12px;padding:12px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--ok);margin-bottom:10px">📊 Kemajuan Penilaian</div>
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
         <div style="text-align:center;flex-shrink:0">
           <div style="font-size:26px;font-weight:900;color:${warnaGlobal}">${pctGlobal}%</div>
-          <div style="font-size:10px;color:#888">${totalLulus}/${totalItem} laporan lulus</div>
+          <div style="font-size:10px;color:var(--muted)">${totalLulus}/${totalItem} laporan lulus</div>
         </div>
         <div style="flex:1">
           <div style="background:rgba(0,0,0,.08);border-radius:99px;height:10px;overflow:hidden">
             <div style="background:${warnaGlobal};height:100%;width:${pctGlobal}%;border-radius:99px;transition:.5s"></div>
           </div>
-          <div style="font-size:10px;color:#666;margin-top:4px">${pctGlobal >= 80 ? '🌟 Cemerlang' : pctGlobal >= 60 ? '✅ Lulus' : '⚠️ Perlu latihan lebih'}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px">${pctGlobal >= 80 ? '🌟 Cemerlang' : pctGlobal >= 60 ? '✅ Lulus' : '⚠️ Perlu latihan lebih'}</div>
         </div>
       </div>`;
 
@@ -907,10 +930,10 @@ async function muatProgressSilibus() {
       const v = markahByKat[k];
       const pct = v.total > 0 ? Math.round(v.lulus/v.total*100) : 0;
       const avgM = v.markah.length > 0 ? Math.round(v.markah.reduce((a,b)=>a+b,0)/v.markah.length) : 0;
-      const warna = pct >= 80 ? '#1D9E75' : pct >= 60 ? '#F9A825' : '#E53935';
+      const warna = pct >= 80 ? '#4CC38A' : pct >= 60 ? '#E2B55A' : '#F2706B';
       html += `<div style="margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">
-          <span style="color:#333;font-weight:600">${k.length > 20 ? k.substring(0,18)+'…' : k}</span>
+          <span style="color:var(--txt);font-weight:600">${k.length > 20 ? k.substring(0,18)+'…' : k}</span>
           <span style="color:${warna};font-weight:700">Purata ${avgM}% · ${pct}% lulus</span>
         </div>
         <div style="background:rgba(0,0,0,.08);border-radius:99px;height:6px;overflow:hidden">
@@ -941,20 +964,20 @@ function bukaSilibus(k) {
       const fid=m?m[1]:'';
       const thumb=fid?'https://lh3.googleusercontent.com/d/'+fid+'=w400':'';
       return `<div onclick="mainVid('${s.ID}','${s.LINK}')"
-        style="background:#fff;border-radius:12px;overflow:hidden;margin-bottom:10px;box-shadow:0 2px 8px rgba(0,0,0,.1);cursor:pointer;border:2px solid transparent;transition:.15s"
-        onmouseenter="this.style.borderColor='#1D9E75'" onmouseleave="this.style.borderColor='transparent'">
-        <div style="position:relative;aspect-ratio:16/9;background:#e0f2e9">
+        style="background:var(--surface-2);border-radius:12px;overflow:hidden;margin-bottom:10px;cursor:pointer;border:2px solid transparent;transition:.15s"
+        onmouseenter="this.style.borderColor='var(--line-2)'" onmouseleave="this.style.borderColor='transparent'">
+        <div style="position:relative;aspect-ratio:16/9;background:var(--surface-2)">
           ${thumb?`<img src="${thumb}" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none'">`:``}
           <div id="poverlay-${s.ID}" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.3)">
-            <div style="width:48px;height:48px;border-radius:50%;background:rgba(8,80,65,.9);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;box-shadow:0 2px 12px rgba(8,80,65,.4)">▶</div>
+            <div style="width:48px;height:48px;border-radius:50%;background:rgba(var(--ok-rgb),.9);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff;box-shadow:0 2px 12px rgba(var(--ok-rgb),.4)">▶</div>
           </div>
         </div>
         <div style="padding:10px 12px">
-          <div style="font-size:13px;font-weight:700;color:#1a3a2a">${s.TAJUK||'—'}</div>
-          <div style="font-size:11px;color:#666;margin-top:2px">${s.KATEGORI||'—'}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--ok)">${s.TAJUK||'—'}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${s.KATEGORI||'—'}</div>
         </div>
       </div>
-      <div id="vembed-${s.ID}" style="display:none;border-radius:10px;overflow:hidden;margin-bottom:10px;border:2px solid #1D9E75">
+      <div id="vembed-${s.ID}" style="display:none;border-radius:10px;overflow:hidden;margin-bottom:10px;border:2px solid var(--line-2)">
         <iframe id="vframe-${s.ID}" src="" style="width:100%;aspect-ratio:16/9;border:none;display:block" allowfullscreen allow="autoplay"></iframe>
       </div>`;
     }).join('')}
@@ -974,7 +997,7 @@ function mainVid(id,link) {
     const lf=document.getElementById('vframe-'+_vidBukaP);
     const lo=document.getElementById('poverlay-'+_vidBukaP);
     if(le)le.style.display='none'; if(lf)lf.src='';
-    if(lo)lo.innerHTML='<div style="width:48px;height:48px;border-radius:50%;background:rgba(8,80,65,.9);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff">▶</div>';
+    if(lo)lo.innerHTML='<div style="width:48px;height:48px;border-radius:50%;background:rgba(var(--ok-rgb),.9);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff">▶</div>';
   }
   const buka=embed.style.display!=='block';
   if(buka){
@@ -987,7 +1010,7 @@ function mainVid(id,link) {
     embed.scrollIntoView({behavior:'smooth',block:'nearest'});
   }else{
     embed.style.display='none'; frame.src='';
-    if(ov)ov.innerHTML='<div style="width:48px;height:48px;border-radius:50%;background:rgba(8,80,65,.9);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff">▶</div>';
+    if(ov)ov.innerHTML='<div style="width:48px;height:48px;border-radius:50%;background:rgba(var(--ok-rgb),.9);display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff">▶</div>';
     _vidBukaP=null;
   }
 }
@@ -1066,9 +1089,9 @@ async function semakTunggakanParent() {
     if(belumBayar.length===0) return;
     // Papar notifikasi
     const notif = document.createElement('div');
-    notif.style.cssText='position:fixed;top:0;left:0;right:0;z-index:200;background:#C62828;color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.3)';
+    notif.style.cssText='position:fixed;top:0;left:0;right:0;z-index:200;background:#241A1C;border-bottom:1px solid rgba(242,112,107,.4);color:#FFD9D7;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px;font-weight:500';
     notif.innerHTML='<span>⚠️ Yuran belum bayar: <strong>'+belumBayar.join(', ')+'</strong></span>'+
-      '<button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:12px">✕</button>';
+      '<button onclick="this.parentElement.remove()" style="background:rgba(255,255,255,.08);border:none;color:#FFD9D7;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:12px">✕</button>';
     document.body.appendChild(notif);
     setTimeout(()=>notif?.remove(),8000);
   } catch(e){}
@@ -1077,9 +1100,9 @@ async function semakTunggakanParent() {
 function bukaPdpaParent() {
   const m = document.createElement('div');
   m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:400;display:flex;align-items:flex-end';
-  let h = '<div style="background:#fff;border-radius:20px 20px 0 0;width:100%;padding:24px;max-height:85vh;overflow-y:auto;max-width:500px;margin:0 auto">';
-  h += '<div style="font-size:16px;font-weight:700;color:#085041;margin-bottom:4px">🔒 Notis PDPA</div>';
-  h += '<div style="font-size:11px;color:#888;margin-bottom:16px">Akta Perlindungan Data Peribadi 2010</div>';
+  let h = '<div style="background:var(--surface-2);border-radius:20px 20px 0 0;width:100%;padding:24px;max-height:85vh;overflow-y:auto;max-width:500px;margin:0 auto">';
+  h += '<div style="font-size:16px;font-weight:700;color:var(--ok);margin-bottom:4px">🔒 Notis PDPA</div>';
+  h += '<div style="font-size:11px;color:var(--muted);margin-bottom:16px">Akta Perlindungan Data Peribadi 2010</div>';
   const pts = [
     ['Data yang dikumpul','Nama, No. KP, tarikh lahir, alamat, no. telefon, gambar, berat, tinggi dan rekod latihan anak anda.'],
     ['Tujuan penggunaan','Data digunakan HANYA untuk pengurusan keahlian gelanggang, rekod latihan, laporan bengkung dan komunikasi dengan waris.'],
@@ -1088,10 +1111,10 @@ function bukaPdpaParent() {
     ['Kanak-kanak','Data kanak-kanak diuruskan dengan keizinan ibu bapa/penjaga yang bertanggungjawab.'],
   ];
   pts.forEach(([t,d])=>{
-    h+='<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:700;color:#085041;margin-bottom:3px">'+t+'</div>';
-    h+='<div style="font-size:11px;color:#666;line-height:1.5">'+d+'</div></div>';
+    h+='<div style="margin-bottom:10px"><div style="font-size:12px;font-weight:700;color:var(--ok);margin-bottom:3px">'+t+'</div>';
+    h+='<div style="font-size:11px;color:var(--muted);line-height:1.5">'+d+'</div></div>';
   });
-  h += '<button onclick="this.parentElement.parentElement.remove()" style="width:100%;padding:12px;background:linear-gradient(135deg,#085041,#1D9E75);color:#fff;border-radius:10px;font-size:14px;font-weight:700;border:none;cursor:pointer;margin-top:8px">Faham & Tutup</button>';
+  h += '<button onclick="this.parentElement.parentElement.remove()" style="width:100%;padding:12px;background:var(--surface);color:#fff;border-radius:10px;font-size:14px;font-weight:700;border:none;cursor:pointer;margin-top:8px">Faham & Tutup</button>';
   h += '</div>';
   m.innerHTML = h;
   document.body.appendChild(m);
