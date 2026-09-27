@@ -83,7 +83,6 @@ button{font-family:inherit}
 .vid-info{flex:1;min-width:0}
 .vid-tajuk{font-size:14px;font-weight:600;line-height:1.3;word-break:break-word}
 .vid-meta{font-size:12px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.tanda-tonton{color:var(--jade);display:inline-flex;align-items:center;gap:3px}
 
 /* Pemain video skrin penuh */
 #pemain{position:fixed;inset:0;z-index:500;background:var(--bg);display:none;flex-direction:column}
@@ -270,11 +269,9 @@ let indeksMain = -1;
 function esc(s) { return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function idDrive(link) { const m = String(link||'').match(/\/d\/([^\/\?&]+)/) || String(link||'').match(/[?&]id=([^&]+)/); return m ? m[1] : ''; }
 function katVideo(v) { return String(v.KATEGORI || 'LAIN-LAIN').trim(); }
-function kunciVideo(v) { return String(v.ID || v.LINK || v.TAJUK); }
 
-// Rekod video yang sudah ditonton (disimpan dalam telefon ini sahaja)
-function bacaDitonton() { try { return JSON.parse(localStorage.getItem('jur_ditonton') || '{}'); } catch(e) { return {}; } }
-function tandaDitonton(v) { try { const d = bacaDitonton(); d[kunciVideo(v)] = 1; localStorage.setItem('jur_ditonton', JSON.stringify(d)); } catch(e) {} }
+// Buang rekod lama "sudah ditonton" (fungsi tidak digunakan lagi)
+try { localStorage.removeItem('jur_ditonton'); } catch(e) {}
 
 async function renderSilibus() {
   const main = document.getElementById('portal-content');
@@ -312,13 +309,12 @@ function videoDitapis() {
   );
 }
 
-function barisVideo(v, i, ditonton, semasa) {
+function barisVideo(v, i, semasa) {
   const fid = idDrive(v.LINK);
   const thumb = fid ? '<img src="https://lh3.googleusercontent.com/d/' + fid + '=w320" alt="" loading="lazy" onerror="this.remove()">' : '';
   const ada = !!v.LINK;
   const meta = katVideo(v).toUpperCase() === String(v.TAJUK||'').trim().toUpperCase() ? [] : [esc(katVideo(v))];
   if (!ada) meta.push('Belum ada video');
-  else if (ditonton[kunciVideo(v)]) meta.push('<span class="tanda-tonton"><i class="ti ti-check"></i>Sudah ditonton</span>');
   return '<div class="vid-baris' + (ada ? '' : ' tiada') + (semasa ? ' semasa' : '') + '"' + (ada ? ' onclick="mainVideo(' + i + ')"' : '') + '>' +
     '<div class="vid-thumb">' + thumb + (ada ? '<span class="main">▶</span>' : '<i class="ti ti-video-off"></i>') + '</div>' +
     '<div class="vid-info"><div class="vid-tajuk">' + esc(v.TAJUK || 'Video Tanpa Nama') + '</div>' +
@@ -334,10 +330,9 @@ function paparSilibus() {
     '<div class="kat-pill' + (k === kategoriAktif ? ' aktif' : '') + '" onclick="tukarKat(' + i + ')">' + esc(k === 'SEMUA' ? 'Semua' : k) + '<span class="n">' + n + '</span></div>'
   ).join('');
   senaraiMain = videoDitapis();
-  const ditonton = bacaDitonton();
   document.getElementById('kiraan-vid').textContent = senaraiMain.length + ' video';
   elSen.innerHTML = senaraiMain.length
-    ? senaraiMain.map((v, i) => barisVideo(v, i, ditonton, false)).join('')
+    ? senaraiMain.map((v, i) => barisVideo(v, i, false)).join('')
     : '<div class="kosong"><i class="ti ti-video-off"></i><p>Tiada video dijumpai</p></div>';
 }
 
@@ -375,11 +370,9 @@ function mainVideo(idx) {
   document.getElementById('btn-seterus').disabled = cariVideo(idx, 1) < 0;
 
   // Senarai "seterusnya" dalam kategori yang sama
-  tandaDitonton(v);
-  const ditonton = bacaDitonton();
   document.getElementById('pemain-senarai').innerHTML =
     '<div class="lbl">' + esc(kategoriAktif === 'SEMUA' ? 'Semua video' : kategoriAktif) + ' · ' + senaraiMain.length + '</div>' +
-    '<div class="vid-senarai">' + senaraiMain.map((x, i) => barisVideo(x, i, ditonton, i === idx)).join('') + '</div>';
+    '<div class="vid-senarai">' + senaraiMain.map((x, i) => barisVideo(x, i, i === idx)).join('') + '</div>';
   document.querySelector('#pemain-senarai .semasa')?.scrollIntoView({block:'nearest'});
 
   const p = document.getElementById('pemain');
@@ -409,7 +402,6 @@ function tutupPemain(dariSejarah) {
   document.body.style.overflow = '';
   if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
   if (!dariSejarah && history.state && history.state.pemain) history.back();
-  paparSilibus(); // kemas kini tanda "sudah ditonton"
 }
 window.addEventListener('popstate', () => tutupPemain(true));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') tutupPemain(); });
