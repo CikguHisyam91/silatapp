@@ -61,28 +61,56 @@ button{font-family:inherit}
 #portal-content{flex:1;padding:16px;max-width:640px;margin:0 auto;width:100%}
 
 /* ── SILIBUS ── */
-.kat-scroll{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:12px;scrollbar-width:none}
+.carian-vid{position:relative;margin-bottom:10px}
+.carian-vid i{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:18px}
+.carian-vid input{width:100%;padding:11px 12px 11px 40px;border:1px solid var(--line-2);border-radius:10px;background:var(--surface-2);color:var(--txt);font-size:15px;outline:none}
+.carian-vid input:focus{border-color:rgba(var(--gold-rgb),.7)}
+.kat-scroll{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin:0 -16px 12px;padding-left:16px;padding-right:16px;scrollbar-width:none}
 .kat-scroll::-webkit-scrollbar{display:none}
-.kat-pill{flex-shrink:0;padding:7px 13px;border-radius:99px;font-size:13px;font-weight:600;border:1px solid var(--line);color:var(--muted);background:var(--surface);cursor:pointer;white-space:nowrap}
+.kat-pill{flex-shrink:0;padding:8px 13px;border-radius:99px;font-size:13px;font-weight:600;border:1px solid var(--line);color:var(--muted);background:var(--surface);cursor:pointer;white-space:nowrap}
+.kat-pill .n{opacity:.6;margin-left:4px;font-weight:500}
 .kat-pill.aktif{background:var(--txt);color:var(--bg);border-color:var(--txt)}
+.kiraan-vid{font-size:12px;color:var(--muted);margin:4px 2px 8px}
 
-/* Video grid */
-.video-grid{display:grid;gap:10px}
-.video-kad{background:var(--surface);border:1px solid var(--line);border-radius:var(--rad);overflow:hidden}
-.video-kad[onclick]{cursor:pointer}
-.video-thumb{position:relative;aspect-ratio:16/9;background:var(--surface-2);overflow:hidden}
-.video-thumb img{width:100%;height:100%;object-fit:cover}
-.video-thumb .play-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-.play-circle{width:48px;height:48px;border-radius:50%;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff;backdrop-filter:blur(4px)}
-.video-thumb-placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:30px;background:var(--surface-2);opacity:.7}
-.video-body{padding:12px 14px}
-.video-tajuk{font-size:14px;font-weight:600;color:var(--txt);margin-bottom:4px;line-height:1.3}
-.video-body span[style]{background:var(--surface-3) !important;color:var(--muted) !important;border:none !important}
+/* Senarai video — padat, mudah ditekan dengan ibu jari */
+.vid-senarai{display:flex;flex-direction:column;gap:8px}
+.vid-baris{display:flex;align-items:center;gap:12px;padding:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;cursor:pointer;min-height:72px}
+.vid-baris:active{background:var(--surface-2)}
+.vid-baris.tiada{opacity:.45;cursor:default}
+.vid-thumb{position:relative;width:96px;aspect-ratio:16/9;border-radius:8px;background:var(--surface-3);overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:20px}
+.vid-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.vid-thumb .main{position:relative;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px}
+.vid-info{flex:1;min-width:0}
+.vid-tajuk{font-size:14px;font-weight:600;line-height:1.3;word-break:break-word}
+.vid-meta{font-size:12px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.tanda-tonton{color:var(--jade);display:inline-flex;align-items:center;gap:3px}
 
-/* Inline player */
-.inline-player{display:none;aspect-ratio:16/9;overflow:hidden;border-top:1px solid var(--line)}
-.inline-player.buka{display:block}
-.inline-player iframe{width:100%;height:100%;border:none}
+/* Pemain video skrin penuh */
+#pemain{position:fixed;inset:0;z-index:500;background:var(--bg);display:none;flex-direction:column}
+#pemain.buka{display:flex}
+.pemain-atas{display:flex;align-items:center;gap:10px;padding:10px 12px;padding-top:calc(10px + env(safe-area-inset-top,0px));border-bottom:1px solid var(--line);flex-shrink:0}
+.btn-ikon{width:40px;height:40px;border-radius:10px;border:1px solid var(--line-2);color:var(--txt);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;background:transparent}
+.pemain-tajuk{flex:1;min-width:0;font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pemain-video{position:relative;width:100%;aspect-ratio:16/9;background:#000;flex-shrink:0}
+.pemain-video iframe{position:absolute;inset:0;width:100%;height:100%;border:none}
+.pemain-muat{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#9aa0aa;font-size:13px;pointer-events:none}
+.pemain-muat i{font-size:26px;animation:spin 1s linear infinite}
+.pemain-kawal{display:flex;gap:8px;padding:12px 16px;flex-shrink:0}
+.pemain-kawal button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 8px;border-radius:10px;background:var(--surface-2);color:var(--txt);font-size:13px;font-weight:600;border:1px solid var(--line)}
+.pemain-kawal button:disabled{opacity:.35}
+.pemain-kawal button.utama{background:var(--gold);color:var(--on-gold);border-color:var(--gold)}
+.pemain-drive{display:flex;align-items:center;justify-content:center;gap:6px;margin:0 16px 8px;font-size:12px;color:var(--muted);text-decoration:none}
+.pemain-senarai{flex:1;overflow-y:auto;padding:4px 16px calc(16px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+.pemain-senarai .lbl{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:12px 2px 8px}
+.pemain-senarai .vid-baris{min-height:60px;padding:8px}
+.pemain-senarai .vid-thumb{width:80px}
+.vid-baris.semasa{border-color:rgba(var(--gold-rgb),.6);background:rgba(var(--gold-rgb),.08)}
+/* Telefon dalam mod landskap: video penuh skrin */
+@media (orientation:landscape) and (max-height:500px){
+  #pemain .pemain-atas{position:absolute;top:0;left:0;right:0;z-index:2;background:linear-gradient(rgba(0,0,0,.7),transparent);border:none}
+  #pemain .pemain-video{height:100vh;aspect-ratio:auto}
+  #pemain .pemain-kawal,#pemain .pemain-senarai,#pemain .pemain-drive{display:none}
+}
 
 /* Empty & Loading */
 .muat{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 0;gap:12px;color:var(--muted)}
@@ -96,9 +124,6 @@ button{font-family:inherit}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--surface-3);border:1px solid var(--line-2);color:var(--txt);padding:10px 16px;border-radius:12px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:.25s;pointer-events:none;max-width:calc(100vw - 32px)}
 #toast.nampak{opacity:1;transform:translateX(-50%) translateY(0)}
 
-@media(min-width:600px){
-  .video-grid{grid-template-columns:1fr 1fr}
-}
 </style>
 </head>
 <body>
@@ -132,18 +157,26 @@ button{font-family:inherit}
     </button>
   </header>
 
-  <!-- Tab bar -->
-  <div id="tab-bar">
-    <div class="tab-btn aktif" id="tab-silibus" onclick="bukaTabs('silibus')">
-      <i class="ti ti-book"></i> Silibus
-    </div>
-    <div class="tab-btn" id="tab-lain" style="opacity:.4;cursor:not-allowed" title="Akan datang">
-      <i class="ti ti-layout-grid"></i> Lain-lain
-    </div>
-  </div>
-
   <!-- Content area -->
   <div id="portal-content"></div>
+</div>
+
+<!-- Pemain video skrin penuh -->
+<div id="pemain" role="dialog" aria-label="Pemain video">
+  <div class="pemain-atas">
+    <button class="btn-ikon" onclick="tutupPemain()" aria-label="Tutup"><i class="ti ti-arrow-left"></i></button>
+    <div class="pemain-tajuk" id="pemain-tajuk">—</div>
+    <button class="btn-ikon" onclick="skrinPenuh()" aria-label="Skrin penuh"><i class="ti ti-maximize"></i></button>
+  </div>
+  <div class="pemain-video" id="pemain-video">
+    <div class="pemain-muat" id="pemain-muat"><i class="ti ti-loader-2"></i>Memuatkan video...</div>
+  </div>
+  <div class="pemain-kawal">
+    <button id="btn-sebelum" onclick="tukarVideo(-1)"><i class="ti ti-player-skip-back"></i> Sebelum</button>
+    <button id="btn-seterus" class="utama" onclick="tukarVideo(1)">Seterusnya <i class="ti ti-player-skip-forward"></i></button>
+  </div>
+  <a class="pemain-drive" id="pemain-drive" href="#" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Video tak keluar? Buka dalam Google Drive</a>
+  <div class="pemain-senarai" id="pemain-senarai"></div>
 </div>
 
 <div id="toast"></div>
@@ -152,8 +185,6 @@ button{font-family:inherit}
 const API_URL = 'https://script.google.com/macros/s/AKfycby9urwBschyHvugUo0a2QxO3DWciTWul2bJuTBRrsmEPIaCCG3QH7Wp4jcpszY674ojSQ/exec';
 let dataSilibus = [];
 let kategoriAktif = 'SEMUA';
-let videoTerbuka = null;
-let videoTapis = [];
 let namaJurulatih = '';
 
 // ── API ──────────────────────────────────────────────────────
@@ -208,6 +239,7 @@ function masukPortal() {
 
 function keluarPortal() {
   if (!confirm('Keluar dari portal jurulatih?')) return;
+  tutupPemain();
   localStorage.removeItem('jur_nama');
   namaJurulatih = '';
   document.getElementById('inp-nama').value = '';
@@ -227,13 +259,23 @@ if (_sesi) {
 
 // ── Tab Navigation ───────────────────────────────────────────
 function bukaTabs(tab) {
-  document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('aktif'));
-  const el = document.getElementById('tab-' + tab);
-  if (el) el.classList.add('aktif');
   if (tab === 'silibus') renderSilibus();
 }
 
 // ── SILIBUS ──────────────────────────────────────────────────
+let kataCarian = '';
+let senaraiMain = [];   // senarai video untuk pemain (ikut tapisan semasa)
+let indeksMain = -1;
+
+function esc(s) { return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function idDrive(link) { const m = String(link||'').match(/\/d\/([^\/\?&]+)/) || String(link||'').match(/[?&]id=([^&]+)/); return m ? m[1] : ''; }
+function katVideo(v) { return String(v.KATEGORI || 'LAIN-LAIN').trim(); }
+function kunciVideo(v) { return String(v.ID || v.LINK || v.TAJUK); }
+
+// Rekod video yang sudah ditonton (disimpan dalam telefon ini sahaja)
+function bacaDitonton() { try { return JSON.parse(localStorage.getItem('jur_ditonton') || '{}'); } catch(e) { return {}; } }
+function tandaDitonton(v) { try { const d = bacaDitonton(); d[kunciVideo(v)] = 1; localStorage.setItem('jur_ditonton', JSON.stringify(d)); } catch(e) {} }
+
 async function renderSilibus() {
   const main = document.getElementById('portal-content');
   main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan silibus...</span></div>';
@@ -243,134 +285,146 @@ async function renderSilibus() {
       main.innerHTML = '<div class="kosong"><i class="ti ti-book-off"></i><p>Tiada video dalam silibus</p><p style="font-size:12px">Admin boleh tambah video dalam menu Silibus</p></div>';
       return;
     }
-    // Kumpul kategori unik
-    const kategoriSet = ['SEMUA'];
-    dataSilibus.forEach(s => {
-      const k = (s.KATEGORI || 'LAIN-LAIN').trim();
-      if (!kategoriSet.includes(k)) kategoriSet.push(k);
-    });
-    paparSilibus(kategoriSet);
+    main.innerHTML = `
+      <div class="carian-vid"><i class="ti ti-search"></i>
+        <input type="search" id="cari-vid" placeholder="Cari video..." value="${esc(kataCarian)}" oninput="kataCarian=this.value;paparSilibus()">
+      </div>
+      <div class="kat-scroll" id="kat-scroll"></div>
+      <div class="kiraan-vid" id="kiraan-vid"></div>
+      <div class="vid-senarai" id="vid-senarai"></div>`;
+    paparSilibus();
   } catch(e) {
-    main.innerHTML = '<div class="kosong"><i class="ti ti-wifi-off"></i><p>Gagal muatkan silibus</p><p style="font-size:12px">' + e.message + '</p><button onclick="renderSilibus()" style="margin-top:10px;padding:8px 16px;background:var(--amber);color:#1A0000;border:none;border-radius:8px;font-weight:700;cursor:pointer">Cuba Semula</button></div>';
+    main.innerHTML = '<div class="kosong"><i class="ti ti-wifi-off"></i><p>Gagal muatkan silibus</p><p style="font-size:12px">' + esc(e.message) + '</p><button onclick="renderSilibus()" style="margin-top:10px;padding:9px 16px;border:none;border-radius:10px;font-weight:700;cursor:pointer">Cuba Semula</button></div>';
   }
 }
 
-function paparSilibus(kategoriSet) {
-  const main = document.getElementById('portal-content');
-  const kats  = kategoriSet || ['SEMUA'];
-  const tapis = kategoriAktif === 'SEMUA' ? dataSilibus : dataSilibus.filter(s => (s.KATEGORI||'LAIN-LAIN').trim() === kategoriAktif);
-  videoTapis = tapis;
-  videoTerbuka = null; // grid dilukis semula — tiada video yang terbuka
+function senaraiKategori() {
+  const kira = {};
+  dataSilibus.forEach(v => { const k = katVideo(v); kira[k] = (kira[k]||0) + 1; });
+  return [['SEMUA', dataSilibus.length], ...Object.entries(kira)];
+}
 
-  let html = '';
+function videoDitapis() {
+  const q = kataCarian.trim().toLowerCase();
+  return dataSilibus.filter(v =>
+    (kategoriAktif === 'SEMUA' || katVideo(v) === kategoriAktif) &&
+    (!q || String(v.TAJUK||'').toLowerCase().includes(q) || katVideo(v).toLowerCase().includes(q))
+  );
+}
 
-  // Kategori pills
-  html += '<div class="kat-scroll">';
-  kats.forEach((k, i) => {
-    html += '<div class="kat-pill ' + (k === kategoriAktif ? 'aktif' : '') + '" onclick="tukarKat(' + i + ')">' + k + '</div>';
-  });
-  html += '</div>';
+function barisVideo(v, i, ditonton, semasa) {
+  const fid = idDrive(v.LINK);
+  const thumb = fid ? '<img src="https://lh3.googleusercontent.com/d/' + fid + '=w320" alt="" loading="lazy" onerror="this.remove()">' : '';
+  const ada = !!v.LINK;
+  const meta = katVideo(v).toUpperCase() === String(v.TAJUK||'').trim().toUpperCase() ? [] : [esc(katVideo(v))];
+  if (!ada) meta.push('Belum ada video');
+  else if (ditonton[kunciVideo(v)]) meta.push('<span class="tanda-tonton"><i class="ti ti-check"></i>Sudah ditonton</span>');
+  return '<div class="vid-baris' + (ada ? '' : ' tiada') + (semasa ? ' semasa' : '') + '"' + (ada ? ' onclick="mainVideo(' + i + ')"' : '') + '>' +
+    '<div class="vid-thumb">' + thumb + (ada ? '<span class="main">▶</span>' : '<i class="ti ti-video-off"></i>') + '</div>' +
+    '<div class="vid-info"><div class="vid-tajuk">' + esc(v.TAJUK || 'Video Tanpa Nama') + '</div>' +
+    (meta.length ? '<div class="vid-meta">' + meta.join(' · ') + '</div>' : '') + '</div></div>';
+}
 
-  // Kiraan
-  html += '<div style="font-size:11px;color:var(--muted);margin-bottom:12px">' + tapis.length + ' video</div>';
-
-  // Video grid
-  if (!tapis.length) {
-    html += '<div class="kosong"><i class="ti ti-video-off"></i><p>Tiada video dalam kategori ini</p></div>';
-  } else {
-    html += '<div class="video-grid">';
-    tapis.forEach((s,i) => {
-      const m    = (s.LINK||'').match(/\/d\/([^\/\?&]+)/);
-      const fid  = m ? m[1] : '';
-      const thumb = fid ? 'https://lh3.googleusercontent.com/d/' + fid + '=w400' : '';
-      const tags  = (s.BENGKUNG_TAG||'').split(',').filter(Boolean);
-      html += '<div class="video-kad" id="vkad-' + i + '" ' + (s.LINK ? 'onclick="mainVideo('+i+')"' : '') + '>';
-      // Thumbnail
-      html += '<div class="video-thumb">';
-      if (thumb) {
-        html += '<img src="' + thumb + '" alt="' + (s.TAJUK||'') + '" onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'">';
-        html += '<div class="video-thumb-placeholder" style="display:none">🎬</div>';
-      } else {
-        html += '<div class="video-thumb-placeholder">🎬</div>';
-      }
-      if (s.LINK) html += '<div class="play-overlay"><div class="play-circle" id="pc-'+i+'">▶</div></div>';
-      html += '</div>';
-      // Body
-      html += '<div class="video-body">';
-      html += '<div class="video-tajuk">' + (s.TAJUK||'Video Tanpa Nama') + '</div>';
-      if (tags.length || !s.LINK) {
-        html += '<div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:4px">';
-        tags.forEach(t => {
-          if (t.trim()) html += '<span style="font-size:9px;background:rgba(29,158,117,.15);color:var(--jade2);border:1px solid rgba(29,158,117,.3);border-radius:5px;padding:2px 6px">' + t.trim() + '</span>';
-        });
-        if (!s.LINK) html += '<span style="font-size:9px;color:var(--muted)">Tiada link</span>';
-        html += '</div>';
-      }
-      html += '</div>';
-      // Inline player slot
-      html += '<div class="inline-player" id="vplay-' + i + '"><iframe id="vframe-' + i + '" src="" allowfullscreen></iframe></div>';
-      html += '</div>';
-    });
-    html += '</div>';
-  }
-
-  main.innerHTML = html;
+function paparSilibus() {
+  const elKat = document.getElementById('kat-scroll');
+  const elSen = document.getElementById('vid-senarai');
+  if (!elKat || !elSen) return;
+  const kats = senaraiKategori();
+  elKat.innerHTML = kats.map(([k,n], i) =>
+    '<div class="kat-pill' + (k === kategoriAktif ? ' aktif' : '') + '" onclick="tukarKat(' + i + ')">' + esc(k === 'SEMUA' ? 'Semua' : k) + '<span class="n">' + n + '</span></div>'
+  ).join('');
+  senaraiMain = videoDitapis();
+  const ditonton = bacaDitonton();
+  document.getElementById('kiraan-vid').textContent = senaraiMain.length + ' video';
+  elSen.innerHTML = senaraiMain.length
+    ? senaraiMain.map((v, i) => barisVideo(v, i, ditonton, false)).join('')
+    : '<div class="kosong"><i class="ti ti-video-off"></i><p>Tiada video dijumpai</p></div>';
 }
 
 function tukarKat(idx) {
-  // Kumpul semula kategori
-  const kategoriSet = ['SEMUA'];
-  dataSilibus.forEach(s => {
-    const k = (s.KATEGORI||'LAIN-LAIN').trim();
-    if (!kategoriSet.includes(k)) kategoriSet.push(k);
-  });
-  kategoriAktif = kategoriSet[idx] || 'SEMUA';
-  paparSilibus(kategoriSet);
+  const kats = senaraiKategori();
+  kategoriAktif = (kats[idx] || ['SEMUA'])[0];
+  paparSilibus();
+  document.querySelector('.kat-pill.aktif')?.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'});
 }
 
+// ── Pemain video skrin penuh ─────────────────────────────────
 function mainVideo(idx) {
-  const link = (videoTapis[idx] || {}).LINK || '';
-  const player = document.getElementById('vplay-' + idx);
-  const frame  = document.getElementById('vframe-' + idx);
-  if (!player || !frame) return;
+  const v = senaraiMain[idx];
+  if (!v || !v.LINK) return;
+  indeksMain = idx;
+  const fid = idDrive(v.LINK);
+  const url = fid ? 'https://drive.google.com/file/d/' + fid + '/preview' : v.LINK;
+  // Cipta iframe baharu setiap kali — menukar src iframe sedia ada menambah sejarah
+  // pelayar, lalu butang "back" telefon akan mengundur video dan bukan menutup pemain
+  document.getElementById('pemain-frame')?.remove();
+  const muat = document.getElementById('pemain-muat');
+  muat.style.display = 'flex';
+  const frame = document.createElement('iframe');
+  frame.id = 'pemain-frame';
+  frame.allow = 'autoplay; fullscreen';
+  frame.allowFullscreen = true;
+  frame.onload = () => { muat.style.display = 'none'; };
+  frame.src = url;
+  document.getElementById('pemain-video').appendChild(frame);
+  document.getElementById('pemain-tajuk').textContent = v.TAJUK || 'Video';
+  document.getElementById('pemain-drive').href = fid ? 'https://drive.google.com/file/d/' + fid + '/view' : v.LINK;
 
-  const sedangBuka = player.classList.contains('buka');
+  // Butang sebelum/seterusnya — langkau item tanpa video
+  document.getElementById('btn-sebelum').disabled = cariVideo(idx, -1) < 0;
+  document.getElementById('btn-seterus').disabled = cariVideo(idx, 1) < 0;
 
-  // Tutup video lain
-  if (videoTerbuka !== null && videoTerbuka !== idx) {
-    const lama = document.getElementById('vplay-' + videoTerbuka);
-    const lamaF = document.getElementById('vframe-' + videoTerbuka);
-    if (lama) lama.classList.remove('buka');
-    if (lamaF) lamaF.src = '';
-  }
+  // Senarai "seterusnya" dalam kategori yang sama
+  tandaDitonton(v);
+  const ditonton = bacaDitonton();
+  document.getElementById('pemain-senarai').innerHTML =
+    '<div class="lbl">' + esc(kategoriAktif === 'SEMUA' ? 'Semua video' : kategoriAktif) + ' · ' + senaraiMain.length + '</div>' +
+    '<div class="vid-senarai">' + senaraiMain.map((x, i) => barisVideo(x, i, ditonton, i === idx)).join('') + '</div>';
+  document.querySelector('#pemain-senarai .semasa')?.scrollIntoView({block:'nearest'});
 
-  if (sedangBuka) {
-    player.classList.remove('buka');
-    frame.src = '';
-    videoTerbuka = null;
-  } else {
-    const m   = (link||'').match(/\/d\/([^\/\?&]+)/);
-    const fid = m ? m[1] : '';
-    const url = fid ? 'https://drive.google.com/file/d/' + fid + '/preview' : link;
-    player.classList.add('buka');
-    frame.src = url;
-    videoTerbuka = idx;
-    setTimeout(() => player.scrollIntoView({behavior:'smooth',block:'nearest'}), 200);
+  const p = document.getElementById('pemain');
+  if (!p.classList.contains('buka')) {
+    p.classList.add('buka');
+    document.body.style.overflow = 'hidden';
+    // Butang "back" telefon menutup pemain, bukan keluar dari portal
+    try { history.pushState({pemain:1}, ''); } catch(e) {}
   }
 }
 
-// Touch swipe untuk tutup player
-let touchY = 0;
-document.addEventListener('touchstart', e => touchY = e.touches[0].clientY);
-document.addEventListener('touchend', e => {
-  if (e.changedTouches[0].clientY - touchY > 80 && videoTerbuka !== null) {
-    const p = document.getElementById('vplay-' + videoTerbuka);
-    const f = document.getElementById('vframe-' + videoTerbuka);
-    if (p) p.classList.remove('buka');
-    if (f) f.src = '';
-    videoTerbuka = null;
+function cariVideo(dari, arah) {
+  for (let i = dari + arah; i >= 0 && i < senaraiMain.length; i += arah) if (senaraiMain[i].LINK) return i;
+  return -1;
+}
+
+function tukarVideo(arah) {
+  const i = cariVideo(indeksMain, arah);
+  if (i >= 0) mainVideo(i);
+}
+
+function tutupPemain(dariSejarah) {
+  const p = document.getElementById('pemain');
+  if (!p.classList.contains('buka')) return;
+  p.classList.remove('buka');
+  document.getElementById('pemain-frame')?.remove();  // hentikan video
+  document.body.style.overflow = '';
+  if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+  if (!dariSejarah && history.state && history.state.pemain) history.back();
+  paparSilibus(); // kemas kini tanda "sudah ditonton"
+}
+window.addEventListener('popstate', () => tutupPemain(true));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') tutupPemain(); });
+
+function skrinPenuh() {
+  const el = document.getElementById('pemain-video');
+  const req = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (req) {
+    Promise.resolve(req.call(el)).then(() => {
+      try { screen.orientation?.lock?.('landscape').catch(() => {}); } catch(e) {}
+    }).catch(() => toast('Pusingkan telefon ke landskap untuk skrin penuh'));
+  } else {
+    toast('Pusingkan telefon ke landskap untuk skrin penuh');
   }
-});
+}
 </script>
 </body>
 </html>
