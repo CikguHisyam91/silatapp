@@ -6,41 +6,57 @@
 <title>Daftar Ahli — Seri Mutiara</title>
 <link rel="icon" type="image/png" href="favicon-32.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#0E1014">
 <style>
+/* Tema gelap minimalis — selaras dengan SilatApp utama */
+:root{
+  --bg:#0E1014;--surface:#16191F;--surface-2:#1C2027;--surface-3:#242933;
+  --line:rgba(255,255,255,.07);--line-2:rgba(255,255,255,.12);
+  --txt:#E8EAED;--muted:#8A919E;
+  --gold:#E2B55A;--gold-rgb:226,181,90;--on-gold:#1A1406;
+  --ok:#4CC38A;--ok-rgb:76,195,138;--bad:#F2706B;--bad-rgb:242,112,107;
+  --font-b:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  color-scheme:dark;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Nunito',sans-serif;background:#f0faf5;color:#1a3a2a;min-height:100vh}
-.header{background:linear-gradient(135deg,#085041,#1D9E75);padding:20px 16px;text-align:center;color:#fff}
-.header img{width:72px;height:72px;border-radius:50%;border:3px solid rgba(255,255,255,.4);margin-bottom:10px;object-fit:cover}
-.header h1{font-family:'Lilita One',cursive;font-size:20px;margin-bottom:4px}
-.header p{font-size:12px;opacity:.85}
-.container{max-width:480px;margin:0 auto;padding:16px}
-.kad{background:#fff;border-radius:14px;padding:18px;margin-bottom:14px;box-shadow:0 2px 12px rgba(0,0,0,.08)}
-.kad-tajuk{font-family:'Lilita One',cursive;font-size:14px;color:#085041;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+body{font-family:var(--font-b);background:var(--bg);color:var(--txt);min-height:100vh;-webkit-font-smoothing:antialiased}
+@media(max-width:480px){input,select,textarea{font-size:16px !important}}
+.header{padding:28px 16px 12px;text-align:center}
+.header img{width:64px;height:64px;border-radius:50%;margin-bottom:12px;object-fit:cover}
+.header h1{font-size:20px;font-weight:700;margin-bottom:4px;letter-spacing:-.3px}
+.header p{font-size:13px;color:var(--muted)}
+.container{max-width:520px;margin:0 auto;padding:16px}
+.kad{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+.kad.setuju{background:var(--surface)}
+.kad-tajuk{font-size:14px;font-weight:700;color:var(--txt);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.kad-tajuk i{color:var(--muted)}
 .form-kump{margin-bottom:12px}
-.form-label{display:block;font-size:11px;font-weight:800;color:#555;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
-.form-label .wajib{color:#e53935}
-.form-input{width:100%;padding:11px 13px;border:2px solid #e0e0e0;border-radius:10px;font-size:14px;font-weight:600;color:#1a3a2a;background:#fafafa;outline:none;transition:.2s;font-family:'Nunito',sans-serif}
-.form-input:focus{border-color:#1D9E75;background:#fff;box-shadow:0 0 0 3px rgba(29,158,117,.1)}
-.form-input.ralat{border-color:#e53935}
-select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%23666' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
-.form-hint{font-size:11px;color:#888;margin-top:4px}
-.divider{height:1px;background:#e8f5e9;margin:16px 0}
-.btn-hantar{width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,#085041,#1D9E75);color:#fff;font-family:'Lilita One',cursive;font-size:16px;border:none;cursor:pointer;box-shadow:0 4px 12px rgba(29,158,117,.3);transition:.1s}
-.btn-hantar:active{transform:translateY(2px)}
-.btn-hantar:disabled{opacity:.6;cursor:not-allowed}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:6px}
+.form-label .wajib{color:var(--bad)}
+.form-input{width:100%;padding:11px 12px;border:1px solid var(--line-2);border-radius:10px;font-size:14px;color:var(--txt);background:var(--surface-2);outline:none;font-family:var(--font-b)}
+.form-input:focus{border-color:rgba(var(--gold-rgb),.7)}
+.form-input::placeholder{color:#5D6470}
+.form-input.ralat{border-color:var(--bad)}
+select.form-input option{background:var(--surface-2)}
+input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.7)}
+.form-hint{font-size:12px;color:var(--muted);margin-top:4px}
+.divider{height:1px;background:var(--line);margin:16px 0}
+.btn-hantar{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;border-radius:12px;background:var(--gold);color:var(--on-gold);font-size:15px;font-weight:700;border:none;cursor:pointer;font-family:var(--font-b)}
+.btn-hantar:active{opacity:.85}
+.btn-hantar:disabled{opacity:.5;cursor:not-allowed}
 /* Berjaya screen */
-#screen-berjaya{display:none;text-align:center;padding:40px 20px}
-.tick-circle{width:80px;height:80px;background:linear-gradient(135deg,#085041,#1D9E75);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:36px;box-shadow:0 6px 20px rgba(29,158,117,.3)}
-.berjaya-tajuk{font-family:'Lilita One',cursive;font-size:22px;color:#085041;margin-bottom:8px}
-.berjaya-sub{font-size:13px;color:#666;line-height:1.6}
-.info-box{background:#e8f5e9;border-radius:10px;padding:14px;margin:16px 0;text-align:left}
+#screen-berjaya{display:none;text-align:center;padding:36px 20px}
+.tick-circle{width:64px;height:64px;background:rgba(var(--ok-rgb),.14);color:var(--ok);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:30px}
+.berjaya-tajuk{font-size:20px;font-weight:700;color:var(--txt);margin-bottom:8px}
+.berjaya-sub{font-size:13px;color:var(--muted);line-height:1.6}
+.info-box{background:var(--surface-2);border-radius:10px;padding:14px;margin:16px 0;text-align:left}
 .info-box .info-row{display:flex;gap:8px;margin-bottom:6px;font-size:13px}
 .info-box .info-row:last-child{margin-bottom:0}
-.info-box i{color:#1D9E75;flex-shrink:0;margin-top:1px}
-#msg-ralat{display:none;background:#fdecea;border:1px solid #f44336;border-radius:8px;padding:10px 14px;font-size:12px;color:#c62828;margin-bottom:12px}
-.progress-bar{height:4px;background:#e0e0e0;border-radius:99px;margin-bottom:20px;overflow:hidden}
-.progress-fill{height:100%;background:linear-gradient(90deg,#085041,#1D9E75);border-radius:99px;transition:.4s;width:0%}
+.info-box i{color:var(--ok);flex-shrink:0;margin-top:1px}
+#msg-ralat{display:none;background:rgba(var(--bad-rgb),.1);border:1px solid rgba(var(--bad-rgb),.4);border-radius:10px;padding:10px 14px;font-size:13px;color:#FFD9D7;margin-bottom:12px}
+.progress-bar{height:3px;background:var(--surface-3);border-radius:99px;margin-bottom:16px;overflow:hidden}
+.progress-fill{height:100%;background:var(--gold);border-radius:99px;transition:.4s;width:0%}
 </style>
 </head>
 <body>
@@ -67,7 +83,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
         <label class="form-label">Nombor Kad Pengenalan <span class="wajib">*</span></label>
         <input class="form-input" id="f-nokp" type="text" inputmode="numeric" pattern="[0-9]{12}" maxlength="12" placeholder="cth: 150512080141" oninput="kiraUsiaAuto(this.value)">
         <div class="form-hint">12 digit tanpa sempang · Usia akan dikira secara automatik</div>
-        <div id="usia-preview" style="font-size:12px;color:#1D9E75;margin-top:4px;font-weight:700"></div>
+        <div id="usia-preview" style="font-size:12px;color:var(--ok);margin-top:6px;font-weight:600"></div>
       </div>
 
       <div class="form-kump">
@@ -86,7 +102,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
         </div>
         <div class="form-kump">
           <label class="form-label">Tarikh Lahir</label>
-          <input class="form-input" id="f-tl" type="date">
+          <input class="form-input" id="f-tl" type="date" oninput="this.dataset.auto='0'">
         </div>
       </div>
 
@@ -122,11 +138,11 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
     </div>
 
     <!-- Persetujuan -->
-    <div class="kad" style="background:#e8f5e9;border:1px solid rgba(29,158,117,.3)">
+    <div class="kad setuju">
       <div style="display:flex;gap:10px;align-items:flex-start">
-        <input type="checkbox" id="f-pdpa" style="width:18px;height:18px;margin-top:2px;flex-shrink:0;accent-color:#085041">
-        <label for="f-pdpa" style="font-size:12px;color:#444;line-height:1.6;cursor:pointer">
-          Saya bersetuju maklumat di atas dikumpulkan dan digunakan untuk tujuan pengurusan keahlian Gelanggang Seri Mutiara Gegak Gempita mengikut <strong style="color:#085041">Akta Perlindungan Data Peribadi 2010</strong>. <span class="wajib">*</span>
+        <input type="checkbox" id="f-pdpa" style="width:18px;height:18px;margin-top:2px;flex-shrink:0;accent-color:#E2B55A">
+        <label for="f-pdpa" style="font-size:12px;color:var(--muted);line-height:1.6;cursor:pointer">
+          Saya bersetuju maklumat di atas dikumpulkan dan digunakan untuk tujuan pengurusan keahlian Gelanggang Seri Mutiara Gegak Gempita mengikut <strong style="color:var(--txt)">Akta Perlindungan Data Peribadi 2010</strong>. <span class="wajib">*</span>
         </label>
       </div>
     </div>
@@ -134,7 +150,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
     <button class="btn-hantar" id="btn-hantar" onclick="hantarPendaftaran()">
       <i class="ti ti-send"></i> Hantar Permohonan
     </button>
-    <div style="font-size:11px;color:#888;text-align:center;margin-top:10px">Permohonan akan disemak oleh jurulatih sebelum diluluskan</div>
+    <div style="font-size:12px;color:var(--muted);text-align:center;margin-top:10px">Permohonan akan disemak oleh jurulatih sebelum diluluskan</div>
   </div>
 
   <!-- Skrin Berjaya -->
@@ -147,7 +163,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
       <div class="info-row"><i class="ti ti-id"></i><span>No. KP: <strong id="berjaya-kp">—</strong></span></div>
       <div class="info-row"><i class="ti ti-phone"></i><span>Telefon waris: <strong id="berjaya-tel">—</strong></span></div>
     </div>
-    <div style="font-size:12px;color:#666">📞 Untuk pertanyaan, hubungi jurulatih terus.</div>
+    <div style="font-size:12px;color:var(--muted)">📞 Untuk pertanyaan, hubungi jurulatih terus.</div>
   </div>
 
 </div>
@@ -186,11 +202,17 @@ function apiPost(data) {
 
 function kiraUsiaAuto(nokp) {
   const el = document.getElementById('usia-preview');
+  const tl = document.getElementById('f-tl');
+  nokp = String(nokp||'').replace(/\D/g,'');
   if (nokp.length < 6) { el.textContent=''; return; }
-  const yy=parseInt(nokp.substring(0,2)),mm=nokp.substring(2,4),dd=nokp.substring(4,6);
-  const tL = new Date((yy<=30?2000+yy:1900+yy)+'-'+mm+'-'+dd);
-  if (isNaN(tL)) { el.textContent=''; return; }
-  const now=new Date(); let u=now.getFullYear()-tL.getFullYear();
+  const yy=parseInt(nokp.substring(0,2),10), mm=parseInt(nokp.substring(2,4),10), dd=parseInt(nokp.substring(4,6),10);
+  const now = new Date();
+  // Tahun 2 digit: jika tidak melebihi tahun semasa → 20xx, selainnya → 19xx
+  const tahun = (yy <= now.getFullYear() % 100) ? 2000+yy : 1900+yy;
+  const tL = new Date(tahun, mm-1, dd);
+  // Tolak tarikh tidak sah (cth: bulan 13 atau 31 Februari)
+  if (isNaN(tL) || tL.getMonth() !== mm-1 || tL.getDate() !== dd || tL > now) { el.textContent=''; return; }
+  let u=now.getFullYear()-tL.getFullYear();
   if(now.getMonth()<tL.getMonth()||(now.getMonth()===tL.getMonth()&&now.getDate()<tL.getDate()))u--;
   const kat = u<=12?'Sekolah Rendah':u<=17?'Sekolah Menengah':'Dewasa';
   el.textContent = '📅 Usia: '+u+' tahun — '+kat;
@@ -199,9 +221,11 @@ function kiraUsiaAuto(nokp) {
   if(u<=12) sel.value='SEKOLAH RENDAH (12 TAHUN KE BAWAH)';
   else if(u<=17) sel.value='SEKOLAH MENENGAH (17 TAHUN KE BAWAH)';
   else sel.value='DEWASA (18 TAHUN KE ATAS)';
-  // Auto isi tarikh lahir
-  const tl = document.getElementById('f-tl');
-  if(!tl.value) tl.value=(yy<=30?2000+yy:1900+yy)+'-'+mm+'-'+dd;
+  // Auto isi tarikh lahir (dikemaskini jika No. KP diperbetulkan, kecuali pengguna isi sendiri)
+  if(!tl.value || tl.dataset.auto==='1') {
+    tl.value = tahun+'-'+String(mm).padStart(2,'0')+'-'+String(dd).padStart(2,'0');
+    tl.dataset.auto='1';
+  }
 }
 
 function setProgress(pct) {

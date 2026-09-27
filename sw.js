@@ -1,4 +1,4 @@
-const CACHE = 'silatapp-v1';
+const CACHE = 'silatapp-v2';
 const ASET  = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
@@ -16,8 +16,11 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
   if (e.request.url.includes('script.google.com')) return;
   e.respondWith(
-    fetch(e.request).catch(() => caches.match(e.request))
+    fetch(e.request).catch(() =>
+      caches.match(e.request).then(r => r || Response.error())
+    )
   );
 });
