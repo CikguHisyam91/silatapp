@@ -124,12 +124,6 @@ button{cursor:pointer;border:none;font-family:inherit}input,select,textarea{font
 .item-kad.lemah .item-status{color:#C62828}
 .btn-pdf{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:11px;background:linear-gradient(135deg,#085041,#1D9E75);color:#fff;border-radius:10px;font-size:13px;font-weight:700;margin-bottom:10px}
 .btn-lihat{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:9px;background:#F0F9F6;color:#085041;border-radius:10px;font-size:12px;font-weight:600;border:1px solid #A5D6A7;margin-bottom:10px;cursor:pointer}
-.komen-section{background:#F8FAFC;border-radius:10px;padding:12px;margin-top:4px}
-.komen-lbl{font-size:11px;font-weight:700;color:#085041;margin-bottom:8px}
-.komen-nota{font-size:11px;color:#888;background:#FFF9E6;border:1px solid #FFE082;border-radius:6px;padding:8px;margin-bottom:8px;line-height:1.5}
-.komen-inp{width:100%;padding:10px 12px;border:1.5px solid #E2E8F0;border-radius:8px;font-size:13px;outline:none;resize:vertical;min-height:70px}
-.komen-inp:focus{border-color:#1D9E75}
-.btn-komen{padding:8px 16px;background:#085041;color:#fff;border-radius:8px;font-size:12px;font-weight:700;margin-top:8px;float:right;cursor:pointer}
 .kat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .kat-btn{border-radius:14px;padding:16px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:.1s;border:2px solid transparent;border-bottom-width:4px;position:relative;overflow:hidden}
 .kat-btn::before{content:'';position:absolute;top:0;left:0;right:0;height:40%;background:rgba(255,255,255,.15);border-radius:12px 12px 50% 50%}
@@ -239,6 +233,9 @@ function toast(msg,ok=true) {
   toastT=setTimeout(()=>el.classList.remove('nampak'),3000);
 }
 
+// Buang data lama fungsi maklum balas (fungsi telah dinyahaktifkan)
+try{localStorage.removeItem('komen_belum_hantar');localStorage.removeItem('komen_laporan');}catch(e){}
+
 // Semak PDPA consent dari localStorage masa page load
 (function() {
   if(localStorage.getItem('pdpa_setuju')==='1') {
@@ -266,7 +263,6 @@ async function login() {
     renderTab('profil');err.textContent='';
     // Isu 8: Semak tunggakan yuran selepas login
     setTimeout(()=>semakTunggakanParent(),800);
-    setTimeout(()=>hantarKomenTertunda(),2000);
   }catch(e){err.textContent=e.message==='Ahli tidak dijumpai'?'No. KP tidak dijumpai. Semak semula.':'Gagal sambung. Cuba lagi.';}
 }
 
@@ -708,12 +704,6 @@ async function renderLaporan() {
             <button class="btn-lihat" onclick="muatDetail('${l.ID_LAPORAN}','det${idx}')"><i class="ti ti-list-check"></i> Lihat Butiran Penilaian ▼</button>
             <div id="det${idx}"></div>
             <button class="btn-pdf" onclick="muatPDF('${l.ID_LAPORAN}')"><i class="ti ti-file-download"></i> 📄 Muat Turun Laporan PDF</button>
-            <div class="komen-section">
-              <div class="komen-lbl">💬 Maklum Balas Ibu Bapa</div>
-              <div class="komen-nota">ℹ️ Maklum balas anda akan disampaikan kepada pihak gelanggang. Kami akan cuba menambah baik mengikut kemampuan yang ada.</div>
-              <textarea class="komen-inp" id="km${l.ID_LAPORAN}" placeholder="Tulis maklum balas, soalan, atau cadangan..."></textarea>
-              <div style="overflow:hidden"><button class="btn-komen" onclick="hantarKomen('${l.ID_LAPORAN}')">Hantar ✉️</button></div>
-            </div>
           </div>
         </div>`;
       }).join('')}
@@ -815,45 +805,6 @@ async function janaPDF(l,items) {
   doc.text('Gelanggang Seri Mutiara · Dijana oleh Seri Mutiara Apps · '+new Date().toLocaleDateString('ms-MY'),W/2,yF+8,{align:'center'});
   doc.save('Laporan_'+(dataAnak.NAMA_PENUH||'Pesilat').split(' ')[0]+'_'+fmtT(l.TARIKH_LAPORAN).replace(/\//g,'-')+'.pdf');
   toast('✅ PDF berjaya dimuat turun!');
-}
-
-// Maklum balas: hantar ke sistem (sheet MAKLUM_BALAS). Jika gagal, simpan sementara
-// dalam telefon dan cuba hantar semula secara automatik pada log masuk seterusnya.
-const KUNCI_KOMEN_TERTUNDA='komen_belum_hantar';
-function bacaKomenTertunda(){try{return JSON.parse(localStorage.getItem(KUNCI_KOMEN_TERTUNDA)||'[]');}catch(e){return [];}}
-function simpanKomenTertunda(senarai){try{localStorage.setItem(KUNCI_KOMEN_TERTUNDA,JSON.stringify(senarai));}catch(e){}}
-
-async function hantarKomen(id) {
-  const inp=document.getElementById('km'+id);
-  const teks=inp?.value?.trim();
-  if(!teks){toast('Sila tulis maklum balas dahulu',false);return;}
-  if(teks.length>2000){toast('Maklum balas terlalu panjang (maks 2000 aksara)',false);return;}
-  const btn=inp?.parentElement?.querySelector('.btn-komen');
-  if(btn){btn.disabled=true;btn.textContent='⏳ Menghantar...';}
-  const komen={tindakan:'simpan_maklum_balas',no_kp:dataAnak.NO_KP,nama:dataAnak.NAMA_PENUH||'',id_laporan:id,teks};
-  try {
-    await apiPost(komen);
-    toast('✅ Maklum balas dihantar kepada jurulatih. Terima kasih!');
-    if(inp) inp.value='';
-  } catch(e) {
-    const q=bacaKomenTertunda(); q.push(komen); simpanKomenTertunda(q);
-    toast('⚠️ Belum dapat dihantar. Disimpan & akan dihantar semula secara automatik.',false);
-    if(inp) inp.value='';
-  } finally {
-    if(btn){btn.disabled=false;btn.textContent='Hantar ✉️';}
-  }
-}
-
-// Cuba hantar semula maklum balas yang tertunda (dipanggil selepas log masuk)
-async function hantarKomenTertunda() {
-  const q=bacaKomenTertunda();
-  if(!q.length) return;
-  const baki=[];
-  for(const k of q){
-    try{ await apiPost(k); }catch(e){ baki.push(k); }
-  }
-  simpanKomenTertunda(baki);
-  if(baki.length<q.length) toast('✅ '+(q.length-baki.length)+' maklum balas tertunda telah dihantar.');
 }
 
 // ── SILIBUS ───────────────────────────────────────────────────

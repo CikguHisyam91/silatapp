@@ -74,12 +74,6 @@ function setupSilatApp() {
     buatSheet_Rujukan(ss);
     buatSheet_BekasAhli(ss);
     buatSheet_Dashboard(ss);
-    // Sheet MAKLUM_BALAS (jika fail MaklumBalas.gs sudah ditambah)
-    if (typeof dapatkanSheetMaklumBalas_ === 'function') {
-      const ada = !!ss.getSheetByName('MAKLUM_BALAS');
-      dapatkanSheetMaklumBalas_();
-      (ada ? _dilangkau : _dicipta).push('MAKLUM_BALAS');
-    }
     padamSheetDefault(ss);
     ss.setActiveSheet(ss.getSheetByName('AHLI'));
     ui.alert('✅ Berjaya!',
