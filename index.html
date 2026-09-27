@@ -804,6 +804,9 @@ async function renderAnalisis() {
           </div>
         </div>
 
+        <!-- Laporan OPR (satu halaman) -->
+        <button class="btn btn-outline btn-blok" onclick="janaLaporanOPR()" style="margin-bottom:12px"><i class="ti ti-report-analytics"></i> Jana Laporan OPR Bulanan</button>
+
         <!-- Senarai Kelas Berat -->
         <div class="kad" style="margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -3166,15 +3169,18 @@ async function padamGaleriKonfirm(id) {
 // ═══════════════════════════════════════════════════════════════
 async function janaLaporanOPR() {
   tunjukToast('⏳ Menyediakan OPR...','ok');
+  // Buka tetingkap SEBELUM menunggu data — telefon menyekat pop-up yang dibuka selepas menunggu
+  const win = window.open('','_blank','width=800,height=700,scrollbars=yes');
+  if (win) win.document.write('<p style="font-family:sans-serif;padding:20px">Menyediakan laporan OPR...</p>');
   try {
     const bulan = new Date().getMonth() + 1;
     const tahun = new Date().getFullYear();
     const data  = await api('data_opr', {tahun, bulan});
-    bukaWinOPR(data);
-  } catch(e) { tunjukToast('Gagal: '+e.message,'ralat'); }
+    bukaWinOPR(data, win);
+  } catch(e) { if (win) win.close(); tunjukToast('Gagal: '+e.message,'ralat'); }
 }
 
-function bukaWinOPR(d) {
+function bukaWinOPR(d, winSedia) {
   const BULAN = ['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'];
   const namaBulan = BULAN[parseInt(d.bulan)-1];
   const tarikhCetak = new Date().toLocaleDateString('ms-MY',{day:'2-digit',month:'long',year:'numeric'});
@@ -3261,8 +3267,9 @@ ${d.nama_pengerusi ? `<div style="margin-top:40px;display:grid;grid-template-col
 </div>` : ''}
 </body></html>`;
 
-  const win = window.open('','_blank','width=800,height=700,scrollbars=yes');
-  win.document.write(html); win.document.close();
+  const win = winSedia || window.open('','_blank','width=800,height=700,scrollbars=yes');
+  if (!win) { tunjukToast('Sila benarkan pop-up untuk lihat laporan','ralat'); return; }
+  win.document.open(); win.document.write(html); win.document.close();
 }
 
 
