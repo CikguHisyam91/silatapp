@@ -178,7 +178,6 @@ button{cursor:pointer;border:none;font-family:inherit;color:inherit;background:n
 .vid-info{flex:1;min-width:0}
 .vid-tajuk{font-size:14px;font-weight:600;line-height:1.3;word-break:break-word}
 .vid-meta{font-size:12px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.tanda-tonton{color:var(--jade);display:inline-flex;align-items:center;gap:3px}
 
 /* Pemain video skrin penuh */
 #pemain{position:fixed;inset:0;z-index:500;background:var(--bg);display:none;flex-direction:column}
@@ -1013,17 +1012,15 @@ async function muatProgressSilibus() {
 let senaraiMain = [], indeksMain = -1, katDibuka = '';
 function esc(s) { return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function idDrive(link) { const m = String(link||'').match(/\/d\/([^\/\?&]+)/) || String(link||'').match(/[?&]id=([^&]+)/); return m ? m[1] : ''; }
-function kunciVideo(v) { return String(v.ID || v.LINK || v.TAJUK); }
-function bacaDitonton() { try { return JSON.parse(localStorage.getItem('ib_ditonton') || '{}'); } catch(e) { return {}; } }
-function tandaDitonton(v) { try { const d = bacaDitonton(); d[kunciVideo(v)] = 1; localStorage.setItem('ib_ditonton', JSON.stringify(d)); } catch(e) {} }
+// Buang rekod lama "sudah ditonton" (fungsi tidak digunakan lagi)
+try { localStorage.removeItem('ib_ditonton'); } catch(e) {}
 
-function barisVideo(v, i, ditonton, semasa) {
+function barisVideo(v, i, semasa) {
   const fid = idDrive(v.LINK);
   const thumb = fid ? '<img src="https://lh3.googleusercontent.com/d/' + fid + '=w320" alt="" loading="lazy" onerror="this.remove()">' : '';
-  const meta = ditonton[kunciVideo(v)] ? '<div class="vid-meta"><span class="tanda-tonton"><i class="ti ti-check"></i>Sudah ditonton</span></div>' : '';
   return '<div class="vid-baris' + (semasa ? ' semasa' : '') + '" onclick="mainVideo(' + i + ')">' +
     '<div class="vid-thumb">' + thumb + '<span class="main">▶</span></div>' +
-    '<div class="vid-info"><div class="vid-tajuk">' + esc(v.TAJUK || 'Video') + '</div>' + meta + '</div></div>';
+    '<div class="vid-info"><div class="vid-tajuk">' + esc(v.TAJUK || 'Video') + '</div></div></div>';
 }
 
 function bukaSilibus(k) {
@@ -1031,12 +1028,11 @@ function bukaSilibus(k) {
   const items = (kumpulanSilibus[k]||[]).filter(s => s.LINK);
   if (!items.length) { toast('Belum ada video untuk kategori ini', false); return; }
   katDibuka = k; senaraiMain = items;
-  const ditonton = bacaDitonton();
   panel.style.display = 'block';
   panel.innerHTML = '<div class="video-panel">' +
     '<div class="video-panel-header"><div class="video-panel-tajuk">' + esc(k) + ' · ' + items.length + ' video</div>' +
     '<div class="btn-tutup-video" onclick="document.getElementById(\'panel-video\').style.display=\'none\'">✕ Tutup</div></div>' +
-    '<div class="vid-senarai">' + items.map((v, i) => barisVideo(v, i, ditonton, false)).join('') + '</div></div>';
+    '<div class="vid-senarai">' + items.map((v, i) => barisVideo(v, i, false)).join('') + '</div></div>';
   panel.scrollIntoView({behavior:'smooth', block:'start'});
 }
 
@@ -1059,11 +1055,9 @@ function mainVideo(idx) {
   document.getElementById('pemain-drive').href = fid ? 'https://drive.google.com/file/d/' + fid + '/view' : v.LINK;
   document.getElementById('btn-sebelum').disabled = idx <= 0;
   document.getElementById('btn-seterus').disabled = idx >= senaraiMain.length - 1;
-  tandaDitonton(v);
-  const ditonton = bacaDitonton();
   document.getElementById('pemain-senarai').innerHTML =
     '<div class="lbl">' + esc(katDibuka) + ' · ' + senaraiMain.length + '</div>' +
-    '<div class="vid-senarai">' + senaraiMain.map((x, i) => barisVideo(x, i, ditonton, i === idx)).join('') + '</div>';
+    '<div class="vid-senarai">' + senaraiMain.map((x, i) => barisVideo(x, i, i === idx)).join('') + '</div>';
   document.querySelector('#pemain-senarai .semasa')?.scrollIntoView({block:'nearest'});
   const p = document.getElementById('pemain');
   if (!p.classList.contains('buka')) {
@@ -1086,7 +1080,6 @@ function tutupPemain(dariSejarah) {
   document.body.style.overflow = '';
   if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
   if (!dariSejarah && history.state && history.state.pemain) history.back();
-  if (katDibuka && document.getElementById('panel-video')?.style.display === 'block') bukaSilibus(katDibuka);
 }
 window.addEventListener('popstate', () => tutupPemain(true));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') tutupPemain(); });
