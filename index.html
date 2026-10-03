@@ -1296,7 +1296,7 @@ async function muatTurunSenaraiBeratPDF() {
     });
 
     const htmlDoc = `<!DOCTYPE html>
-<html lang="ms"><head><meta charset="UTF-8">
+<html lang="ms"><head><meta charset="UTF-8"><meta name="color-scheme" content="only light">
 <title>Senarai Kelas Berat — ${namaG}</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -1875,35 +1875,41 @@ function ubJanaBorang() {
   }).join('');
   w.document.open();
   w.document.write(`<!DOCTYPE html><html lang="ms"><head><meta charset="UTF-8"><title>Borang ${escapeHtml(u.tajuk)} - ${ubFmtTarikh(u.tarikh)}</title>
+  <meta name="color-scheme" content="only light">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
+    /* Borang cetak: latar PUTIH, tiada blok hitam — jimat dakwat.
+       "only light" menghalang mod gelap automatik telefon menukar borang jadi hitam. */
+    :root{color-scheme:only light}
     @page{size:A4;margin:14mm}
-    *{box-sizing:border-box}
-    body{font-family:Montserrat,Arial,sans-serif;color:#111;margin:0;background:#eee}
-    .pg{background:#fff;width:210mm;min-height:270mm;margin:10px auto;padding:14mm;page-break-after:always;break-after:page}
+    *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    html,body{background:#fff !important;color:#111}
+    body{font-family:Montserrat,Arial,sans-serif;margin:0}
+    .pg{background:#fff;width:210mm;min-height:270mm;margin:10px auto;padding:14mm;page-break-after:always;break-after:page;border:1px solid #ddd}
     .pg:last-child{page-break-after:auto;break-after:auto}
-    header{display:flex;align-items:center;gap:14px;border-bottom:3px solid #111;padding-bottom:10px}
+    header{display:flex;align-items:center;gap:14px;border-bottom:1.5px solid #111;padding-bottom:10px}
     header img{width:62px;height:62px;object-fit:contain}
     h1{font-size:20px;margin:0;letter-spacing:.5px}
     h2{font-size:12px;margin:3px 0 0;font-weight:600;color:#444}
     .tj{text-align:center;font-weight:800;font-size:15px;margin:14px 0 10px;text-transform:uppercase}
     table{width:100%;border-collapse:collapse;font-size:12px}
     .info td{border:1px solid #999;padding:7px 8px}
-    .info td:nth-child(odd){background:#f3f3f3;font-weight:700;width:20%}
+    .info td:nth-child(odd){font-weight:700;width:20%}
     .mkh{margin-top:14px}
-    .mkh th{background:#111;color:#fff;padding:7px 4px;font-size:11px}
+    .mkh th{background:#fff;color:#111;padding:7px 4px;font-size:11px;border:1px solid #999;border-bottom:1.5px solid #111}
     .mkh td{border:1px solid #999;padding:8px 4px;text-align:center}
     .mkh .it{text-align:left;font-weight:600}
     .mkh .no{width:28px}
     .bx{width:24px;font-size:10px;color:#888}
-    .bx.tk{background:#111;color:#fff;font-weight:800}
+    /* Markah dipilih: bulatan bergaris (bukan kotak hitam penuh) */
+    .bx.tk{color:#111;font-weight:800;font-size:11px;background:radial-gradient(circle,transparent 7px,#111 7.5px,#111 9px,transparent 9.5px)}
     .mk{width:58px;font-weight:800;font-size:14px}
-    tfoot td{font-weight:800;background:#f3f3f3}
+    tfoot td{font-weight:800;background:#fff}
     .cat{margin-top:16px;border:1px solid #999;min-height:70px;padding:8px;font-size:12px;font-weight:700}
     .ttd{display:flex;justify-content:space-between;margin-top:46px;font-size:11px;text-align:center}
-    .bar{position:sticky;top:0;background:#111;color:#fff;padding:10px;text-align:center;font-family:Montserrat,Arial}
-    .bar button{font:inherit;font-weight:700;padding:8px 18px;border:0;border-radius:8px;background:#F5C518;cursor:pointer}
-    @media print{body{background:#fff}.pg{margin:0;padding:0;width:auto;min-height:auto}.bar{display:none}}
+    .bar{position:sticky;top:0;background:#f4f4f4;color:#111;border-bottom:1px solid #ddd;padding:10px;text-align:center;font-family:Montserrat,Arial}
+    .bar button{font:inherit;font-weight:700;padding:8px 18px;border:1px solid #111;border-radius:8px;background:#fff;color:#111;cursor:pointer}
+    @media print{.pg{margin:0;padding:0;width:auto;min-height:auto;border:none}.bar{display:none}}
   </style></head><body>
   <div class="bar">${u.peserta.length} borang · Pilih "Simpan sebagai PDF" &nbsp; <button onclick="window.print()">🖨️ Cetak / Simpan PDF</button></div>
   ${muka}
@@ -3380,6 +3386,7 @@ function bukaWinPenyata(transaksi, ringkasan, tempoh, jenisTempoh, tetapan) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="only light">
 <title>Penyata Kewangan — ${namaG}</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
