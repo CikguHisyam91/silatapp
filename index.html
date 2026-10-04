@@ -228,6 +228,14 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.7)}
 .maklumat-baris .lbl{font-size:11px;color:var(--muted);margin-bottom:2px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
 .maklumat-baris .val{font-size:14px;font-weight:500;color:var(--txt);word-break:break-word}
 
+/* ── Edit rekod yuran ── */
+.baris-yuran.boleh-edit{cursor:pointer}
+.baris-yuran.boleh-edit:active{background:var(--surface-2)}
+.rekod-yuran{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.rekod-yuran .grid-edit{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.rekod-yuran .grid-edit .penuh{grid-column:1/-1}
+.rekod-yuran label{display:block;font-size:11px;font-weight:600;color:var(--muted);margin-bottom:4px}
+
 /* ── Lencana bengkung (warna ikut tali pinggang sebenar) ── */
 .chip-bkg{display:inline-flex;align-items:center;gap:8px;padding:5px 10px 5px 7px;border-radius:8px;background:var(--surface-3);font-size:12px;font-weight:600;color:var(--txt);line-height:1.2;max-width:100%}
 .chip-bkg .tali{width:30px;height:10px;border-radius:3px;flex-shrink:0;display:flex;justify-content:flex-end;gap:2px;padding-right:4px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.28)}
@@ -2694,11 +2702,12 @@ function renderSenaraiYuran() {
       const status = a._menyimpan
         ? '<span class="badge abu"><i class="ti ti-loader-2 spin"></i> Menyimpan</span>'
         : '<span class="badge hijau">RM' + parseFloat(a.jumlah||0).toFixed(0) + '</span>';
-      return '<div class="baris-yuran bayar">' +
+      return '<div class="baris-yuran bayar boleh-edit" onclick="bukaEditYuran(\'' + kpArg + '\')">' +
         '<div class="item-info">' +
           '<div class="item-nama wrap">' + nama + '</div>' +
           '<div class="item-sub">' + kat + ' · ' + tBayar + '</div>' +
         '</div>' + status +
+        (a._menyimpan ? '' : '<i class="ti ti-pencil" style="color:var(--muted);font-size:16px;flex-shrink:0"></i>') +
       '</div>';
     }
     return `<div class="baris-yuran" id="baris-${escapeAttr(kp)}">
@@ -2754,6 +2763,133 @@ function kemaskiniRingkasanYuran() {
     const j = b.dataset.jenis;
     b.textContent = j==='semua' ? 'Semua ('+total+')' : j==='belum' ? 'Belum ('+(total-bayar)+')' : 'Sudah ('+bayar+')';
   });
+}
+
+// ── Edit / padam rekod yuran yang sudah dibayar ─────────────
+// Guna API sedia ada: baca rekod (yuran), tambah rekod baharu (tambah_yuran),
+// padam rekod lama (padam_rekod_yuran) — tiada perubahan Apps Script diperlukan.
+let _editYuranRekod = [];
+const SENARAI_BULAN_YURAN = ['JANUARI','FEBRUARI','MAC','APRIL','MEI','JUN','JULAI','OGOS','SEPTEMBER','OKTOBER','NOVEMBER','DISEMBER'];
+
+function keTarikhISO(v) {
+  if (!v) return tarikhHariIni();
+  const s = String(v);
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
+  const d = new Date(s);
+  if (isNaN(d)) return tarikhHariIni();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+async function bukaEditYuran(kp) {
+  const item = dataYuranCache.find(a => String(a.no_kp) === String(kp));
+  if (!item) return;
+  if (item._menyimpan) { tunjukToast('Tunggu sebentar — rekod masih disimpan', 'ralat'); return; }
+  const bulan = yuranBulanPilih || bulanSkrg;
+  const tahun = String(yuranTahunPilih || tahunSkrg);
+  document.getElementById('modal-edit-yuran')?.remove();
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg'; modal.id = 'modal-edit-yuran';
+  modal.innerHTML = `<div class="modal">
+    <div class="modal-tajuk"><span>Edit Yuran</span><div class="modal-tutup" onclick="tutupModal('modal-edit-yuran')"><i class="ti ti-x"></i></div></div>
+    <div style="font-weight:600;margin-bottom:2px">${escapeHtml(item.nama||'—')}</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Rekod bulan ${escapeHtml(bulan)} ${escapeHtml(tahun)}</div>
+    <div id="isi-edit-yuran"><div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan rekod...</span></div></div>
+  </div>`;
+  modal.addEventListener('click', e => { if (e.target === modal) tutupModal('modal-edit-yuran'); });
+  document.body.appendChild(modal);
+
+  const el = document.getElementById('isi-edit-yuran');
+  try {
+    const semua = await api('yuran', { no_kp: kp, bulan, tahun });
+    _editYuranRekod = (semua || []).filter(r => (r.STATUS_PENGESAHAN || 'SELESAI') === 'SELESAI' && r.ID_BAYARAN);
+    if (!_editYuranRekod.length) {
+      el.innerHTML = '<div class="kosong" style="padding:20px"><i class="ti ti-receipt-off"></i><p>Rekod tidak dijumpai. Tekan ⟳ untuk muat semula.</p></div>';
+      return;
+    }
+    const tahunList = senaraiTahunPilihan();
+    el.innerHTML = _editYuranRekod.map((r, i) => {
+      const jenis = String(r.JENIS_YURAN || 'BULANAN').toUpperCase();
+      const kaedah = String(r.KAEDAH_BAYAR || 'TUNAI').toUpperCase();
+      const thn = parseInt(r.TAHUN) || parseInt(tahun);
+      return `<div class="rekod-yuran">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <span class="badge ${jenis === 'PENDAFTARAN' ? 'biru' : 'hijau'}">${escapeHtml(jenis)}</span>
+          <span style="font-size:12px;color:var(--muted)">Dibayar ${escapeHtml(formatTarikh(r.TARIKH_BAYAR))}</span>
+        </div>
+        <div class="grid-edit">
+          <div class="penuh"><label>Jumlah (RM)</label>
+            <input class="form-input" type="number" inputmode="decimal" min="0" step="0.01" id="ey-jml-${i}" value="${parseFloat(r.JUMLAH_BAYARAN) || 0}"></div>
+          <div><label>Bulan</label>
+            <select class="form-input" id="ey-bln-${i}">${SENARAI_BULAN_YURAN.map(b => `<option ${b === String(r.BULAN).toUpperCase() ? 'selected' : ''}>${b}</option>`).join('')}</select></div>
+          <div><label>Tahun</label>
+            <select class="form-input" id="ey-thn-${i}">${tahunList.map(y => `<option ${y === thn ? 'selected' : ''}>${y}</option>`).join('')}</select></div>
+          <div class="penuh"><label>Kaedah</label>
+            <select class="form-input" id="ey-kdh-${i}">${['TUNAI','TRANSFER','LAIN-LAIN'].concat(['TUNAI','TRANSFER','LAIN-LAIN'].includes(kaedah) ? [] : [kaedah]).map(k => `<option ${k === kaedah ? 'selected' : ''}>${k}</option>`).join('')}</select></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-kecil" style="color:var(--bad)" onclick="padamRekodYuranUI(${i})"><i class="ti ti-trash"></i> Padam</button>
+          <button class="btn-kecil pri penuh" id="ey-simpan-${i}" onclick="simpanEditYuran(${i})"><i class="ti ti-check"></i> Simpan Perubahan</button>
+        </div>
+      </div>`;
+    }).join('') + '<div style="font-size:12px;color:var(--muted);line-height:1.5">💡 Tersilap bulan? Tukar <b>Bulan</b> ke bulan yang betul, kemudian tekan <b>Simpan Perubahan</b>. Tersilap rekod? Tekan <b>Padam</b> — status kembali "Belum bayar".</div>';
+  } catch (e) {
+    el.innerHTML = '<div class="kosong" style="padding:20px"><i class="ti ti-wifi-off"></i><p>Gagal memuatkan rekod: ' + escapeHtml(e.message) + '</p></div>';
+  }
+}
+
+async function simpanEditYuran(i) {
+  const r = _editYuranRekod[i];
+  if (!r) return;
+  const jumlah = parseFloat(document.getElementById('ey-jml-' + i)?.value);
+  const bulan  = document.getElementById('ey-bln-' + i)?.value;
+  const tahun  = document.getElementById('ey-thn-' + i)?.value;
+  const kaedah = document.getElementById('ey-kdh-' + i)?.value;
+  if (isNaN(jumlah) || jumlah < 0) { tunjukToast('Jumlah tidak sah', 'ralat'); return; }
+  const lama = { jumlah: parseFloat(r.JUMLAH_BAYARAN) || 0, bulan: String(r.BULAN).toUpperCase(), tahun: String(r.TAHUN), kaedah: String(r.KAEDAH_BAYAR || 'TUNAI').toUpperCase() };
+  if (jumlah === lama.jumlah && bulan === lama.bulan && String(tahun) === lama.tahun && kaedah === lama.kaedah) {
+    tunjukToast('Tiada perubahan'); return;
+  }
+  const pindah = bulan !== lama.bulan || String(tahun) !== lama.tahun;
+  if (pindah && !confirm('Pindahkan bayaran RM' + jumlah.toFixed(2) + '\n' + lama.bulan + ' ' + lama.tahun + ' → ' + bulan + ' ' + tahun + '?')) return;
+  const btn = document.getElementById('ey-simpan-' + i);
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2 spin"></i> Menyimpan...'; }
+  // 1) Tambah rekod yang betul dahulu, 2) baru padam rekod lama — bayaran tidak hilang jika langkah 2 gagal
+  try {
+    const catatanLama = String(r.CATATAN || '').trim();
+    await apiPost({
+      tindakan: 'tambah_yuran', no_kp: r.NO_KP, jenis_yuran: String(r.JENIS_YURAN || 'BULANAN').toUpperCase(),
+      bulan, tahun, jumlah, kaedah_bayar: kaedah, tarikh_bayar: keTarikhISO(r.TARIKH_BAYAR),
+      catatan: (catatanLama ? catatanLama + ' · ' : '') + 'Dibetulkan ' + tarikhHariIni() + (pindah ? ' (asal ' + lama.bulan + ' ' + lama.tahun + ')' : '') + (jumlah !== lama.jumlah ? ' (asal RM' + lama.jumlah + ')' : '')
+    });
+  } catch (e) {
+    tunjukToast('Gagal simpan: ' + e.message, 'ralat');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-check"></i> Simpan Perubahan'; }
+    return;
+  }
+  try {
+    await apiPost({ tindakan: 'padam_rekod_yuran', id_rekod: r.ID_BAYARAN });
+    tunjukToast('✅ Rekod yuran dikemaskini', 'ok');
+  } catch (e) {
+    tunjukToast('⚠️ Rekod baharu disimpan, tetapi rekod lama gagal dipadam: ' + e.message + '. Sila padam rekod lama secara manual.', 'ralat');
+  }
+  tutupModal('modal-edit-yuran');
+  clearApiCache('yuran');
+  renderYuran();
+}
+
+async function padamRekodYuranUI(i) {
+  const r = _editYuranRekod[i];
+  if (!r) return;
+  if (!confirm('Padam rekod yuran RM' + (parseFloat(r.JUMLAH_BAYARAN) || 0).toFixed(2) + ' (' + String(r.BULAN).toUpperCase() + ' ' + r.TAHUN + ')?\n\nStatus akan kembali "Belum bayar".')) return;
+  try {
+    await apiPost({ tindakan: 'padam_rekod_yuran', id_rekod: r.ID_BAYARAN });
+    tunjukToast('🗑️ Rekod yuran dipadam', 'ok');
+    tutupModal('modal-edit-yuran');
+    clearApiCache('yuran');
+    renderYuran();
+  } catch (e) {
+    tunjukToast('Gagal padam: ' + e.message, 'ralat');
+  }
 }
 
 // ── Baris gilir simpan yuran di latar belakang ──
