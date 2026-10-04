@@ -1582,7 +1582,7 @@ function getUjianAhli(e) {
     const m = u.markah || {};
     const kunci = Object.keys(m).find(k => samaKP(k, kp));
     hasil.push({ id: u.id, tarikh: u.tarikh, tajuk: u.tajuk, lulus_min: u.lulus_min,
-      items: u.items, bengkung: p.bengkung || '', markah: kunci ? m[kunci] : {} });
+      items: (Array.isArray(p.items) && p.items.length) ? p.items : u.items, bengkung: p.bengkung || '', markah: kunci ? m[kunci] : {} });
   });
   return hasil;
 }

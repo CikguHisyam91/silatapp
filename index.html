@@ -1501,16 +1501,22 @@ function ubHariIni() {
 }
 
 // Kira jumlah markah seorang pesilat
+// Item ujian seorang pesilat: senarai khas (jika ada) atau item umum ujian
+function ubItems(uj, p) {
+  if (p && typeof p !== 'object') p = (uj.peserta || []).find(x => String(x.no_kp) === String(p));
+  return p && Array.isArray(p.items) && p.items.length ? p.items : (uj.items || []);
+}
 function ubKira(uj, noKp) {
   const m = (uj.markah || {})[noKp] || {};
-  const maks = uj.items.length * 10;
+  const items = ubItems(uj, noKp);
+  const maks = items.length * 10;
   let jumlah = 0, diisi = 0;
-  uj.items.forEach((it, i) => {
+  items.forEach((it, i) => {
     const v = m[i];
     if (v !== undefined && v !== null && v !== '') { jumlah += Number(v) || 0; diisi++; }
   });
   const peratus = maks ? Math.round(jumlah / maks * 1000) / 10 : 0;
-  const lengkap = diisi === uj.items.length && uj.items.length > 0;
+  const lengkap = diisi === items.length && items.length > 0;
   return { jumlah, maks, peratus, diisi, lengkap, lulus: lengkap && peratus >= uj.lulus_min };
 }
 
@@ -1552,11 +1558,12 @@ async function ubBorangBaru() {
   await ubPaparBorang();
 }
 
-function ubEdit() {
+async function ubEdit(keAhli) {
   const u = UB.semasa;
   UB.pilih = {};
   u.peserta.forEach(p => { UB.pilih[p.no_kp] = true; });
-  ubPaparBorang();
+  await ubPaparBorang();
+  if (keAhli) { const c = document.getElementById('ub-cari'); if (c) { c.scrollIntoView({ block: 'start' }); c.focus(); } }
 }
 
 async function ubPaparBorang() {
@@ -1618,7 +1625,11 @@ function ubBuangItem(i) {
   if (UB.semasa.id && Object.keys(UB.semasa.markah || {}).length && !confirm('Item ini mungkin sudah ada markah. Buang juga?')) return;
   UB.semasa.items.splice(i, 1);
   // anjak markah supaya indeks kekal betul
-  Object.values(UB.semasa.markah || {}).forEach(m => {
+  const khas = {};
+  (UB.semasa.peserta || []).forEach(p => { if (Array.isArray(p.items) && p.items.length) khas[p.no_kp] = true; });
+  Object.keys(UB.semasa.markah || {}).forEach(kp => {
+    if (khas[kp]) return; // pesilat dengan item khas tidak terjejas
+    const m = UB.semasa.markah[kp];
     const baru = {};
     Object.keys(m).forEach(k => { const n = Number(k); if (n < i) baru[n] = m[k]; else if (n > i) baru[n - 1] = m[k]; });
     Object.keys(m).forEach(k => delete m[k]); Object.assign(m, baru);
@@ -1704,13 +1715,13 @@ function ubBukaSemasa() {
   const baris = u.peserta.map((p, i) => {
     const k = ubKira(u, p.no_kp);
     const status = k.lengkap ? (k.lulus ? '<span class="badge hijau">LULUS</span>' : '<span class="badge merah">GAGAL</span>') :
-      (k.diisi ? '<span class="badge kuning">' + k.diisi + '/' + u.items.length + '</span>' : '<span class="badge abu">Belum</span>');
+      (k.diisi ? '<span class="badge kuning">' + k.diisi + '/' + ubItems(u, p).length + '</span>' : '<span class="badge abu">Belum</span>');
     return `
     <div class="senarai-item" onclick="ubRekod(${i})">
       <div class="avatar" style="color:var(--c2)">${escapeHtml((p.nama || '?')[0])}</div>
       <div class="item-info">
         <div class="item-nama">${escapeHtml(p.nama)}</div>
-        <div style="margin-top:5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${chipBengkung(p.bengkung)}${k.diisi ? '<span style="font-size:12px;color:var(--muted)">' + k.jumlah + '/' + k.maks + ' (' + k.peratus + '%)</span>' : ''}</div>
+        <div style="margin-top:5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">${chipBengkung(p.bengkung)}${Array.isArray(p.items) && p.items.length ? '<span class="badge abu" style="font-size:10px"><i class="ti ti-adjustments"></i> ' + p.items.length + ' item khas</span>' : ''}${k.diisi ? '<span style="font-size:12px;color:var(--muted)">' + k.jumlah + '/' + k.maks + ' (' + k.peratus + '%)</span>' : ''}</div>
       </div>
       ${status}
     </div>`;
@@ -1726,6 +1737,7 @@ function ubBukaSemasa() {
       <button class="btn btn-pri" onclick="ubJanaBorang()"><i class="ti ti-printer"></i> Jana Borang</button>
       <button class="btn" style="background:#60A5FA" onclick="ubKeputusan()"><i class="ti ti-trophy"></i> Keputusan</button>
     </div>
+    <button class="btn btn-outline btn-blok" style="margin-bottom:10px" onclick="ubEdit(true)"><i class="ti ti-user-plus"></i> Tambah / Buang Pesilat</button>
     <div class="kad-row">
       <button class="btn btn-outline" onclick="ubEdit()"><i class="ti ti-edit"></i> Edit Ujian</button>
       <button class="btn btn-outline" style="color:var(--c6)" onclick="ubPadam()"><i class="ti ti-trash"></i> Padam</button>
@@ -1750,6 +1762,8 @@ function ubRekod(i) {
   const p = u.peserta[i];
   if (!u.markah[p.no_kp]) u.markah[p.no_kp] = {};
   const m = u.markah[p.no_kp];
+  const items = ubItems(u, p);
+  const khas = items !== u.items;
   const main = getMain();
   main.innerHTML = `
     <button class="btn btn-outline btn-blok" style="margin-bottom:12px" onclick="ubKembaliDariRekod()"><i class="ti ti-arrow-left"></i> Simpan &amp; Senarai Pesilat</button>
@@ -1758,7 +1772,11 @@ function ubRekod(i) {
       <div class="profil-id">${escapeHtml(p.id_ahli || '')} · ${escapeHtml(p.jantina || '—')} · ${p.usia != null ? p.usia + ' tahun' : '—'}</div>
       <div style="margin-top:12px">${chipBengkung(p.bengkung, true)}</div>
     </div>
-    ${u.items.map((it, j) => `
+    <div class="kad" style="display:flex;align-items:center;gap:10px;padding:12px 14px">
+      <div style="flex:1;font-size:13px">${khas ? '<b style="color:var(--c2)"><i class="ti ti-adjustments"></i> Item khas</b> · ' + items.length + ' item untuk pesilat ini' : '<span style="color:var(--muted)">Item umum ujian (' + items.length + ' item)</span>'}</div>
+      <button class="btn btn-outline" style="padding:8px 12px;flex-shrink:0" onclick="ubBukaItemPesilat()"><i class="ti ti-list-check"></i> Ubah Item</button>
+    </div>
+    ${items.map((it, j) => `
       <div class="kad">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
           <div style="font-weight:700">${j + 1}. ${escapeHtml(it)}</div>
@@ -1798,7 +1816,7 @@ function ubKemasJumlah() {
   el.innerHTML = `
     <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700">Jumlah Markah</div>
     <div style="font-size:34px;font-weight:900;color:${warna}">${k.jumlah} / ${k.maks}</div>
-    <div style="font-weight:700;color:${warna}">${k.peratus}% · ${k.lengkap ? (k.lulus ? 'LULUS ✅' : 'GAGAL ❌') : 'Belum lengkap (' + k.diisi + '/' + u.items.length + ')'}</div>`;
+    <div style="font-weight:700;color:${warna}">${k.peratus}% · ${k.lengkap ? (k.lulus ? 'LULUS ✅' : 'GAGAL ❌') : 'Belum lengkap (' + k.diisi + '/' + ubItems(u, p).length + ')'}</div>`;
 }
 
 async function ubSimpanMarkah(senyap) {
@@ -1844,6 +1862,86 @@ async function ubLangkah(arah) {
   if (n >= 0 && n < UB.semasa.peserta.length) ubRekod(n);
 }
 
+// ── 4b. Item khas seorang pesilat ────────────────────────────
+async function ubBukaItemPesilat() {
+  if (_ubBerubah && !(await ubSimpanMarkah(true))) return;
+  const u = UB.semasa, p = u.peserta[UB.pesertaIdx];
+  const semasa = ubItems(u, p);
+  const semua = u.items.slice();
+  semasa.forEach(it => { if (semua.indexOf(it) < 0) semua.push(it); });
+  UB.ip = semua.map(it => ({ nama: it, on: semasa.indexOf(it) >= 0 }));
+  const main = getMain();
+  main.innerHTML = `
+    <button class="btn btn-outline btn-blok" style="margin-bottom:12px" onclick="ubRekod(UB.pesertaIdx)"><i class="ti ti-arrow-left"></i> Kembali (tidak simpan)</button>
+    <div class="profil-header">
+      <div class="profil-nama">${escapeHtml(p.nama)}</div>
+      <div style="margin-top:10px">${chipBengkung(p.bengkung, true)}</div>
+    </div>
+    <div class="kad">
+      <div class="seksyen-tajuk" style="margin-top:0">Item Diuji Untuk Pesilat Ini</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Tick item yang diuji sahaja. Markah sedia ada bagi item yang dikekalkan tidak hilang.</div>
+      <div id="ub-ip"></div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <input class="form-input" id="ub-ip-baru" placeholder="Item lain, cth: Tapak Gayong" onkeydown="if(event.key==='Enter')ubIpTambah()">
+        <button class="btn btn-outline" style="flex-shrink:0;padding:9px 14px" onclick="ubIpTambah()"><i class="ti ti-plus"></i></button>
+      </div>
+    </div>
+    <button class="btn btn-outline btn-blok" style="margin-bottom:10px" onclick="ubIpAsal()"><i class="ti ti-refresh"></i> Guna Item Umum Ujian (${u.items.length} item)</button>
+    <button class="btn btn-pri btn-blok" id="ub-btn-ip" onclick="ubIpSimpan()"><i class="ti ti-device-floppy"></i> Simpan Item</button>`;
+  ubIpLukis();
+  main.scrollTop = 0;
+}
+function ubIpLukis() {
+  const el = document.getElementById('ub-ip');
+  if (!el) return;
+  el.innerHTML = UB.ip.map((x, i) => `
+    <div class="item-kehadiran" onclick="ubIpTog(${i})" style="cursor:pointer">
+      <div class="item-info"><div class="item-nama" style="font-size:14px">${escapeHtml(x.nama)}</div>
+        ${UB.semasa.items.indexOf(x.nama) < 0 ? '<div class="item-sub">Item tambahan</div>' : ''}</div>
+      <div class="toggle-hadir ${x.on ? 'on' : ''}"></div>
+    </div>`).join('');
+}
+function ubIpTog(i) { UB.ip[i].on = !UB.ip[i].on; ubIpLukis(); }
+function ubIpTambah() {
+  const inp = document.getElementById('ub-ip-baru');
+  const v = String(inp.value || '').trim();
+  if (!v) return;
+  const ada = UB.ip.find(x => x.nama.toLowerCase() === v.toLowerCase());
+  if (ada) ada.on = true; else UB.ip.push({ nama: v, on: true });
+  inp.value = ''; inp.focus();
+  ubIpLukis();
+}
+function ubIpAsal() { UB.ip.forEach(x => { x.on = UB.semasa.items.indexOf(x.nama) >= 0; }); ubIpLukis(); }
+async function ubIpSimpan() {
+  const u = UB.semasa, p = u.peserta[UB.pesertaIdx];
+  const baru = UB.ip.filter(x => x.on).map(x => x.nama);
+  if (!baru.length) { tunjukToast('Tick sekurang-kurangnya satu item', 'ralat'); return; }
+  const lamaItems = ubItems(u, p), lamaM = (u.markah || {})[p.no_kp] || {};
+  const hilang = lamaItems.filter((it, j) => baru.indexOf(it) < 0 && lamaM[j] !== undefined && lamaM[j] !== '');
+  if (hilang.length && !confirm('Markah bagi item ini akan dibuang:\n• ' + hilang.join('\n• ') + '\n\nTeruskan?')) return;
+  // Pindah markah ikut nama item supaya tidak tersalah item
+  const m = {};
+  baru.forEach((it, j) => { const k = lamaItems.indexOf(it); if (k >= 0 && lamaM[k] !== undefined && lamaM[k] !== '') m[j] = lamaM[k]; });
+  const sama = baru.length === u.items.length && baru.every((it, j) => it === u.items[j]);
+  const salinan = JSON.parse(JSON.stringify(u));
+  if (sama) delete salinan.peserta[UB.pesertaIdx].items; else salinan.peserta[UB.pesertaIdx].items = baru;
+  salinan.markah[p.no_kp] = m;
+  const btn = document.getElementById('ub-btn-ip');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Menyimpan...'; }
+  try {
+    await apiPostBesar({ tindakan: 'simpan_ujian', id: salinan.id, tarikh: salinan.tarikh, tajuk: salinan.tajuk, lulus_min: salinan.lulus_min, items: salinan.items, peserta: salinan.peserta, markah: salinan.markah });
+    UB.semasa = salinan;
+    const idx = UB.senarai.findIndex(x => x.id === salinan.id);
+    if (idx >= 0) UB.senarai[idx] = JSON.parse(JSON.stringify(salinan));
+    _ubBerubah = false;
+    tunjukToast('✅ Item pesilat disimpan');
+    ubRekod(UB.pesertaIdx);
+  } catch (err) {
+    tunjukToast('Gagal simpan: ' + err.message, 'ralat');
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Simpan Item'; }
+  }
+}
+
 // ── 5. Jana borang PDF (1 page seorang) ──────────────────────
 function ubJanaBorang() {
   const u = UB.semasa;
@@ -1854,7 +1952,7 @@ function ubJanaBorang() {
     const m = (u.markah || {})[p.no_kp] || {};
     const k = ubKira(u, p.no_kp);
     const ada = k.diisi > 0;
-    const rows = u.items.map((it, j) => {
+    const rows = ubItems(u, p).map((it, j) => {
       const v = m[j];
       const kotak = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => `<td class="bx ${String(v) === String(n) ? 'tk' : ''}">${n}</td>`).join('');
       return `<tr><td class="no">${j + 1}</td><td class="it">${escapeHtml(it)}</td>${kotak}<td class="mk">${v !== undefined && v !== '' ? v : ''}</td></tr>`;
@@ -1953,7 +2051,7 @@ function ubKeputusan(mod) {
   if (tab === 'lulus') {
     isi = `<div class="seksyen-tajuk">✅ Lulus (${lulus.length})</div>${lulus.map(d => baris(d, 0)).join('') || '<div style="color:var(--muted);padding:10px">Tiada lagi yang lulus.</div>'}`;
     if (gagal.length) isi += `<div class="seksyen-tajuk">❌ Belum Lulus (${gagal.length})</div>` + gagal.map(d => baris(d, 0).replace('color:var(--c3)"><i class="ti ti-check">', 'color:var(--c6)"><i class="ti ti-x">')).join('');
-    if (belum.length) isi += `<div class="seksyen-tajuk">⏳ Belum Dinilai Lengkap (${belum.length})</div>` + belum.map(d => `<div class="senarai-item" style="cursor:default"><div class="item-info"><div class="item-nama">${escapeHtml(d.nama)}</div><div class="item-sub">${d.diisi}/${u.items.length} item dinilai</div></div></div>`).join('');
+    if (belum.length) isi += `<div class="seksyen-tajuk">⏳ Belum Dinilai Lengkap (${belum.length})</div>` + belum.map(d => `<div class="senarai-item" style="cursor:default"><div class="item-info"><div class="item-nama">${escapeHtml(d.nama)}</div><div class="item-sub">${d.diisi}/${ubItems(u, d).length} item dinilai</div></div></div>`).join('');
   } else {
     const kunci = UB.kump;
     const kump = {};
