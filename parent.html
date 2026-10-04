@@ -45,6 +45,26 @@ button{cursor:pointer;border:none;font-family:inherit;color:inherit;background:n
 .ptab{flex:1;padding:11px 6px;text-align:center;font-size:13px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
 .ptab.aktif{color:var(--txt);border-bottom-color:var(--accent)}
 #portal-main{padding:16px;max-width:640px;margin:0 auto}
+/* ── Keputusan Ujian ── */
+.uj-ringkas{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.uj-ringkas div{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 6px;text-align:center}
+.uj-ringkas b{display:block;font-size:22px;font-weight:800}
+.uj-ringkas span{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+.uj-kad{background:var(--surface);border:1px solid var(--line);border-radius:14px;margin-bottom:12px;overflow:hidden}
+.uj-kepala{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
+.uj-bulat{width:58px;height:58px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+.uj-tajuk{font-weight:700;font-size:14px;line-height:1.3}
+.uj-sub{font-size:11px;color:var(--muted);margin-top:3px}
+.uj-lencana{display:inline-block;margin-top:6px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:.4px}
+.uj-butir{border-top:1px solid var(--line);padding:12px 16px;display:none}
+.uj-kad.buka .uj-butir{display:block}
+.uj-kad.buka .uj-anak{transform:rotate(180deg)}
+.uj-anak{color:var(--muted);transition:transform .2s;margin-left:auto}
+.uj-item{margin-bottom:10px}
+.uj-item-atas{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px}
+.uj-bar{height:8px;background:var(--surface-3);border-radius:6px;overflow:hidden}
+.uj-bar i{display:block;height:100%;border-radius:6px}
+.uj-nota{font-size:11px;color:var(--muted);text-align:center;margin-top:6px}
 
 /* ── Log masuk ── */
 #login-box{max-width:360px;margin:56px auto;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:28px 22px;text-align:center}
@@ -246,6 +266,7 @@ button{cursor:pointer;border:none;font-family:inherit;color:inherit;background:n
     <div class="portal-nav">
       <div class="ptab aktif" onclick="tukartab('profil',this)">Profil</div>
       <div class="ptab" onclick="tukartab('kehadiran',this)">Kehadiran</div>
+      <div class="ptab" onclick="tukartab('ujian',this)">🏅 Ujian</div>
       <div class="ptab" onclick="tukartab('laporan',this)">📋 Laporan</div>
       <div class="ptab" onclick="tukartab('silibus',this)">📖 Silibus</div>
     </div>
@@ -356,6 +377,7 @@ function tukartab(tab,el) {
 function renderTab(tab) {
   if(tab==='profil') renderProfil();
   else if(tab==='kehadiran') renderKehadiran();
+  else if(tab==='ujian') renderUjian();
   else if(tab==='laporan') renderLaporan();
   else if(tab==='silibus') renderSilibus();
 }
@@ -1196,9 +1218,93 @@ function bukaPdpaParent() {
   document.body.appendChild(m);
 }
 
+// ═══ Keputusan Ujian Bengkung ═══
+function kiraUjianP(u) {
+  const m = u.markah || {}, n = (u.items || []).length, maks = n * 10;
+  let jumlah = 0, diisi = 0;
+  (u.items || []).forEach((it, i) => { const v = m[i]; if (v !== undefined && v !== null && v !== '') { jumlah += Number(v) || 0; diisi++; } });
+  const peratus = maks ? Math.round(jumlah / maks * 1000) / 10 : 0;
+  const lengkap = n > 0 && diisi === n;
+  return { jumlah, maks, peratus, diisi, lengkap, lulus: lengkap && peratus >= (Number(u.lulus_min) || 50) };
+}
+function fmtTarikhP(t) {
+  const m = String(t || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return t || '—';
+  return Number(m[3]) + ' ' + ['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogo','Sep','Okt','Nov','Dis'][Number(m[2]) - 1] + ' ' + m[1];
+}
+async function muatUjianAnak() {
+  const kp = dataAnak.NO_KP;
+  try { return await api('ujian_ahli', { no_kp: kp }); }
+  catch (e) {
+    // API lama (belum Deploy versi baharu) — tapis di telefon
+    if (!/tidak dikenali/i.test(e.message)) throw e;
+    const semua = await api('senarai_ujian');
+    const norm = v => { let s = String(v == null ? '' : v).trim(); if (/^\d{11}$/.test(s)) s = '0' + s; return s; };
+    const k = norm(kp);
+    return (semua || []).map(u => {
+      const p = (u.peserta || []).find(x => norm(x.no_kp) === k);
+      if (!p) return null;
+      const kunci = Object.keys(u.markah || {}).find(x => norm(x) === k);
+      return { id: u.id, tarikh: u.tarikh, tajuk: u.tajuk, lulus_min: u.lulus_min, items: u.items, bengkung: p.bengkung || '', markah: kunci ? u.markah[kunci] : {} };
+    }).filter(Boolean);
+  }
+}
+async function renderUjian() {
+  const main = document.getElementById('portal-main');
+  main.innerHTML = '<div class="muat"><i class="ti ti-loader-2 spin"></i> Memuatkan keputusan ujian...</div>';
+  let senarai;
+  try { senarai = await muatUjianAnak(); }
+  catch (e) {
+    if (tabAktif !== 'ujian') return;
+    main.innerHTML = '<div class="kad" style="text-align:center;color:var(--muted)">Gagal memuatkan keputusan ujian.<br><br><button class="login-btn" style="width:auto;padding:10px 20px" onclick="renderUjian()">Cuba Semula</button></div>';
+    return;
+  }
+  if (tabAktif !== 'ujian') return;
+  senarai = (senarai || []).sort((a, b) => String(b.tarikh).localeCompare(String(a.tarikh)));
+  if (!senarai.length) {
+    main.innerHTML = '<div class="kad" style="text-align:center;padding:30px 16px;color:var(--muted)"><div style="font-size:40px;margin-bottom:8px">🏅</div><div style="font-weight:700;color:var(--txt)">Belum ada keputusan ujian</div><div style="font-size:12px;margin-top:6px">Keputusan Ujian Bengkung akan dipaparkan di sini selepas anak menduduki ujian.</div></div>';
+    return;
+  }
+  const k = senarai.map(kiraUjianP);
+  const siap = k.filter(x => x.lengkap);
+  const lulus = siap.filter(x => x.lulus).length;
+  const terbaik = siap.length ? Math.max(...siap.map(x => x.peratus)) : null;
+  let h = '<div class="uj-ringkas">' +
+    '<div><b>' + senarai.length + '</b><span>Ujian</span></div>' +
+    '<div><b style="color:var(--ok)">' + lulus + '</b><span>Lulus</span></div>' +
+    '<div><b style="color:var(--accent)">' + (terbaik == null ? '—' : terbaik + '%') + '</b><span>Terbaik</span></div></div>';
+  senarai.forEach((u, i) => {
+    const r = k[i];
+    const warna = !r.lengkap ? 'var(--muted)' : r.lulus ? 'var(--ok)' : 'var(--bad)';
+    const rgb = !r.lengkap ? '138,145,158' : r.lulus ? '76,195,138' : '242,112,107';
+    const lencana = !r.lengkap ? 'DALAM PENILAIAN' : r.lulus ? 'LULUS ✓' : 'BELUM LULUS';
+    const pct = r.lengkap ? r.peratus : 0;
+    h += '<div class="uj-kad' + (i === 0 ? ' buka' : '') + '">' +
+      '<div class="uj-kepala" onclick="this.parentNode.classList.toggle(\'buka\')">' +
+        '<div class="uj-bulat" style="background:conic-gradient(' + warna + ' ' + pct + '%,var(--surface-3) 0);"><div style="width:46px;height:46px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;color:' + warna + '">' + (r.lengkap ? Math.round(r.peratus) + '%' : '…') + '</div></div>' +
+        '<div style="min-width:0"><div class="uj-tajuk">' + esc(u.tajuk || 'Ujian Bengkung') + '</div>' +
+          '<div class="uj-sub">📅 ' + esc(fmtTarikhP(u.tarikh)) + (u.bengkung ? ' · 🥋 ' + esc(u.bengkung) : '') + '</div>' +
+          '<span class="uj-lencana" style="background:rgba(' + rgb + ',.15);color:' + warna + '">' + lencana + '</span></div>' +
+        '<i class="ti ti-chevron-down uj-anak"></i></div>' +
+      '<div class="uj-butir">' +
+        (u.items || []).map((it, j) => {
+          const v = (u.markah || {})[j];
+          const ada = v !== undefined && v !== null && v !== '';
+          const n = ada ? Number(v) || 0 : 0;
+          const wb = n >= 8 ? 'var(--ok)' : n >= 5 ? 'var(--accent)' : 'var(--bad)';
+          return '<div class="uj-item"><div class="uj-item-atas"><span>' + (j + 1) + '. ' + esc(it) + '</span><b style="color:' + (ada ? wb : 'var(--muted)') + '">' + (ada ? n : '–') + '<span style="color:var(--muted);font-weight:400">/10</span></b></div>' +
+            '<div class="uj-bar"><i style="width:' + (n * 10) + '%;background:' + wb + '"></i></div></div>';
+        }).join('') +
+        '<div style="display:flex;justify-content:space-between;border-top:1px dashed var(--line);padding-top:10px;margin-top:4px;font-weight:700"><span>Jumlah</span><span style="color:' + warna + '">' + r.jumlah + ' / ' + r.maks + (r.lengkap ? ' · ' + r.peratus + '%' : '') + '</span></div>' +
+        '<div class="uj-nota">' + (r.lengkap ? 'Markah lulus: ' + (Number(u.lulus_min) || 50) + '%' : 'Penilaian belum lengkap (' + r.diisi + '/' + (u.items || []).length + ' item). Keputusan akhir akan dipaparkan kemudian.') + '</div>' +
+      '</div></div>';
+  });
+  main.innerHTML = h;
+}
+
 function keluar() {
   tutupPemain();
-  dataAnak=null;dataKehadiran=[];dataYuran=[];kumpulanSilibus={};
+  dataAnak=null;tabAktif='profil';dataKehadiran=[];dataYuran=[];kumpulanSilibus={};
   document.getElementById('portal-screen').style.display='none';
   document.getElementById('login-screen').style.display='block';
   document.getElementById('inp-kp').value='';

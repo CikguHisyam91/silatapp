@@ -120,6 +120,7 @@ function doGet(e) {
       case 'senarai_galeri'     : return balas(getSenaraiGaleri(e), cb);
       case 'stat_hadir_trend'   : return balas(getStatHadirTrend(e), cb);
       case 'senarai_ujian'      : return balas(getSenaraiUjian(), cb);
+      case 'ujian_ahli'         : return balas(getUjianAhli(e), cb);
       case 'data_opr'           : return balas(getDataOPR(e), cb);
       default: return balasRalat('Tindakan tidak dikenali: '+tindakan, cb);
     }
@@ -1567,6 +1568,22 @@ function getSenaraiUjian() {
     });
   }
   hasil.sort((a, b) => b.tarikh.localeCompare(a.tarikh));
+  return hasil;
+}
+
+// Portal Ibu Bapa — keputusan ujian SEORANG pesilat sahaja (tiada data pesilat lain)
+function getUjianAhli(e) {
+  const kp = normKP(e.parameter.no_kp);
+  if (!kp) throw new Error('No. KP diperlukan');
+  const hasil = [];
+  getSenaraiUjian().forEach(u => {
+    const p = (u.peserta || []).find(x => samaKP(x.no_kp, kp));
+    if (!p) return;
+    const m = u.markah || {};
+    const kunci = Object.keys(m).find(k => samaKP(k, kp));
+    hasil.push({ id: u.id, tarikh: u.tarikh, tajuk: u.tajuk, lulus_min: u.lulus_min,
+      items: u.items, bengkung: p.bengkung || '', markah: kunci ? m[kunci] : {} });
+  });
   return hasil;
 }
 
