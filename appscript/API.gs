@@ -72,6 +72,8 @@ function doGet(e) {
         case 'simpan_ujian'         : return balas(simpanUjian(body), cb);
         case 'simpan_markah_ujian'  : return balas(simpanMarkahUjian(body), cb);
         case 'padam_ujian'          : return balas(padamUjian(body), cb);
+        case 'simpan_markah_pesilat': return balas(simpanUjianPesilat(body, false), cb);
+        case 'simpan_item_pesilat'  : return balas(simpanUjianPesilat(body, true), cb);
         case 'tambah_latihan'       : return balas(tambahLatihan(body), cb);
         case 'rekod_latihan'        : return balas(rekodLatihanKendiri(body), cb);
         case 'padam_latihan'        : return balas(padamLatihan(body), cb);
@@ -1628,6 +1630,30 @@ function simpanMarkahUjian(b) {
     sh.getRange(baris, 8).setValue(Utilities.formatDate(new Date(), 'Asia/Kuala_Lumpur', 'dd/MM/yyyy HH:mm'));
     SpreadsheetApp.flush();
     return { id: b.id, mesej: 'Markah disimpan' };
+  } finally { lock.releaseLock(); }
+}
+
+// Simpan markah (dan item khas) SEORANG pesilat sahaja — data kecil, sesuai dihantar melalui JSONP
+function simpanUjianPesilat(b, denganItem) {
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const sh = _sheetUjian();
+    const baris = _cariBarisUjian(sh, b.id);
+    if (baris < 0) throw new Error('Ujian tidak dijumpai');
+    const peserta = _jsonSelamat(sh.getRange(baris, 6).getValue(), []);
+    const p = peserta.find(x => samaKP(x.no_kp, b.no_kp));
+    if (!p) throw new Error('Pesilat tiada dalam ujian ini');
+    const markah = _jsonSelamat(sh.getRange(baris, 7).getValue(), {});
+    Object.keys(markah).forEach(k => { if (samaKP(k, p.no_kp) && k !== String(p.no_kp)) delete markah[k]; });
+    markah[String(p.no_kp)] = b.markah || {};
+    if (denganItem) {
+      if (Array.isArray(b.items) && b.items.length) p.items = b.items.map(String); else delete p.items;
+      sh.getRange(baris, 6).setValue(_semakSaizSel(JSON.stringify(peserta), 'peserta'));
+    }
+    sh.getRange(baris, 7).setValue(_semakSaizSel(JSON.stringify(markah), 'markah'));
+    sh.getRange(baris, 8).setValue(Utilities.formatDate(new Date(), 'Asia/Kuala_Lumpur', 'dd/MM/yyyy HH:mm'));
+    SpreadsheetApp.flush();
+    return { id: b.id, mesej: 'Disimpan' };
   } finally { lock.releaseLock(); }
 }
 
