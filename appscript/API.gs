@@ -1,5 +1,5 @@
 // ============================================================
-//  SILATAPP — WEB API v3 (dibaiki)
+//  SILATAPP — WEB API v4  (dikemas kini 5 Okt 2026)
 //  Selepas paste kod baru, klik:
 //  Deploy > Manage Deployments > Edit > Version: New version > Deploy
 //
@@ -15,7 +15,14 @@
 //   8. Router: kes berganda dibuang; kemaskini_ahli guna versi selamat
 //   9. Kehadiran dilindungi LockService (elak rekod berganda)
 //  10. OPR: senarai nama hadir & kiraan yuran dibetulkan
+//
+//  Tambahan v4:
+//  11. Ujian Bengkung: simpan markah / item khas SEORANG pesilat
+//      (simpan_markah_pesilat, simpan_item_pesilat) — lebih laju
+//  12. Portal Ibu Bapa: keputusan ujian anak sahaja (ujian_ahli)
+//  13. Semak versi API dari aplikasi (tindakan=versi)
 // ============================================================
+const VERSI_API = 4;
 
 const NAMA_SHEET = {
   AHLI:'AHLI', KEHADIRAN:'KEHADIRAN', YURAN:'YURAN',
@@ -123,6 +130,7 @@ function doGet(e) {
       case 'stat_hadir_trend'   : return balas(getStatHadirTrend(e), cb);
       case 'senarai_ujian'      : return balas(getSenaraiUjian(), cb);
       case 'ujian_ahli'         : return balas(getUjianAhli(e), cb);
+      case 'versi'              : return balas({ versi: VERSI_API }, cb);
       case 'data_opr'           : return balas(getDataOPR(e), cb);
       default: return balasRalat('Tindakan tidak dikenali: '+tindakan, cb);
     }

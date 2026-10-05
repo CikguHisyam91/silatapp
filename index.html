@@ -1516,7 +1516,7 @@ let UB = { senarai: [], semasa: null, ahli: [], pilih: {}, cari: '', kump: 'beng
 // fetch POST — muat data besar (markah ramai pesilat) tanpa had panjang URL
 let _postRosak = false; // POST pernah gagal pada peranti ini — terus guna cara biasa
 async function apiPostBesar(data) {
-  const kecil = encodeURIComponent(JSON.stringify(data)).length < 7500;
+  const kecil = encodeURIComponent(JSON.stringify(data)).length < 14000;
   if (_postRosak && kecil) return apiPost(data);
   let json = null, masalah = '';
   try {
@@ -1532,6 +1532,29 @@ async function apiPostBesar(data) {
 }
 
 // Simpan data seorang pesilat (kecil, melalui JSONP). Jika Apps Script belum dikemas kini, guna cara lama.
+// Semak sama ada Apps Script sudah versi 4 (ada simpanan pantas seorang pesilat)
+let _versiAPI = null;
+async function ubSemakVersiAPI() {
+  if (_versiAPI === null) {
+    try { const r = await api('versi'); _versiAPI = Number(r && r.versi) || 0; }
+    catch (e) { _versiAPI = /tidak dikenali/i.test(e.message) ? 0 : 99; } // ralat lain: jangan tunjuk amaran
+  }
+  if (_versiAPI && _versiAPI < 4) _ubApiLama = true;
+  if (_versiAPI === 0) _ubApiLama = true;
+  return _versiAPI >= 4;
+}
+function ubAmaranVersi() {
+  return `<div class="kad" style="border-color:rgba(var(--warn-rgb),.5);background:rgba(var(--warn-rgb),.08)">
+    <div style="font-weight:800;color:var(--warn);margin-bottom:6px"><i class="ti ti-alert-triangle"></i> Apps Script belum dikemas kini</div>
+    <div style="font-size:13px;line-height:1.5">Simpan markah jadi lambat dan <b>Ubah Item</b> pesilat boleh gagal. Kemas kini sekali sahaja:</div>
+    <ol style="font-size:13px;line-height:1.6;margin:8px 0 0 18px;padding:0">
+      <li>Buka <a href="https://github.com/CikguHisyam91/silatapp/blob/main/appscript/API.gs" target="_blank" rel="noopener" style="color:var(--accent)">API.gs di GitHub</a> → butang <b>Copy raw file</b></li>
+      <li>Apps Script → fail yang ada <b>doGet</b> → padam semua &amp; tampal → <b>Simpan</b></li>
+      <li><b>Deploy → Manage deployments → ✏️ → New version → Deploy</b></li>
+    </ol>
+    <div style="font-size:12px;color:var(--muted);margin-top:6px">Baris pertama kod yang betul: <b>SILATAPP — WEB API v4</b></div>
+  </div>`;
+}
 let _ubApiLama = false; // Apps Script belum kenal tindakan baharu — terus guna cara lama
 async function ubTulisPesilat(tindakan, data, lama) {
   if (_ubApiLama) return apiPostBesar(lama);
@@ -1646,7 +1669,9 @@ async function renderUjianBengkung(paksa) {
         </div>
       </div>`;
     }).join('');
+    const versiOk = await ubSemakVersiAPI();
     main.innerHTML = `
+      ${versiOk ? '' : ubAmaranVersi()}
       <button class="btn btn-pri btn-blok" style="margin-bottom:14px" onclick="ubBorangBaru()"><i class="ti ti-plus"></i> Ujian Baharu</button>
       <div class="seksyen-tajuk">Senarai Ujian Bengkung</div>
       ${kad || '<div class="kosong" style="text-align:center;padding:30px;color:var(--muted)"><i class="ti ti-certificate"></i><p>Belum ada ujian. Tekan <b>Ujian Baharu</b> untuk mula.</p></div>'}`;
