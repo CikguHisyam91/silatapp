@@ -627,6 +627,7 @@ function formatTarikh(val) {
 }
 
 // ── Pembantu API (JSONP — fix CORS) ──────────────────────────
+const MSG_API_ROSAK = 'Pelayan Apps Script tidak memulangkan data. Semak Deploy: "Who has access" mesti "Anyone".';
 function api(tindakan, params = {}) {
   return new Promise((resolve, reject) => {
     const cbName = 'jsonp_' + Date.now() + '_' + Math.random().toString(36).slice(2);
@@ -655,6 +656,14 @@ function api(tindakan, params = {}) {
       script.remove();
       reject(new Error('Gagal sambung ke pelayan'));
     };
+    // Skrip dimuat tetapi tiada data (cth. halaman log masuk/ralat Google) — beritahu terus, jangan tunggu 20 saat
+    script.onload = () => setTimeout(() => {
+      if (!window[cbName]) return;
+      clearTimeout(timer);
+      delete window[cbName];
+      script.remove();
+      reject(new Error(MSG_API_ROSAK));
+    }, 50);
     document.head.appendChild(script);
   });
 }
@@ -686,6 +695,13 @@ function apiPost(data) {
     const script   = document.createElement('script');
     script.id      = cbName;
     script.src     = url.toString();
+    script.onload = () => setTimeout(() => {
+      if (!window[cbName]) return;
+      clearTimeout(timer);
+      delete window[cbName];
+      script.remove();
+      reject(new Error(MSG_API_ROSAK));
+    }, 50);
     script.onerror = () => {
       clearTimeout(timer);
       delete window[cbName];
@@ -1553,7 +1569,11 @@ async function renderUjianBengkung(paksa) {
       <div class="seksyen-tajuk">Senarai Ujian Bengkung</div>
       ${kad || '<div class="kosong" style="text-align:center;padding:30px;color:var(--muted)"><i class="ti ti-certificate"></i><p>Belum ada ujian. Tekan <b>Ujian Baharu</b> untuk mula.</p></div>'}`;
   } catch (err) {
-    main.innerHTML = `<div class="kosong" style="text-align:center;padding:30px;color:var(--muted)">Gagal memuatkan ujian.<br>${escapeHtml(err.message)}<br><br><button class="btn btn-outline" onclick="renderUjianBengkung(true)">Cuba Semula</button></div>`;
+    const uji = API_URL + '?tindakan=senarai_ujian';
+    main.innerHTML = `<div class="kosong" style="text-align:center;padding:30px 16px;color:var(--muted)">Gagal memuatkan ujian.<br>${escapeHtml(err.message)}<br><br>
+      <button class="btn btn-outline btn-blok" onclick="renderUjianBengkung(true)"><i class="ti ti-refresh"></i> Cuba Semula</button>
+      <a class="btn btn-outline btn-blok" style="margin-top:10px;text-decoration:none" href="${escapeAttr(uji)}" target="_blank" rel="noopener"><i class="ti ti-stethoscope"></i> Semak Pelayan (buka pautan ujian)</a>
+      <div style="font-size:12px;margin-top:10px">Jika pautan menunjukkan <b>{"ok":true,...}</b>, pelayan baik. Jika keluar halaman log masuk atau ralat, ambil gambar skrin dan hantar kepada pembangun.</div></div>`;
   }
 }
 
