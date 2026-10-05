@@ -1465,15 +1465,22 @@ let UB = { senarai: [], semasa: null, ahli: [], pilih: {}, cari: '', kump: 'beng
 
 // fetch POST — muat data besar (markah ramai pesilat) tanpa had panjang URL
 async function apiPostBesar(data) {
-  let res;
+  let json = null, masalah = '';
   try {
-    res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(data) });
-  } catch (e) { throw new Error('Gagal sambung — semak internet'); }
-  if (!res.ok) throw new Error('Ralat pelayan (' + res.status + ')');
-  let json;
-  try { json = await res.json(); } catch (e) { throw new Error('Jawapan pelayan tidak sah — pastikan Apps Script sudah di-Deploy versi terbaru'); }
-  if (!json.ok) throw new Error(json.error || 'Ralat API');
-  return json.data;
+    const res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(data) });
+    if (!res.ok) masalah = 'Ralat pelayan (' + res.status + ')';
+    else { try { json = await res.json(); } catch (e) { masalah = 'Jawapan pelayan tidak sah'; } }
+  } catch (e) { masalah = 'Gagal sambung'; }
+  if (json) { if (!json.ok) throw new Error(json.error || 'Ralat API'); return json.data; }
+  // POST gagal (cth. 404 pada sesetengah akaun/pelayar Google) — cuba cara biasa (JSONP) jika data tidak terlalu besar
+  if (encodeURIComponent(JSON.stringify(data)).length < 7500) return apiPost(data);
+  throw new Error(masalah + ' — data terlalu besar untuk cara ganti. Deploy semula Apps Script versi terbaru, kemudian cuba lagi.');
+}
+
+// Simpan data seorang pesilat (kecil, melalui JSONP). Jika Apps Script belum dikemas kini, guna cara lama.
+async function ubTulisPesilat(tindakan, data, lama) {
+  try { return await apiPost(Object.assign({ tindakan: tindakan }, data)); }
+  catch (e) { if (/tidak dikenali/i.test(e.message)) return apiPostBesar(lama); throw e; }
 }
 
 function ubKumpUsia(u) {
@@ -1823,7 +1830,9 @@ async function ubSimpanMarkah(senyap) {
   const btn = document.getElementById('ub-btn-markah');
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Menyimpan...'; }
   try {
-    await apiPostBesar({ tindakan: 'simpan_markah_ujian', id: UB.semasa.id, markah: UB.semasa.markah });
+    const p = UB.semasa.peserta[UB.pesertaIdx];
+    await ubTulisPesilat('simpan_markah_pesilat', { id: UB.semasa.id, no_kp: p.no_kp, markah: UB.semasa.markah[p.no_kp] || {} },
+      { tindakan: 'simpan_markah_ujian', id: UB.semasa.id, markah: UB.semasa.markah });
     const idx = UB.senarai.findIndex(x => x.id === UB.semasa.id);
     if (idx >= 0) UB.senarai[idx] = JSON.parse(JSON.stringify(UB.semasa));
     _ubBerubah = false;
@@ -1929,7 +1938,8 @@ async function ubIpSimpan() {
   const btn = document.getElementById('ub-btn-ip');
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Menyimpan...'; }
   try {
-    await apiPostBesar({ tindakan: 'simpan_ujian', id: salinan.id, tarikh: salinan.tarikh, tajuk: salinan.tajuk, lulus_min: salinan.lulus_min, items: salinan.items, peserta: salinan.peserta, markah: salinan.markah });
+    await ubTulisPesilat('simpan_item_pesilat', { id: salinan.id, no_kp: p.no_kp, items: sama ? [] : baru, markah: m },
+      { tindakan: 'simpan_ujian', id: salinan.id, tarikh: salinan.tarikh, tajuk: salinan.tajuk, lulus_min: salinan.lulus_min, items: salinan.items, peserta: salinan.peserta, markah: salinan.markah });
     UB.semasa = salinan;
     const idx = UB.senarai.findIndex(x => x.id === salinan.id);
     if (idx >= 0) UB.senarai[idx] = JSON.parse(JSON.stringify(salinan));
