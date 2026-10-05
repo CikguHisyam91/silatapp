@@ -622,7 +622,7 @@ function janID_Ahli() {
 // ============================================================
 //  FUNGSI TAMBAHAN — Jana ID Kehadiran / Yuran / Sejarah
 // ============================================================
-function janID(prefix) {
+function janIDRawak(prefix) { // nama berbeza — janID() dalam API.gs digunakan untuk ID ahli
   const timestamp = new Date().getTime().toString(36).toUpperCase();
   const rnd       = Math.random().toString(36).slice(2, 6).toUpperCase();
   return prefix + '-' + timestamp + rnd;
