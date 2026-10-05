@@ -295,12 +295,46 @@ button{cursor:pointer;border:none;font-family:inherit;color:inherit;background:n
 <input type="file" id="inp-foto" accept="image/*" capture="environment" style="display:none" onchange="prosesGambar(this)">
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycby9urwBschyHvugUo0a2QxO3DWciTWul2bJuTBRrsmEPIaCCG3QH7Wp4jcpszY674ojSQ/exec';
+
+// ── Sambungan API tanpa kuki Google ──
+// Jika Chrome log masuk beberapa akaun Google, permintaan biasa (JSONP) membawa kuki akaun
+// dan Google membalas "Sorry, unable to open the file". fetch() tanpa kuki = sama seperti
+// mod Inkognito. Jika fetch tidak boleh digunakan, kembali ke cara lama (JSONP).
+let _modFetch = null; // null = belum tahu, true = fetch berfungsi, false = guna JSONP
+async function _fetchAPI(p) {
+  const u = new URL(API_URL);
+  Object.entries(p).forEach(([k, v]) => u.searchParams.set(k, String(v)));
+  const r = await fetch(u.toString(), { credentials: 'omit' });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+async function _apiPintar(p, jsonp, tulis) {
+  if (_modFetch !== false) {
+    let j;
+    try { j = await _fetchAPI(p); _modFetch = true; }
+    catch (e) {
+      // Tulis: jangan hantar dua kali jika fetch sudah terbukti berfungsi
+      if (tulis && _modFetch === true) throw new Error('Gagal sambung — cuba lagi');
+      _modFetch = false;
+      return jsonp();
+    }
+    if (!j.ok) throw new Error(j.error || 'Ralat API');
+    return j.data;
+  }
+  return jsonp();
+}
+function api(tindakan, params = {}) {
+  return _apiPintar(Object.assign({ tindakan: tindakan }, params), () => apiJsonp(tindakan, params), false);
+}
+function apiPost(data) {
+  return _apiPintar({ _data: JSON.stringify(data) }, () => apiPostJsonp(data), true);
+}
 let dataAnak=null,tabAktif='profil',dataKehadiran=[],dataYuran=[],kumpulanSilibus={};
 
 const BULAN_S=['JAN','FEB','MAC','APR','MEI','JUN','JUL','OGS','SEP','OKT','NOV','DIS'];
 const BULAN_P=['JANUARI','FEBRUARI','MAC','APRIL','MEI','JUN','JULAI','OGOS','SEPTEMBER','OKTOBER','NOVEMBER','DISEMBER'];
 
-function api(tindakan,params={}) {
+function apiJsonp(tindakan,params={}) {
   return new Promise((res,rej)=>{
     const cb='cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
     const url=new URL(API_URL);
@@ -314,7 +348,7 @@ function api(tindakan,params={}) {
     document.head.appendChild(s);
   });
 }
-function apiPost(data) {
+function apiPostJsonp(data) {
   return new Promise((res,rej)=>{
     const cb='cb_'+Date.now()+'_'+Math.random().toString(36).slice(2);
     const url=new URL(API_URL);
