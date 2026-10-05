@@ -1514,7 +1514,10 @@ function pilihMenu(halaman) { bukaPage(halaman, halaman); }
 let UB = { senarai: [], semasa: null, ahli: [], pilih: {}, cari: '', kump: 'bengkung', pesertaIdx: 0 };
 
 // fetch POST — muat data besar (markah ramai pesilat) tanpa had panjang URL
+let _postRosak = false; // POST pernah gagal pada peranti ini — terus guna cara biasa
 async function apiPostBesar(data) {
+  const kecil = encodeURIComponent(JSON.stringify(data)).length < 7500;
+  if (_postRosak && kecil) return apiPost(data);
   let json = null, masalah = '';
   try {
     const res = await fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(data), credentials: 'omit' });
@@ -1522,16 +1525,58 @@ async function apiPostBesar(data) {
     else { try { json = await res.json(); } catch (e) { masalah = 'Jawapan pelayan tidak sah'; } }
   } catch (e) { masalah = 'Gagal sambung'; }
   if (json) { if (!json.ok) throw new Error(json.error || 'Ralat API'); return json.data; }
+  _postRosak = true;
   // POST gagal (cth. 404 pada sesetengah akaun/pelayar Google) — cuba cara biasa (JSONP) jika data tidak terlalu besar
-  if (encodeURIComponent(JSON.stringify(data)).length < 7500) return apiPost(data);
+  if (kecil) return apiPost(data);
   throw new Error(masalah + ' — data terlalu besar untuk cara ganti. Deploy semula Apps Script versi terbaru, kemudian cuba lagi.');
 }
 
 // Simpan data seorang pesilat (kecil, melalui JSONP). Jika Apps Script belum dikemas kini, guna cara lama.
+let _ubApiLama = false; // Apps Script belum kenal tindakan baharu — terus guna cara lama
 async function ubTulisPesilat(tindakan, data, lama) {
+  if (_ubApiLama) return apiPostBesar(lama);
   try { return await apiPost(Object.assign({ tindakan: tindakan }, data)); }
-  catch (e) { if (/tidak dikenali/i.test(e.message)) return apiPostBesar(lama); throw e; }
+  catch (e) { if (/tidak dikenali/i.test(e.message)) { _ubApiLama = true; return apiPostBesar(lama); } throw e; }
 }
+
+// ── Simpan di latar: skrin tidak menunggu pelayan ─────────────
+// Setiap simpanan dibariskan (ikut turutan). Jika gagal, disimpan dalam senarai
+// "gagal" dan boleh dicuba semula dengan menekan penunjuk status.
+let _ubQ = Promise.resolve(), _ubPending = 0, _ubGagal = [];
+function ubBaris(kerja, label) {
+  _ubPending++; ubStatusSimpan();
+  _ubQ = _ubQ.then(kerja).then(() => {}, err => {
+    _ubGagal.push({ kerja: kerja, label: label });
+    tunjukToast('⚠️ ' + label + ' gagal disimpan (' + err.message + '). Tekan penunjuk merah untuk cuba semula.', 'ralat');
+  }).then(() => { _ubPending--; ubStatusSimpan(); });
+  return _ubQ;
+}
+function ubCubaSemula() {
+  const senarai = _ubGagal; _ubGagal = [];
+  senarai.forEach(g => ubBaris(g.kerja, g.label));
+}
+function ubStatusSimpan() {
+  let el = document.getElementById('ub-status-simpan');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'ub-status-simpan';
+    el.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom));z-index:900;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.4);display:none;align-items:center;gap:6px;cursor:pointer;white-space:nowrap';
+    el.onclick = () => { if (_ubGagal.length) ubCubaSemula(); };
+    document.body.appendChild(el);
+  }
+  clearTimeout(el._t);
+  if (_ubPending) {
+    el.style.display = 'flex'; el.style.background = 'var(--surface-3)'; el.style.color = 'var(--txt)';
+    el.innerHTML = '<i class="ti ti-cloud-upload"></i> Menyimpan' + (_ubPending > 1 ? ' (' + _ubPending + ')' : '') + '…';
+  } else if (_ubGagal.length) {
+    el.style.display = 'flex'; el.style.background = 'var(--bad)'; el.style.color = '#fff';
+    el.innerHTML = '<i class="ti ti-refresh"></i> ' + _ubGagal.length + ' gagal — tekan untuk cuba semula';
+  } else {
+    el.style.display = 'flex'; el.style.background = 'rgba(76,195,138,.18)'; el.style.color = 'var(--ok)';
+    el.innerHTML = '<i class="ti ti-cloud-check"></i> Semua disimpan';
+    el._t = setTimeout(() => { el.style.display = 'none'; }, 1500);
+  }
+}
+window.addEventListener('beforeunload', e => { if (_ubPending || _ubGagal.length) { e.preventDefault(); e.returnValue = ''; } });
 
 function ubKumpUsia(u) {
   if (u === null || u === undefined || isNaN(u)) return 'Tiada maklumat usia';
@@ -1581,7 +1626,10 @@ function ubKira(uj, noKp) {
 async function renderUjianBengkung(paksa) {
   const main = getMain();
   try {
-    if (paksa || !UB.senarai.length) UB.senarai = await api('senarai_ujian');
+    if (paksa || !UB.senarai.length) {
+      if (_ubPending) await _ubQ; // tunggu simpanan latar selesai supaya data terkini
+      UB.senarai = await api('senarai_ujian');
+    }
     const kad = UB.senarai.map((u, i) => {
       const lengkap = u.peserta.filter(p => ubKira(u, p.no_kp).lengkap).length;
       const lulus = u.peserta.filter(p => ubKira(u, p.no_kp).lulus).length;
@@ -1750,6 +1798,7 @@ async function ubSimpanBorang() {
   const btn = document.getElementById('ub-btn-simpan');
   if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Menyimpan...'; }
   try {
+    if (_ubPending) await _ubQ;
     const r = await apiPostBesar({ tindakan: 'simpan_ujian', id: u.id, tarikh: u.tarikh, tajuk: u.tajuk, lulus_min: u.lulus_min, items: u.items, peserta: u.peserta, markah: u.markah });
     u.id = r.id;
     tunjukToast('✅ Ujian disimpan');
@@ -1810,6 +1859,7 @@ function ubBukaSemasa() {
 async function ubPadam() {
   if (!confirm('Padam ujian "' + UB.semasa.tajuk + '" berserta semua markah?')) return;
   try {
+    if (_ubPending) await _ubQ;
     await apiPost({ tindakan: 'padam_ujian', id: UB.semasa.id });
     tunjukToast('🗑️ Ujian dipadam');
     renderUjianBengkung(true);
@@ -1880,54 +1930,37 @@ function ubKemasJumlah() {
     <div style="font-weight:700;color:${warna}">${k.peratus}% · ${k.lengkap ? (k.lulus ? 'LULUS ✅' : 'GAGAL ❌') : 'Belum lengkap (' + k.diisi + '/' + ubItems(u, p).length + ')'}</div>`;
 }
 
-async function ubSimpanMarkah(senyap) {
-  const btn = document.getElementById('ub-btn-markah');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Menyimpan...'; }
-  try {
-    const p = UB.semasa.peserta[UB.pesertaIdx];
-    await ubTulisPesilat('simpan_markah_pesilat', { id: UB.semasa.id, no_kp: p.no_kp, markah: UB.semasa.markah[p.no_kp] || {} },
-      { tindakan: 'simpan_markah_ujian', id: UB.semasa.id, markah: UB.semasa.markah });
-    const idx = UB.senarai.findIndex(x => x.id === UB.semasa.id);
-    if (idx >= 0) UB.senarai[idx] = JSON.parse(JSON.stringify(UB.semasa));
-    _ubBerubah = false;
-    if (!senyap) tunjukToast('✅ Markah disimpan');
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Simpan Markah'; }
-    return true;
-  } catch (err) {
-    tunjukToast('Gagal simpan: ' + err.message, 'ralat');
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Simpan Markah'; }
-    return false;
-  }
+function ubSimpanMarkah(senyap) {
+  const u = UB.semasa, p = u.peserta[UB.pesertaIdx];
+  const id = u.id, kp = p.no_kp;
+  const mPesilat = JSON.parse(JSON.stringify(u.markah[kp] || {}));
+  const semua = JSON.parse(JSON.stringify(u.markah));
+  const idx = UB.senarai.findIndex(x => x.id === id);
+  if (idx >= 0) UB.senarai[idx] = JSON.parse(JSON.stringify(u));
+  _ubBerubah = false;
+  ubBaris(() => ubTulisPesilat('simpan_markah_pesilat', { id: id, no_kp: kp, markah: mPesilat },
+    { tindakan: 'simpan_markah_ujian', id: id, markah: semua }), 'Markah ' + p.nama);
+  if (!senyap) tunjukToast('✅ Markah direkod — disimpan di latar');
+  return true;
 }
 
 // Kembali ke senarai pesilat — simpan markah dahulu jika ada perubahan
 let _ubBerubah = false;
-async function ubKembaliDariRekod() {
-  if (_ubBerubah) {
-    const ok = await ubSimpanMarkah(true);
-    if (!ok && !confirm('Markah belum tersimpan. Kembali juga? (perubahan akan hilang)')) return;
-    if (!ok) { // pulihkan data asal daripada pelayan
-      const idx = UB.senarai.findIndex(x => x.id === UB.semasa.id);
-      if (idx >= 0) UB.semasa = JSON.parse(JSON.stringify(UB.senarai[idx]));
-    }
-  }
-  _ubBerubah = false;
+function ubKembaliDariRekod() {
+  if (_ubBerubah) ubSimpanMarkah(true);
   ubBukaSemasa();
 }
 
 // Simpan automatik bila tukar pesilat
-async function ubLangkah(arah) {
-  if (_ubBerubah) {
-    const ok = await ubSimpanMarkah(true);
-    if (!ok) return;
-  }
+function ubLangkah(arah) {
+  if (_ubBerubah) ubSimpanMarkah(true);
   const n = UB.pesertaIdx + arah;
   if (n >= 0 && n < UB.semasa.peserta.length) ubRekod(n);
 }
 
 // ── 4b. Item khas seorang pesilat ────────────────────────────
 async function ubBukaItemPesilat() {
-  if (_ubBerubah && !(await ubSimpanMarkah(true))) return;
+  if (_ubBerubah) ubSimpanMarkah(true);
   const u = UB.semasa, p = u.peserta[UB.pesertaIdx];
   const semasa = ubItems(u, p);
   const semua = u.items.slice();
@@ -1989,21 +2022,15 @@ async function ubIpSimpan() {
   const salinan = JSON.parse(JSON.stringify(u));
   if (sama) delete salinan.peserta[UB.pesertaIdx].items; else salinan.peserta[UB.pesertaIdx].items = baru;
   salinan.markah[p.no_kp] = m;
-  const btn = document.getElementById('ub-btn-ip');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Menyimpan...'; }
-  try {
-    await ubTulisPesilat('simpan_item_pesilat', { id: salinan.id, no_kp: p.no_kp, items: sama ? [] : baru, markah: m },
-      { tindakan: 'simpan_ujian', id: salinan.id, tarikh: salinan.tarikh, tajuk: salinan.tajuk, lulus_min: salinan.lulus_min, items: salinan.items, peserta: salinan.peserta, markah: salinan.markah });
-    UB.semasa = salinan;
-    const idx = UB.senarai.findIndex(x => x.id === salinan.id);
-    if (idx >= 0) UB.senarai[idx] = JSON.parse(JSON.stringify(salinan));
-    _ubBerubah = false;
-    tunjukToast('✅ Item pesilat disimpan');
-    ubRekod(UB.pesertaIdx);
-  } catch (err) {
-    tunjukToast('Gagal simpan: ' + err.message, 'ralat');
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Simpan Item'; }
-  }
+  const hantar = JSON.parse(JSON.stringify(salinan));
+  ubBaris(() => ubTulisPesilat('simpan_item_pesilat', { id: hantar.id, no_kp: p.no_kp, items: sama ? [] : baru, markah: m },
+    { tindakan: 'simpan_ujian', id: hantar.id, tarikh: hantar.tarikh, tajuk: hantar.tajuk, lulus_min: hantar.lulus_min, items: hantar.items, peserta: hantar.peserta, markah: hantar.markah }), 'Item ' + p.nama);
+  UB.semasa = salinan;
+  const idx = UB.senarai.findIndex(x => x.id === salinan.id);
+  if (idx >= 0) UB.senarai[idx] = JSON.parse(JSON.stringify(salinan));
+  _ubBerubah = false;
+  tunjukToast('✅ Item pesilat dikemas kini');
+  ubRekod(UB.pesertaIdx);
 }
 
 // ── 5. Jana borang PDF (1 page seorang) ──────────────────────
