@@ -247,6 +247,8 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.7)}
 .profil-atas .avatar{width:54px;height:54px;font-size:22px;border-radius:14px}
 
 /* ── Ujian Bengkung: butang markah ── */
+.ub-tajuk-jantina{margin:18px 0 8px;padding:8px 12px;border-radius:10px;background:var(--surface-2);font-weight:800;letter-spacing:.5px;font-size:14px}
+.ub-kump-kepala{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 6px;font-size:12px;color:var(--muted);font-weight:700}
 .ub-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
 .ub-mk{height:44px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line-2);color:var(--txt);font-weight:700;font-size:16px;font-family:var(--font-b);padding:0}
 .ub-mk:active{background:var(--surface-3)}
@@ -2169,22 +2171,24 @@ function ubKeputusan(mod) {
     if (gagal.length) isi += `<div class="seksyen-tajuk">❌ Belum Lulus (${gagal.length})</div>` + gagal.map(d => baris(d, 0).replace('color:var(--c3)"><i class="ti ti-check">', 'color:var(--c6)"><i class="ti ti-x">')).join('');
     if (belum.length) isi += `<div class="seksyen-tajuk">⏳ Belum Dinilai Lengkap (${belum.length})</div>` + belum.map(d => `<div class="senarai-item" style="cursor:default"><div class="item-info"><div class="item-nama">${escapeHtml(d.nama)}</div><div class="item-sub">${d.diisi}/${ubItems(u, d).length} item dinilai</div></div></div>`).join('');
   } else {
-    const kunci = UB.kump;
-    const kump = {};
-    data.filter(d => d.lengkap).forEach(d => {
-      const g = kunci === 'bengkung' ? (d.bengkung || 'Tiada bengkung') : kunci === 'usia' ? ubKumpUsia(d.usia) : (d.jantina || 'Tiada maklumat');
-      (kump[g] = kump[g] || []).push(d);
-    });
-    const nama = Object.keys(kump).sort();
+    const kump = ubKumpKedudukan(u, data);
+    const jan = UB.jan || 'SEMUA';
+    const tunjuk = kump.filter(g => jan === 'SEMUA' || g.jantina === jan);
+    let tajukJ = '';
     isi = `
+      <div class="kad" style="padding:10px 12px;font-size:12px;color:var(--muted);line-height:1.5"><i class="ti ti-info-circle"></i>
+        Disusun serentak ikut <b>Bengkung semasa</b> → <b>Jantina</b> → <b>Usia (tahun ${ubTahunUjian(u)})</b>. Kedudukan ikut peratus markah.</div>
       <div style="display:flex;gap:6px;margin-bottom:6px">
-        ${[['bengkung', 'Bengkung'], ['usia', 'Usia'], ['jantina', 'Jantina']].map(x => `<button class="btn ${UB.kump === x[0] ? 'btn-pri' : 'btn-outline'}" style="flex:1;padding:9px" onclick="ubTukarKump('${x[0]}')">${x[1]}</button>`).join('')}
+        ${[['SEMUA', 'Semua'], ['LELAKI', '👦 Lelaki'], ['PEREMPUAN', '👧 Perempuan']].map(x => `<button class="btn ${jan === x[0] ? 'btn-pri' : 'btn-outline'}" style="flex:1;padding:9px" onclick="ubTukarJantina('${x[0]}')">${x[1]}</button>`).join('')}
       </div>
-      ${nama.map(g => {
-        const s = kump[g].sort((a, b) => b.jumlah - a.jumlah || b.peratus - a.peratus);
-        let no = 0, sebelum = null;
-        return `<div class="seksyen-tajuk">🏆 ${escapeHtml(g)} (${s.length})</div>` + s.map((d, x) => { if (d.jumlah !== sebelum) { no = x + 1; sebelum = d.jumlah; } return baris(d, no); }).join('');
-      }).join('') || '<div style="color:var(--muted);padding:14px">Belum ada pesilat yang dinilai lengkap.</div>'}`;
+      <button class="btn btn-outline btn-blok" style="margin-bottom:6px" onclick="ubCetakKedudukan()"><i class="ti ti-printer"></i> Cetak Senarai Kedudukan</button>
+      ${tunjuk.map(g => {
+        let h = '';
+        if (g.jantina !== tajukJ) { tajukJ = g.jantina; h += `<div class="ub-tajuk-jantina">${g.jantina === 'LELAKI' ? '👦 LELAKI' : g.jantina === 'PEREMPUAN' ? '👧 PEREMPUAN' : '❔ JANTINA TIDAK DIKETAHUI'}</div>`; }
+        return h + `<div class="ub-kump-kepala">${chipBengkung(g.bengkung)}<span>${g.usia != null ? g.usia + ' tahun' : 'Usia ?'} · ${g.ahli.length} pesilat</span></div>` +
+          g.ahli.map(d => baris(d, d.no)).join('');
+      }).join('') || '<div style="color:var(--muted);padding:14px">Belum ada pesilat yang dinilai lengkap.</div>'}
+      ${belum.length ? `<div style="font-size:12px;color:var(--muted);text-align:center;margin-top:10px">${belum.length} pesilat belum dinilai lengkap — tidak dimasukkan dalam kedudukan.</div>` : ''}`;
   }
 
   main.innerHTML = `
@@ -2199,7 +2203,90 @@ function ubKeputusan(mod) {
     </div>
     ${isi}`;
 }
-function ubTukarKump(k) { UB.kump = k; ubKeputusan('kedudukan'); }
+function ubTukarJantina(j) { UB.jan = j; ubKeputusan('kedudukan'); }
+
+// ── Kedudukan: kumpulan Bengkung × Jantina × Usia ────────────
+const UB_URUTAN_BENGKUNG = ['BENGKUNG HITAM KOSONG (AHLI BAHARU)','BENGKUNG HITAM CULA 1','BENGKUNG HITAM CULA 2','BENGKUNG HITAM CULA 3','BENGKUNG PUTIH','BENGKUNG PUTIH CULA BIRU','BENGKUNG BIRU','BENGKUNG BIRU CULA HIJAU','BENGKUNG HIJAU','BENGKUNG HIJAU CULA KUNING','BENGKUNG KUNING','BENGKUNG KUNING CULA HITAM (GURULATIH)','BENGKUNG MERAH','BENGKUNG MERAH CULA KUNING (JURULATIH)'];
+function ubTarafBengkung(b) {
+  const t = String(b || '').toUpperCase().trim();
+  const i = UB_URUTAN_BENGKUNG.indexOf(t);
+  if (i >= 0) return i;
+  const warna = ['HITAM', 'PUTIH', 'BIRU', 'HIJAU', 'KUNING', 'MERAH'];
+  const m = t.match(/BENGKUNG\s+(HITAM|PUTIH|BIRU|HIJAU|KUNING|MERAH)/);
+  return m ? 100 + warna.indexOf(m[1]) * 10 + (/CULA/.test(t) ? 5 : 0) : 999;
+}
+function ubTahunUjian(u) { const y = parseInt(String(u.tarikh || '').slice(0, 4), 10); return y > 1900 ? y : new Date().getFullYear(); }
+// Jantina: daripada rekod, atau digit akhir No. KP (ganjil = lelaki)
+function ubJantina(p) {
+  const j = String(p.jantina || '').toUpperCase();
+  if (j.indexOf('PEREMPUAN') >= 0 || j === 'P') return 'PEREMPUAN';
+  if (j.indexOf('LELAKI') >= 0 || j === 'L') return 'LELAKI';
+  const kp = String(p.no_kp || '').replace(/\D/g, '');
+  if (kp.length >= 11) return Number(kp.slice(-1)) % 2 ? 'LELAKI' : 'PEREMPUAN';
+  return 'TIDAK DIKETAHUI';
+}
+// Usia tahun semasa = tahun ujian − tahun lahir (cara kiraan pertandingan)
+function ubUsiaTahun(p, tahun) {
+  let kp = String(p.no_kp || '').replace(/\D/g, '');
+  if (kp.length === 11) kp = '0' + kp;
+  if (kp.length === 12) {
+    const yy = parseInt(kp.slice(0, 2), 10);
+    const lahir = yy <= tahun % 100 ? 2000 + yy : 1900 + yy;
+    return tahun - lahir;
+  }
+  return p.usia != null && p.usia !== '' ? Number(p.usia) : null;
+}
+function ubKumpKedudukan(u, data) {
+  const tahun = ubTahunUjian(u), peta = {};
+  data.filter(d => d.lengkap).forEach(d => {
+    const g = { bengkung: d.bengkung || '', jantina: ubJantina(d), usia: ubUsiaTahun(d, tahun) };
+    const k = g.bengkung.toUpperCase() + '|' + g.jantina + '|' + g.usia;
+    (peta[k] = peta[k] || Object.assign({}, g, { ahli: [] })).ahli.push(Object.assign({}, d, { usia: g.usia, jantina: g.jantina }));
+  });
+  const susunJ = { LELAKI: 0, PEREMPUAN: 1 };
+  const kump = Object.values(peta).sort((a, b) =>
+    (susunJ[a.jantina] ?? 2) - (susunJ[b.jantina] ?? 2) ||
+    ubTarafBengkung(a.bengkung) - ubTarafBengkung(b.bengkung) ||
+    (a.usia ?? 999) - (b.usia ?? 999));
+  kump.forEach(g => {
+    g.ahli.sort((a, b) => b.peratus - a.peratus || b.jumlah - a.jumlah || String(a.nama).localeCompare(String(b.nama)));
+    let no = 0, sebelum = null;
+    g.ahli.forEach((d, x) => { if (d.peratus !== sebelum) { no = x + 1; sebelum = d.peratus; } d.no = no; });
+  });
+  return kump;
+}
+function ubCetakKedudukan() {
+  const u = UB.semasa;
+  const data = u.peserta.map(p => Object.assign({}, p, ubKira(u, p.no_kp)));
+  const jan = UB.jan || 'SEMUA';
+  const kump = ubKumpKedudukan(u, data).filter(g => jan === 'SEMUA' || g.jantina === jan);
+  const w = window.open('', 'tab_kedudukan');
+  if (!w) { tunjukToast('Benarkan pop-up untuk cetak', 'ralat'); return; }
+  const label = b => String(b || '—').replace(/^BENGKUNG\s+/i, '');
+  let tajukJ = '';
+  const isi = kump.map(g => {
+    let h = '';
+    if (g.jantina !== tajukJ) { tajukJ = g.jantina; h += '<h3>' + g.jantina + '</h3>'; }
+    return h + '<table><caption>' + escapeHtml(label(g.bengkung)) + ' · ' + (g.usia != null ? g.usia + ' tahun' : 'Usia ?') + ' · ' + g.ahli.length + ' pesilat</caption>' +
+      '<tr><th style="width:50px">Kedudukan</th><th>Nama</th><th style="width:80px">Markah</th><th style="width:60px">%</th><th style="width:80px">Keputusan</th></tr>' +
+      g.ahli.map(d => '<tr><td class="c"><b>' + d.no + '</b></td><td>' + escapeHtml(d.nama) + '</td><td class="c">' + d.jumlah + '/' + d.maks + '</td><td class="c">' + d.peratus + '</td><td class="c">' + (d.lulus ? 'LULUS' : 'GAGAL') + '</td></tr>').join('') +
+      '</table>';
+  }).join('');
+  w.document.open();
+  w.document.write('<!DOCTYPE html><html lang="ms"><head><meta charset="UTF-8"><meta name="color-scheme" content="only light"><title>Kedudukan ' + escapeHtml(u.tajuk) + '</title><style>' +
+    ':root{color-scheme:only light}@page{size:A4;margin:14mm}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+    'html,body{background:#fff!important;color:#111;font-family:Arial,sans-serif;margin:0}body{padding:14px}' +
+    'h1{font-size:18px;margin:0}h2{font-size:12px;font-weight:normal;margin:4px 0 12px;color:#444}' +
+    'h3{font-size:14px;margin:18px 0 6px;border-bottom:1.5px solid #111;padding-bottom:3px}' +
+    'table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px;page-break-inside:avoid}' +
+    'caption{text-align:left;font-weight:bold;padding:4px 0;font-size:12px}th,td{border:1px solid #999;padding:5px 6px}th{font-size:11px}.c{text-align:center}' +
+    '.bar{text-align:center;padding:10px;background:#f4f4f4;border-bottom:1px solid #ddd;margin:-14px -14px 14px}.bar button{font-weight:bold;padding:8px 18px;border:1px solid #111;border-radius:8px;background:#fff;cursor:pointer}' +
+    '@media print{.bar{display:none}}</style></head><body>' +
+    '<div class="bar"><button onclick="window.print()">🖨️ Cetak / Simpan PDF</button></div>' +
+    '<h1>SENARAI KEDUDUKAN — ' + escapeHtml(u.tajuk) + '</h1><h2>Gelanggang Seri Mutiara · ' + ubFmtTarikh(u.tarikh) + ' · Bengkung → Jantina → Usia (tahun ' + ubTahunUjian(u) + ')</h2>' +
+    (isi || '<p>Belum ada pesilat yang dinilai lengkap.</p>') + '</body></html>');
+  w.document.close();
+}
 
 
 // ── HALAMAN: Dashboard ───────────────────────────────────────
