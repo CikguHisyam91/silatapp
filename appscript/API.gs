@@ -172,7 +172,7 @@ function invalidateCache(jenis) {
   var thnKini = new Date().getFullYear();
   switch(jenis) {
     // [BAIKI] kunci sebenar ialah 'ahli_AKTIF' (huruf besar) — dulu 'ahli_aktif' tidak pernah padan
-    case 'ahli':      cacheClear('ahli_AKTIF','ahli_semua','ahli_TIDAK AKTIF','dashboard'); break;
+    case 'ahli':      cacheClear('ahli_AKTIF','ahli_semua','ahli_TIDAK AKTIF','ahli_DIGANTUNG','ahli_DIBATALKAN','dashboard'); break;
     case 'kehadiran': cacheDel('dashboard'); break;
     case 'yuran':     cacheClear('dashboard','lejer_'+thnKini,'lejer_'+(thnKini-1)); break;
     case 'lejer':     cacheClear('lejer_'+thnKini,'lejer_'+(thnKini-1),'lejer_'+(thnKini+1)); break;

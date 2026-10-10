@@ -247,6 +247,10 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.7)}
 .profil-atas .avatar{width:54px;height:54px;font-size:22px;border-radius:14px}
 
 /* ── Ujian Bengkung: butang markah ── */
+.grid-status-ahli{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btn-status-ahli{padding:11px 6px;border-radius:10px;border:1.5px solid var(--line-2);background:var(--surface-2);color:var(--muted);font-weight:800;font-size:12px;letter-spacing:.5px;font-family:inherit}
+.btn-status-ahli.on{border-color:var(--w);color:var(--w);background:color-mix(in srgb,var(--w) 14%,transparent)}
+.btn-status-ahli:disabled{opacity:.5}
 .ub-tajuk-jantina{margin:18px 0 8px;padding:8px 12px;border-radius:10px;background:var(--surface-2);font-weight:800;letter-spacing:.5px;font-size:14px}
 .ub-kump-kepala{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 6px;font-size:12px;color:var(--muted);font-weight:700}
 .ub-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
@@ -584,6 +588,7 @@ table td{border-color:var(--line)}
 <div id="toast"></div>
 
 
+<script src="kad-ahli.js"></script>
 <script>
 // ── Konfigurasi ──────────────────────────────────────────────
 const API_URL = 'https://script.google.com/macros/s/AKfycby9urwBschyHvugUo0a2QxO3DWciTWul2bJuTBRrsmEPIaCCG3QH7Wp4jcpszY674ojSQ/exec';
@@ -2407,6 +2412,8 @@ async function renderSenaraiAhli() {
         <button onclick="exportAhliCSV()" title="Export Excel/CSV" style="padding:7px 10px;border-radius:8px;background:rgba(var(--ok-rgb),.15);border:1.5px solid var(--c3);color:var(--c3);cursor:pointer;font-size:12px"><i class="ti ti-file-spreadsheet"></i></button>
       </div>
       <div id="senarai-ahli"></div>
+      <button class="btn btn-outline btn-blok" style="margin-top:14px" onclick="togolAhliBukanAktif()"><i class="ti ti-user-pause"></i> Ahli Tidak Aktif / Digantung / Dibatalkan</button>
+      <div id="senarai-bukan-aktif" style="margin-top:10px"></div>
     `;
     renderSenarai(ahli);
     tambahFab(() => bukaModal('modal-daftar'));
@@ -2516,6 +2523,48 @@ function tapisAhliApply() {
   renderSenarai(hasil);
 }
 
+// ── Status keahlian (Kad Ahli Digital) ───────────────────────
+async function tetapStatusAhli(noKp, status) {
+  const a = window._ahliProfil;
+  if (!a || a.NO_KP != noKp) return;
+  const lama = statusAhliInfo(a.STATUS).label;
+  if (lama === status) return;
+  const amaran = status === 'AKTIF' ? '' : '\n\nAhli ' + status + ' tidak akan muncul dalam senarai kehadiran & yuran.';
+  if (!confirm('Tukar status ' + (a.NAMA_PENUH || '') + '\n' + lama + ' → ' + status + '?' + amaran)) return;
+  const btns = document.querySelectorAll('.btn-status-ahli'); btns.forEach(b => b.disabled = true);
+  try {
+    await apiPost({ tindakan: 'kemaskini_ahli', no_kp: noKp, status: status });
+    a.STATUS = status;
+    dataAhliCache = null; _ahliBukanAktif = null; clearApiCache('senarai_ahli');
+    document.getElementById('kad-ahli-profil').innerHTML = htmlKadAhli(a);
+    btns.forEach(b => { b.disabled = false; b.classList.toggle('on', b.getAttribute('onclick').indexOf("'" + status + "')") >= 0); });
+    tunjukToast('✅ Status ditukar kepada ' + status);
+  } catch (e) {
+    btns.forEach(b => b.disabled = false);
+    tunjukToast('Gagal tukar status: ' + e.message, 'ralat');
+  }
+}
+
+// Senarai ahli yang TIDAK AKTIF / DIGANTUNG / DIBATALKAN
+let _ahliBukanAktif = null;
+async function togolAhliBukanAktif() {
+  const el = document.getElementById('senarai-bukan-aktif');
+  if (!el) return;
+  if (el.dataset.buka === '1') { el.dataset.buka = ''; el.innerHTML = ''; return; }
+  el.dataset.buka = '1';
+  el.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan...</span></div>';
+  try {
+    if (!_ahliBukanAktif) _ahliBukanAktif = (await api('senarai_ahli', {})).filter(a => statusAhliInfo(a.status).label !== 'AKTIF');
+    if (!_ahliBukanAktif.length) { el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:14px;font-size:13px">Tiada ahli tidak aktif / digantung / dibatalkan.</div>'; return; }
+    el.innerHTML = _ahliBukanAktif.map(a => { const s = statusAhliInfo(a.status); return `
+      <div class="senarai-item" onclick="bukaProfilAhli('${jsArg(a.no_kp)}')" style="opacity:.85">
+        <div class="avatar" style="color:${s.warna}">${escapeHtml((a.nama || '?')[0])}</div>
+        <div class="item-info"><div class="item-nama">${escapeHtml(a.nama)}</div><div style="margin-top:6px">${chipBengkung(a.bengkung)}</div></div>
+        <span class="badge" style="background:color-mix(in srgb,${s.warna} 16%,transparent);color:${s.warna}">${s.label}</span>
+      </div>`; }).join('');
+  } catch (e) { el.dataset.buka = ''; el.innerHTML = '<div style="color:var(--bad);padding:10px;font-size:13px">Gagal: ' + escapeHtml(e.message) + '</div>'; }
+}
+
 // Kekalkan fungsi lama untuk keserasian
 function tapis(q) { _qAhli = q; tapisAhliApply(); }
 
@@ -2572,6 +2621,15 @@ async function renderProfilAhli() {
       </div>
 
       <div class="kad">
+        <div class="seksyen-tajuk" style="margin-top:0">🪪 Kad Ahli Digital</div>
+        <div id="kad-ahli-profil">${htmlKadAhli(a)}</div>
+        <div style="font-size:12px;color:var(--muted);margin:14px 0 8px;font-weight:700">Tetapkan status keahlian:</div>
+        <div class="grid-status-ahli">
+          ${Object.keys(STATUS_AHLI).map(k => `<button class="btn-status-ahli${statusAhliInfo(a.STATUS).label === k ? ' on' : ''}" style="--w:${STATUS_AHLI[k].warna}" onclick="tetapStatusAhli('${jsArg(a.NO_KP)}','${k}')">${STATUS_AHLI[k].ikon} ${k}</button>`).join('')}
+        </div>
+      </div>
+
+      <div class="kad">
         <div class="seksyen-tajuk" style="margin-top:0">Maklumat Peribadi</div>
         <div class="maklumat-baris"><i class="ti ti-user"></i><div><div class="lbl">Jantina</div><div class="val">${a.JANTINA||'—'}</div></div></div>
         <div class="maklumat-baris"><i class="ti ti-calendar"></i><div><div class="lbl">Tarikh Lahir</div><div class="val">${formatTarikh(a.TARIKH_LAHIR)}</div></div></div>
@@ -2619,6 +2677,7 @@ async function renderProfilAhli() {
         <button class="btn btn-outline" style="border-color:var(--c6);color:var(--c6)" onclick="padamAhliKonfirm('${a.NO_KP}',window._ahliNama||'')"><i class="ti ti-user-off"></i> Padam Pesilat</button>
       </div>
     `;
+    window._ahliProfil = a;
     // Load kelas berat selepas render
     setTimeout(()=>loadKelasBeratProfil(a.TARIKH_LAHIR, a.NO_KP, a.BERAT_KG), 400);
   } catch (e) {
