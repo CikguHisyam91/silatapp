@@ -1190,6 +1190,27 @@ function warnaBMIAdmin(b) {
   if(b<18.5) return 'var(--info)'; if(b<23) return 'var(--ok)';
   if(b<27.5) return 'var(--warn)'; return 'var(--bad)';
 }
+// Berapa kg perlu ditambah/dikurangkan untuk capai BMI normal (18.5 – 22.9)
+function sasaranBMI(berat, tinggi) {
+  berat = parseFloat(berat) || 0; tinggi = parseFloat(tinggi) || 0;
+  if (!berat || !tinggi) return null;
+  const m2 = Math.pow(tinggi / 100, 2);
+  const min = Math.ceil(18.5 * m2 * 10) / 10, max = Math.floor(22.9 * m2 * 10) / 10;
+  const r = { min, max, beza: 0, arah: 'ok' };
+  if (berat < min) { r.beza = Math.round((min - berat) * 10) / 10; r.arah = 'tambah'; }
+  else if (berat > max) { r.beza = Math.round((berat - max) * 10) / 10; r.arah = 'kurang'; }
+  return r;
+}
+function htmlSasaranBMI(berat, tinggi) {
+  const s = sasaranBMI(berat, tinggi);
+  if (!s) return '';
+  const w = s.arah === 'ok' ? 'var(--ok)' : s.arah === 'tambah' ? 'var(--info)' : 'var(--warn)';
+  const ikon = s.arah === 'ok' ? '✅' : s.arah === 'tambah' ? '⬆️' : '⬇️';
+  const teks = s.arah === 'ok' ? 'Berat dalam julat normal' : s.arah === 'tambah' ? 'Perlu <b>tambah ' + s.beza + ' kg</b>' : 'Perlu <b>kurangkan ' + s.beza + ' kg</b>';
+  return '<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--surface-2);border-left:3px solid ' + w + ';font-size:13px;text-align:left">' +
+    '<div style="color:' + w + '">' + ikon + ' ' + teks + '</div>' +
+    '<div style="font-size:11px;color:var(--muted);margin-top:3px">Berat normal untuk tinggi ' + tinggi + ' cm: <b>' + s.min + ' – ' + s.max + ' kg</b> (BMI 18.5 – 22.9)</div></div>';
+}
 function labelBMIAdmin(b) {
   if(!b) return '—';
   if(b<18.5) return 'Kurus'; if(b<23) return 'Normal (Sihat)';
@@ -1224,6 +1245,7 @@ function janaHtmlFizikal(tarikh, noKp, beratRaw, tinggiRaw) {
     h += '<div style="height:100%;border-radius:99px;background:' + wBMI + ';width:' + Math.min(100,Math.round(bmi/40*100)) + '%"></div></div>';
     h += '<div style="display:flex;justify-content:space-between;font-size:9px;color:rgba(255,255,255,.3);margin-top:4px">';
     h += '<span>Kurus</span><span>Normal</span><span>Lebih</span><span>Obes</span></div>';
+    h += htmlSasaranBMI(berat, tinggi);
   } else {
     h += '<div style="font-size:11px;color:var(--muted)">Kemaskini berat &amp; tinggi untuk kira BMI</div>';
   }
@@ -3422,7 +3444,7 @@ function paparJadualPesilat(senarai) {
         </div>
 
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-          ${bmi ? `<span class="badge" style="font-size:10px;background:color-mix(in srgb,${warnaBMI(bmi)} 14%,transparent);color:${warnaBMI(bmi)}">BMI ${bmi} · ${labelBMI(bmi)}</span>` : ''}
+          ${bmi ? `<span class="badge" style="font-size:10px;background:color-mix(in srgb,${warnaBMI(bmi)} 14%,transparent);color:${warnaBMI(bmi)}">BMI ${bmi} · ${labelBMI(bmi)}${(() => { const t = sasaranBMI(berat, tinggi); return t && t.arah !== 'ok' ? ' · ' + (t.arah === 'tambah' ? '+' : '−') + t.beza + 'kg' : ''; })()}</span>` : ''}
         </div>
       </div>`;
     }).join('')}
@@ -5466,6 +5488,9 @@ function kiraBMIPreview() {
   document.getElementById('val-bmi').style.color = status.warna;
   document.getElementById('lbl-bmi').textContent = status.label;
   document.getElementById('lbl-bmi').style.color = status.warna;
+  let sb = document.getElementById('sasaran-bmi');
+  if (!sb) { sb = document.createElement('div'); sb.id = 'sasaran-bmi'; preview.appendChild(sb); }
+  sb.innerHTML = htmlSasaranBMI(berat, tinggi);
 }
 
 async function hantarBeratTinggi(e) {
