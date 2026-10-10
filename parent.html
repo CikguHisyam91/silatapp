@@ -293,6 +293,7 @@ button{cursor:pointer;border:none;font-family:inherit;color:inherit;background:n
 
 <div class="toast-el" id="toast-msg"></div>
 <input type="file" id="inp-foto" accept="image/*" capture="environment" style="display:none" onchange="prosesGambar(this)">
+<script src="kad-ahli.js"></script>
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycby9urwBschyHvugUo0a2QxO3DWciTWul2bJuTBRrsmEPIaCCG3QH7Wp4jcpszY674ojSQ/exec';
 
@@ -518,6 +519,11 @@ async function renderProfil() {
         <div class="hero-id">${a.ID_AHLI||'—'} · ${a.NO_KP||'—'}</div>
         <div class="hero-bengkung">🥋 ${a.BENGKUNG_SEMASA||'—'}</div>
       </div>
+    </div>
+    <div class="kad" style="padding:14px">
+      <div class="kad-tajuk">🪪 Kad Ahli Digital</div>
+      ${htmlKadAhli(a)}
+      <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:10px">Tunjukkan kad ini semasa latihan, program atau pertandingan.</div>
     </div>
     <div class="stat-grid">
       <div class="stat-kad hijau">
