@@ -439,6 +439,27 @@ function katUsia(u) {
   if(u<=45) return 'MASTER 2 (35-45)';return 'MASTER 1 (45+)';
 }
 function warnaBMI(b){if(!b)return'#8A919E';if(b<18.5)return'#6AA9F5';if(b<23)return'#4CC38A';if(b<27.5)return'#E9A23B';return'#F2706B';}
+// Berapa kg perlu ditambah/dikurangkan untuk capai BMI normal (18.5 – 22.9)
+function sasaranBMI(berat, tinggi) {
+  berat = parseFloat(berat) || 0; tinggi = parseFloat(tinggi) || 0;
+  if (!berat || !tinggi) return null;
+  const m2 = Math.pow(tinggi / 100, 2);
+  const min = Math.ceil(18.5 * m2 * 10) / 10, max = Math.floor(22.9 * m2 * 10) / 10;
+  const r = { min, max, beza: 0, arah: 'ok' };
+  if (berat < min) { r.beza = Math.round((min - berat) * 10) / 10; r.arah = 'tambah'; }
+  else if (berat > max) { r.beza = Math.round((berat - max) * 10) / 10; r.arah = 'kurang'; }
+  return r;
+}
+function htmlSasaranBMI(berat, tinggi) {
+  const s = sasaranBMI(berat, tinggi);
+  if (!s) return '';
+  const w = s.arah === 'ok' ? 'var(--ok)' : s.arah === 'tambah' ? 'var(--info)' : 'var(--warn)';
+  const ikon = s.arah === 'ok' ? '✅' : s.arah === 'tambah' ? '⬆️' : '⬇️';
+  const teks = s.arah === 'ok' ? 'Berat dalam julat normal' : s.arah === 'tambah' ? 'Perlu <b>tambah ' + s.beza + ' kg</b>' : 'Perlu <b>kurangkan ' + s.beza + ' kg</b>';
+  return '<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--surface-2);border-left:3px solid ' + w + ';font-size:13px;text-align:left">' +
+    '<div style="color:' + w + '">' + ikon + ' ' + teks + '</div>' +
+    '<div style="font-size:11px;color:var(--muted);margin-top:3px">Berat normal untuk tinggi ' + tinggi + ' cm: <b>' + s.min + ' – ' + s.max + ' kg</b> (BMI 18.5 – 22.9)</div></div>';
+}
 function labelBMI(b){if(!b)return'—';if(b<18.5)return'Kurus';if(b<23)return'Normal';if(b<27.5)return'Lebih Berat';return'Obes';}
 function pctBMI(b){if(!b)return 0;const mn=10,mx=40;return Math.min(100,Math.max(0,Math.round((b-mn)/(mx-mn)*100)));}
 function wPct(p){return p>=90?'#4CC38A':p>=75?'#4CC38A':p>=60?'#E9A23B':'#F2706B';}
@@ -542,7 +563,7 @@ async function renderProfil() {
         <div><div style="font-size:18px;font-weight:700;color:${warnaBMI(bmi)}">${labelBMI(bmi)}</div><div style="font-size:11px;color:var(--muted)">${berat}kg · ${tinggi}cm</div></div>
       </div>
       <div class="bmi-bar"><div class="bmi-fill" style="width:${pctBMI(bmi)}%;background:${warnaBMI(bmi)}"></div></div>
-      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:4px"><span>Kurus</span><span>Normal</span><span>Lebih</span><span>Obes</span></div>`
+      <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--muted);margin-top:4px"><span>Kurus</span><span>Normal</span><span>Lebih</span><span>Obes</span></div>${htmlSasaranBMI(berat,tinggi)}`
       :'<div style="text-align:center;color:var(--muted);padding:12px;font-size:13px">Berat/tinggi belum diisi. Hubungi jurulatih.</div>'}
       <button onclick="bukaUpdateBerat()" style="width:100%;padding:10px;background:var(--surface-2);color:var(--ok);border-radius:8px;font-size:12px;font-weight:600;border:1.5px solid var(--line-2);margin-top:10px">⚖️ Kemaskini Berat & Tinggi Anak</button>
     </div>
