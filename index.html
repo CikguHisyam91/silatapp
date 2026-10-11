@@ -247,6 +247,8 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.7)}
 .profil-atas .avatar{width:54px;height:54px;font-size:22px;border-radius:14px}
 
 /* ── Ujian Bengkung: butang markah ── */
+.btn-pky-urus{display:flex;align-items:center;gap:6px;width:100%;padding:9px 12px;margin:-4px 0 12px;border-radius:10px;background:rgba(var(--violet-rgb),.10);border:1px solid rgba(var(--violet-rgb),.3);color:var(--violet);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;text-align:left}
+.baris-yuran.pky{border-color:rgba(var(--violet-rgb),.35)}
 .grid-status-ahli{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .btn-status-ahli{padding:11px 6px;border-radius:10px;border:1.5px solid var(--line-2);background:var(--surface-2);color:var(--muted);font-weight:800;font-size:12px;letter-spacing:.5px;font-family:inherit}
 .btn-status-ahli.on{border-color:var(--w);color:var(--w);background:color-mix(in srgb,var(--w) 14%,transparent)}
@@ -1045,9 +1047,9 @@ async function muatTunggakan() {
   const el = document.getElementById('seksyen-tunggakan') || document.getElementById('seksyen-tunggakan-dash');
   if (!el) return;
   try {
-    const sv = await apiC('status_yuran',{bulan:bulanSkrg,tahun:tahunSkrg},120);
+    const [sv] = await Promise.all([apiC('status_yuran',{bulan:bulanSkrg,tahun:tahunSkrg},120), muatPKY()]);
     const belum = (sv.senarai||[])
-      .filter(a => !a.sudah_bayar && a.no_kp !== 'SEDEKAH' && a.nama)
+      .filter(a => !a.sudah_bayar && a.no_kp !== 'SEDEKAH' && a.nama && !pkyAktif(PKY, a.no_kp, bulanSkrg, tahunSkrg))
       .slice(0,5);
     if (!belum.length) {
       el.innerHTML = '<div style="font-size:12px;color:var(--c3);text-align:center;padding:10px">✅ Semua dah bayar ' + bulanSkrg + '!</div>';
@@ -2673,6 +2675,7 @@ async function renderProfilAhli() {
         <button class="btn btn-pri" onclick="bukaModalYuran('${a.NO_KP}',window._ahliNama||'')"><i class="ti ti-coin"></i> Rekod Yuran</button>
         <button class="btn btn-outline" onclick="bukaModalGred('${a.NO_KP}',window._ahliNama||'')"><i class="ti ti-award"></i> Naik Gred</button>
         <button class="btn btn-outline" style="grid-column:1/-1;border-color:var(--c2);color:var(--c2)" onclick="bukaModalBerat('${a.NO_KP}',window._ahliNama||'','${a.BERAT_KG||''}','${a.TINGGI_CM||''}',kiraUsiaDariKP('${a.TARIKH_LAHIR}','${a.NO_KP}'))"><i class="ti ti-weight"></i> Kemaskini Berat & Tinggi</button>
+        <button class="btn btn-outline" style="grid-column:1/-1;border-color:var(--violet);color:var(--violet)" onclick="bukaPKY('${a.NO_KP}',window._ahliNama||'')"><i class="ti ti-heart-handshake"></i> Pengecualian Yuran Khas</button>
         <button class="btn btn-outline" style="border-color:var(--c7);color:var(--c7)" onclick="bukaEditAhli('${a.NO_KP}')"><i class="ti ti-pencil"></i> Edit Maklumat</button>
         <button class="btn btn-outline" style="border-color:var(--c6);color:var(--c6)" onclick="padamAhliKonfirm('${a.NO_KP}',window._ahliNama||'')"><i class="ti ti-user-off"></i> Padam Pesilat</button>
       </div>
@@ -2981,6 +2984,7 @@ async function renderYuran() {
     bulanDikecualiSebab = rekodBulanIni ? (rekodBulanIni.CATATAN || 'Dikecualikan') : '';
     // Sync: pastikan semua ahli aktif ada dalam senarai yuran
     // Exclude rekod SEDEKAH/sistem dari senarai pesilat
+    await muatPKY();
     const senaraiYuran = (data.senarai || []).filter(y =>
       y.no_kp && y.no_kp !== 'SEDEKAH' && y.no_kp !== 'DIKECUALIKAN' &&
       y.nama && y.nama !== 'undefined' && y.nama.trim() !== ''
@@ -3001,9 +3005,11 @@ async function renderYuran() {
       }
     });
     senaraiYuran.sort((a,b) => (a.nama||'').localeCompare(b.nama||''));
+    senaraiYuran.forEach(a => { a.dikecuali = pkyAktif(PKY, a.no_kp, yuranBulanPilih, yuranTahunPilih); });
     data.senarai = senaraiYuran;
-    const jumlahTotal = senaraiYuran.length;
+    const jumlahTotal = senaraiYuran.filter(a => a.sudah_bayar || !a.dikecuali).length;
     const jumlahBayar = senaraiYuran.filter(a => a.sudah_bayar).length;
+    const jumlahPKY = senaraiYuran.filter(a => !a.sudah_bayar && a.dikecuali).length;
     const pct  = jumlahTotal > 0 ? Math.round(jumlahBayar / jumlahTotal * 100) : 0;
 
     main.innerHTML = `
@@ -3028,6 +3034,7 @@ async function renderYuran() {
       </div>
 
       ${janaHtmlKecuali(bulanDikecuali, bulanDikecualiSebab)}
+      <button class="btn-pky-urus" onclick="bukaUrusPKY()"><i class="ti ti-heart-handshake"></i> Pengecualian khas pesilat${PKY.length ? ' (' + PKY.filter(p => !p.tamat || p.tamat >= pkyYM(yuranBulanPilih, yuranTahunPilih)).length + ' aktif)' : ''}<span class="stat-pky-count" style="margin-left:auto;font-weight:700">${jumlahPKY ? jumlahPKY + ' dikecualikan bulan ini' : ''}</span></button>
 
       <div class="tapis-row">
         <button class="btn-filter-yuran${tapisBayar==='semua'?' aktif':''}" data-jenis="semua" onclick="tapYuran('semua')">Semua (${jumlahTotal})</button>
@@ -3071,7 +3078,7 @@ function renderSenaraiYuran() {
   const el = document.getElementById('senarai-yuran');
   if (!el) return;
   let senarai = dataYuranCache;
-  if (tapisBayar === 'belum') senarai = senarai.filter(a => !a.sudah_bayar);
+  if (tapisBayar === 'belum') senarai = senarai.filter(a => !a.sudah_bayar && !a.dikecuali);
   if (tapisBayar === 'dah')   senarai = senarai.filter(a => a.sudah_bayar);
   if (!senarai.length) { el.innerHTML = '<div class="kosong"><i class="ti ti-check"></i><p>Tiada rekod dalam kategori ini</p></div>'; return; }
   el.innerHTML = senarai.map(a => {
@@ -3091,6 +3098,12 @@ function renderSenaraiYuran() {
         '</div>' + status +
         (a._menyimpan ? '' : '<i class="ti ti-pencil" style="color:var(--muted);font-size:16px;flex-shrink:0"></i>') +
       '</div>';
+    }
+    if (a.dikecuali) {
+      return '<div class="baris-yuran pky boleh-edit" onclick="bukaPKY(\'' + kpArg + '\',\'' + jsArg(a.nama || '') + '\')">' +
+        '<div class="item-info"><div class="item-nama wrap">' + nama + '</div>' +
+        '<div class="item-sub">' + kat + (a.dikecuali.sebab ? ' · ' + escapeHtml(a.dikecuali.sebab) : '') + '</div></div>' +
+        '<span class="badge" style="background:rgba(var(--violet-rgb),.16);color:var(--violet)">💝 Dikecualikan</span></div>';
     }
     return `<div class="baris-yuran" id="baris-${escapeAttr(kp)}">
         <div class="baris-yuran-atas">
@@ -3134,7 +3147,7 @@ function bukaBayarInline(kp) {
 // Kemas kini ringkasan (bilangan bayar, kutipan) tanpa muat semula halaman
 function kemaskiniRingkasanYuran() {
   const bayar = dataYuranCache.filter(a => a.sudah_bayar).length;
-  const total = dataYuranCache.length;
+  const total = dataYuranCache.filter(a => a.sudah_bayar || !a.dikecuali).length;
   const pct = total > 0 ? Math.round(bayar/total*100) : 0;
   const kutipan = dataYuranCache.filter(a=>a.sudah_bayar).reduce((s,a)=>s+(parseFloat(a.jumlah)||0),0);
   document.querySelectorAll('.stat-bayar-count').forEach(e => e.textContent = bayar + ' / ' + total + ' orang bayar');
@@ -5663,6 +5676,111 @@ async function hantarGred(e) {
   }
 }
 
+
+// ── Pengecualian KHAS yuran bulanan bagi pesilat terpilih ──────
+// Guna tetapan sedia ada (kemaskini_tetapan) — tiada Deploy Apps Script diperlukan.
+let PKY = [];
+function tutupPKY() { tutupModal('modal-pky'); tutupModal('modal-pky-urus'); }
+async function muatPKY() {
+  try { PKY = pkyBacaTetapan(await api('tetapan')); } catch (e) { /* kekal senarai lama */ }
+  return PKY;
+}
+async function simpanPKY(baru) {
+  await apiPost({ tindakan: 'kemaskini_tetapan', kunci: 'PENGECUALIAN_YURAN', nilai: JSON.stringify(baru) });
+  PKY = baru;
+  clearApiCache('tetapan');
+}
+function _pkyPilihBulan(id, ym, bolehKosong) {
+  const [t, b] = (ym || '').split('-');
+  const thn = senaraiTahunPilihan();
+  return '<div style="display:flex;gap:6px">' +
+    '<select class="form-input" id="' + id + '-b" style="flex:2">' + (bolehKosong ? '<option value="">— Tiada had —</option>' : '') +
+      _BLN_PKY.map((n, i) => '<option value="' + (i + 1) + '"' + (Number(b) === i + 1 ? ' selected' : '') + '>' + n + '</option>').join('') + '</select>' +
+    '<select class="form-input" id="' + id + '-t" style="flex:1">' + thn.map(y => '<option' + (String(y) === t ? ' selected' : '') + '>' + y + '</option>').join('') + '</select></div>';
+}
+function _pkyBacaBulan(id) {
+  const b = document.getElementById(id + '-b').value, t = document.getElementById(id + '-t').value;
+  return b ? t + '-' + String(b).padStart(2, '0') : '';
+}
+function _pkyLabel(ym) { if (!ym) return 'sekarang'; const [t, b] = ym.split('-'); return _BLN_PKY[Number(b) - 1] + ' ' + t; }
+
+async function bukaPKY(noKp, nama) {
+  await muatPKY();
+  const kp = _kpPKY(noKp);
+  const ada = PKY.find(p => _kpPKY(p.no_kp) === kp);
+  const kini = pkyYM(new Date().getMonth(), new Date().getFullYear());
+  tutupPKY();
+  const m = document.createElement('div');
+  m.className = 'modal-bg buka'; m.id = 'modal-pky';
+  m.innerHTML = '<div class="modal" onclick="event.stopPropagation()">' +
+    '<div class="modal-header"><div class="modal-tajuk">💝 Pengecualian Yuran Khas</div><button class="modal-tutup" onclick="tutupPKY()"><i class="ti ti-x"></i></button></div>' +
+    '<div style="font-weight:800;margin-bottom:4px">' + escapeHtml(nama || noKp) + '</div>' +
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:14px">' +
+      (ada ? 'Sedang dikecualikan sejak <b>' + _pkyLabel(ada.mula) + '</b>' + (ada.tamat ? ' hingga <b>' + _pkyLabel(ada.tamat) + '</b>' : ' (tiada had)') : 'Pesilat ini tidak akan dikira "belum bayar" yuran bulanan sepanjang tempoh pengecualian.') + '</div>' +
+    '<div class="form-kump"><label class="form-label">Sebab (ringkas — boleh dibaca oleh admin sahaja)</label><input class="form-input" id="pky-sebab" maxlength="80" placeholder="cth: Bantuan khas keluarga" value="' + escapeAttr(ada ? ada.sebab : '') + '"></div>' +
+    '<div class="form-kump"><label class="form-label">Mula dari bulan</label>' + _pkyPilihBulan('pky-mula', ada ? ada.mula : kini, false) + '</div>' +
+    '<div class="form-kump"><label class="form-label">Hingga bulan</label>' + _pkyPilihBulan('pky-tamat', ada ? ada.tamat : '', true) + '</div>' +
+    '<button class="btn btn-pri btn-blok" id="pky-simpan" onclick="simpanPKYUI(\'' + jsArg(kp) + '\',\'' + jsArg(nama || '') + '\')"><i class="ti ti-device-floppy"></i> ' + (ada ? 'Simpan Perubahan' : 'Kecualikan Yuran') + '</button>' +
+    (ada ? '<button class="btn btn-outline btn-blok" style="margin-top:8px;color:var(--bad);border-color:var(--bad)" onclick="tamatPKYUI(\'' + jsArg(kp) + '\')"><i class="ti ti-circle-x"></i> Tamatkan Pengecualian</button>' : '') +
+    '</div>';
+  m.onclick = tutupPKY;
+  document.body.appendChild(m);
+}
+
+async function simpanPKYUI(kp, nama) {
+  const mula = _pkyBacaBulan('pky-mula'), tamat = _pkyBacaBulan('pky-tamat');
+  if (tamat && tamat < mula) { tunjukToast('Bulan "hingga" mesti selepas bulan mula', 'ralat'); return; }
+  const sebab = document.getElementById('pky-sebab').value.trim();
+  const btn = document.getElementById('pky-simpan'); btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2 spin"></i> Menyimpan...';
+  const baru = PKY.filter(p => _kpPKY(p.no_kp) !== kp).concat([{ no_kp: kp, nama: nama, sebab: sebab, mula: mula, tamat: tamat }]);
+  try {
+    await simpanPKY(baru);
+    tutupPKY();
+    tunjukToast('💝 ' + (nama || 'Pesilat') + ' dikecualikan dari ' + _pkyLabel(mula) + (tamat ? ' hingga ' + _pkyLabel(tamat) : ''));
+    if (halamanSkrg === 'yuran') renderYuran();
+  } catch (e) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Cuba Lagi'; tunjukToast('Gagal simpan: ' + e.message, 'ralat'); }
+}
+
+async function tamatPKYUI(kp) {
+  if (!confirm('Tamatkan pengecualian? Pesilat akan perlu bayar yuran semula mulai bulan hadapan.\n(Rekod bulan-bulan yang telah dikecualikan kekal.)')) return;
+  const d = new Date(); const kini = pkyYM(d.getMonth(), d.getFullYear());
+  const baru = PKY.map(p => {
+    if (_kpPKY(p.no_kp) !== kp) return p;
+    return Object.assign({}, p, { tamat: kini });
+  }).filter(p => !(p.tamat && p.tamat < p.mula));
+  try {
+    await simpanPKY(baru);
+    tutupPKY();
+    tunjukToast('Pengecualian ditamatkan selepas ' + _pkyLabel(kini));
+    if (halamanSkrg === 'yuran') renderYuran();
+  } catch (e) { tunjukToast('Gagal: ' + e.message, 'ralat'); }
+}
+
+// Senarai semua pengecualian + tambah pesilat baharu
+async function bukaUrusPKY() {
+  await muatPKY();
+  const d = new Date(); const kini = pkyYM(d.getMonth(), d.getFullYear());
+  const aktif = PKY.filter(p => !p.tamat || p.tamat >= kini), lepas = PKY.filter(p => p.tamat && p.tamat < kini);
+  const baris = p => '<div class="senarai-item" onclick="bukaPKY(\'' + jsArg(p.no_kp) + '\',\'' + jsArg(p.nama || '') + '\')">' +
+    '<div class="item-info"><div class="item-nama">' + escapeHtml(p.nama || p.no_kp) + '</div>' +
+    '<div class="item-sub">' + _pkyLabel(p.mula) + ' → ' + (p.tamat ? _pkyLabel(p.tamat) : 'tiada had') + (p.sebab ? ' · ' + escapeHtml(p.sebab) : '') + '</div></div>' +
+    '<i class="ti ti-chevron-right" style="color:var(--muted)"></i></div>';
+  const calon = (dataAhliCache || []).filter(a => !PKY.some(p => _kpPKY(p.no_kp) === _kpPKY(a.no_kp)));
+  tutupPKY();
+  const m = document.createElement('div');
+  m.className = 'modal-bg buka'; m.id = 'modal-pky-urus';
+  m.innerHTML = '<div class="modal" onclick="event.stopPropagation()">' +
+    '<div class="modal-header"><div class="modal-tajuk">💝 Pengecualian Yuran Khas</div><button class="modal-tutup" onclick="tutupPKY()"><i class="ti ti-x"></i></button></div>' +
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:12px">Pesilat di bawah tidak dikira "belum bayar" dan tidak menerima peringatan yuran dalam Portal Ibu Bapa.</div>' +
+    '<div class="form-kump"><label class="form-label">Tambah pesilat</label><select class="form-input" id="pky-calon"><option value="">— Pilih pesilat —</option>' +
+      calon.map(a => '<option value="' + escapeAttr(a.no_kp) + '">' + escapeHtml(a.nama) + '</option>').join('') + '</select></div>' +
+    '<button class="btn btn-pri btn-blok" style="margin-bottom:14px" onclick="(function(){const s=document.getElementById(\'pky-calon\');if(!s.value){tunjukToast(\'Pilih pesilat dahulu\',\'ralat\');return;}bukaPKY(s.value,s.options[s.selectedIndex].text);})()"><i class="ti ti-plus"></i> Seterusnya</button>' +
+    '<div class="seksyen-tajuk">Aktif (' + aktif.length + ')</div>' + (aktif.map(baris).join('') || '<div style="color:var(--muted);font-size:13px;padding:6px 0">Tiada.</div>') +
+    (lepas.length ? '<div class="seksyen-tajuk">Telah tamat (' + lepas.length + ')</div>' + lepas.map(baris).join('') : '') +
+    '</div>';
+  m.onclick = tutupPKY;
+  document.body.appendChild(m);
+}
 
 // ── Pengecualian Yuran (Kecualikan Bulan) ─────────────────────
 const BULAN_URUTAN = ['JANUARI','FEBRUARI','MAC','APRIL','MEI','JUN','JULAI','OGOS','SEPTEMBER','OKTOBER','NOVEMBER','DISEMBER'];

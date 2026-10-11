@@ -72,3 +72,19 @@ function htmlKadAhli(a) {
     ${aktif ? '' : `<div class="ka-cop" style="color:${s.warna}">${s.label}</div>`}
   </div>`;
 }
+
+// ═══ Pengecualian khas yuran bulanan (per pesilat) ═══
+// Disimpan dalam sheet TETAPAN, kunci PENGECUALIAN_YURAN, sebagai JSON:
+// [{no_kp, nama, sebab, mula:'YYYY-MM', tamat:'YYYY-MM' atau ''}]
+const _BLN_PKY = ['JANUARI','FEBRUARI','MAC','APRIL','MEI','JUN','JULAI','OGOS','SEPTEMBER','OKTOBER','NOVEMBER','DISEMBER'];
+function _kpPKY(v) { let s = String(v == null ? '' : v).trim(); if (/^\d{11}$/.test(s)) s = '0' + s; return s; }
+function pkyBacaTetapan(t) { try { const a = JSON.parse((t && t.PENGECUALIAN_YURAN) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+function pkyYM(bulan, tahun) {
+  const i = typeof bulan === 'number' ? bulan : _BLN_PKY.indexOf(String(bulan).toUpperCase());
+  return tahun + '-' + String(i + 1).padStart(2, '0');
+}
+// Rekod pengecualian yang berkuat kuasa untuk pesilat pada bulan itu (atau null)
+function pkyAktif(senarai, noKp, bulan, tahun) {
+  const ym = pkyYM(bulan, tahun), kp = _kpPKY(noKp);
+  return (senarai || []).find(p => _kpPKY(p.no_kp) === kp && p.mula <= ym && (!p.tamat || ym <= p.tamat)) || null;
+}
