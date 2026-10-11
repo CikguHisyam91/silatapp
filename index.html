@@ -247,6 +247,16 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.7)}
 .profil-atas .avatar{width:54px;height:54px;font-size:22px;border-radius:14px}
 
 /* ── Ujian Bengkung: butang markah ── */
+.bp-baris{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.bp-nama{font-weight:700;font-size:13px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.bp-status{flex-shrink:0;font-size:12px;font-weight:600}
+.bp-input{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.bp-input label{min-width:0;display:flex;align-items:center;gap:6px;background:var(--surface-2);border:1px solid var(--line-2);border-radius:10px;padding:0 10px;font-size:11px;color:var(--muted)}
+.bp-input input{flex:1;min-width:0;background:none;border:none;outline:none;color:var(--txt);font-size:17px;font-weight:700;padding:9px 0;text-align:right;font-family:inherit}
+.bp-input input::-webkit-inner-spin-button,.bp-input input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.bp-input input{-moz-appearance:textfield}
+.bp-input label:focus-within{border-color:var(--accent)}
+.bp-info{font-size:11px;margin-top:6px}
 .btn-pky-urus{display:flex;align-items:center;gap:6px;width:100%;padding:9px 12px;margin:-4px 0 12px;border-radius:10px;background:rgba(var(--violet-rgb),.10);border:1px solid rgba(var(--violet-rgb),.3);color:var(--violet);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;text-align:left}
 .baris-yuran.pky{border-color:rgba(var(--violet-rgb),.35)}
 .grid-status-ahli{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -3404,6 +3414,7 @@ async function renderProfilPesilat() {
     dataPesilat = dataAhliCache;
 
     main.innerHTML = `
+      <button class="btn btn-pri btn-blok" style="margin-bottom:12px" onclick="renderBeratPukal()"><i class="ti ti-scale"></i> Kemaskini Berat &amp; Tinggi (Semua Pesilat)</button>
       <div class="kotak-carian" style="margin-bottom:10px">
         <i class="ti ti-search"></i>
         <input type="search" id="carian-pesilat" placeholder="Cari nama atau No. KP..." oninput="tapisPesilat(this.value)" autocomplete="off">
@@ -5582,6 +5593,86 @@ async function hantarBeratTinggi(e) {
     tunjukToast('Gagal: ' + err.message, 'ralat');
   } finally {
     btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Simpan Berat & Tinggi';
+  }
+}
+
+// ── Kemaskini berat & tinggi PUKAL (semua pesilat dalam satu skrin) ──
+let _bp = { senarai: [], q: '', ubah: {}, simpan: 0 };
+async function renderBeratPukal() {
+  const main = getMain();
+  main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan pesilat...</span></div>';
+  try {
+    const d = await api('senarai_ahli_bmi');
+    _bp.senarai = (d || []).slice().sort((a, b) => String(a.nama).localeCompare(String(b.nama)));
+  } catch (e) {
+    main.innerHTML = '<div class="kosong"><p>' + escapeHtml(e.message) + '</p><button class="btn btn-outline" onclick="renderBeratPukal()">Cuba Semula</button></div>';
+    return;
+  }
+  _bp.q = ''; _bp.ubah = {};
+  const belum = _bp.senarai.filter(a => !a.berat || !a.tinggi).length;
+  main.innerHTML = `
+    <button class="btn btn-outline btn-blok" style="margin-bottom:10px" onclick="renderProfilPesilat()"><i class="ti ti-arrow-left"></i> Kembali</button>
+    <div class="kad" style="padding:12px 14px;font-size:12px;color:var(--muted);line-height:1.5">
+      <i class="ti ti-info-circle"></i> Taip berat (kg) &amp; tinggi (cm) terus. Setiap baris <b>disimpan automatik</b> bila anda beralih ke kotak lain.
+      ${belum ? '<div style="color:var(--warn);margin-top:4px;font-weight:700">' + belum + ' pesilat belum ada berat/tinggi</div>' : ''}
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:10px">
+      <div class="kotak-carian" style="flex:1;margin:0"><i class="ti ti-search"></i><input type="search" placeholder="Cari nama..." oninput="_bp.q=this.value;bpLukis()"></div>
+      <button class="btn btn-outline" style="padding:8px 12px;flex-shrink:0" id="bp-tapis" onclick="_bp.belum=!_bp.belum;this.classList.toggle('btn-pri',_bp.belum);bpLukis()">Belum diisi</button>
+    </div>
+    <div id="bp-senarai"></div>`;
+  bpLukis();
+}
+function bpLukis() {
+  const el = document.getElementById('bp-senarai'); if (!el) return;
+  const q = (_bp.q || '').toLowerCase();
+  const sen = _bp.senarai.filter(a => (!q || String(a.nama).toLowerCase().includes(q)) && (!_bp.belum || !a.berat || !a.tinggi));
+  el.innerHTML = sen.map(a => {
+    const kp = escapeAttr(a.no_kp);
+    return `<div class="bp-baris" id="bp-${kp}">
+      <div class="bp-nama">${escapeHtml(a.nama)}<span class="bp-status" id="bps-${kp}"></span></div>
+      <div class="bp-input">
+        <label>Berat<input type="number" inputmode="decimal" step="0.1" min="1" max="200" value="${a.berat || ''}" placeholder="kg" onchange="bpUbah('${jsArg(a.no_kp)}')" oninput="bpInfo('${jsArg(a.no_kp)}');clearTimeout(_bp.ubah['${jsArg(a.no_kp)}'])" id="bpb-${kp}"><span>kg</span></label>
+        <label>Tinggi<input type="number" inputmode="decimal" step="0.1" min="50" max="250" value="${a.tinggi || ''}" placeholder="cm" onchange="bpUbah('${jsArg(a.no_kp)}')" oninput="bpInfo('${jsArg(a.no_kp)}');clearTimeout(_bp.ubah['${jsArg(a.no_kp)}'])" id="bpt-${kp}"><span>cm</span></label>
+      </div>
+      <div class="bp-info" id="bpi-${kp}">${bpTeksInfo(a.berat, a.tinggi)}</div>
+    </div>`;
+  }).join('') || '<div class="kosong"><p>Tiada pesilat.</p></div>';
+}
+function bpTeksInfo(berat, tinggi) {
+  berat = parseFloat(berat) || 0; tinggi = parseFloat(tinggi) || 0;
+  if (!berat || !tinggi) return '<span style="color:var(--muted)">Belum lengkap</span>';
+  const bmi = Math.round(berat / Math.pow(tinggi / 100, 2) * 10) / 10;
+  const s = sasaranBMI(berat, tinggi);
+  const ex = s.arah === 'tambah' ? ' · perlu +' + s.beza + 'kg' : s.arah === 'kurang' ? ' · perlu −' + s.beza + 'kg' : '';
+  return '<span style="color:' + warnaBMIAdmin(bmi) + ';font-weight:700">BMI ' + bmi + ' · ' + labelBMIAdmin(bmi) + '</span><span style="color:var(--muted)">' + ex + '</span>';
+}
+function bpInfo(kp) {
+  const b = document.getElementById('bpb-' + kp)?.value, t = document.getElementById('bpt-' + kp)?.value;
+  const el = document.getElementById('bpi-' + kp); if (el) el.innerHTML = bpTeksInfo(b, t);
+}
+function bpStatus(kp, html) { const el = document.getElementById('bps-' + kp); if (el) el.innerHTML = html; }
+function bpUbah(kp) {
+  const b = parseFloat(document.getElementById('bpb-' + kp)?.value) || 0;
+  const t = parseFloat(document.getElementById('bpt-' + kp)?.value) || 0;
+  const a = _bp.senarai.find(x => String(x.no_kp) === String(kp)); if (!a) return;
+  if ((b && (b < 5 || b > 200)) || (t && (t < 50 || t > 250))) { bpStatus(kp, '<i class="ti ti-alert-triangle" style="color:var(--warn)"></i> semak nilai'); return; }
+  if (b === (a.berat || 0) && t === (a.tinggi || 0)) return;
+  clearTimeout(_bp.ubah[kp]);
+  if (!b || !t) { bpStatus(kp, '<span style="color:var(--muted)">isi berat &amp; tinggi</span>'); return; }
+  // tunggu sebentar — jika sedang menaip kotak sebelah, hantar sekali sahaja
+  _bp.ubah[kp] = setTimeout(() => bpHantar(kp, b, t), 1200);
+}
+async function bpHantar(kp, b, t) {
+  const a = _bp.senarai.find(x => String(x.no_kp) === String(kp)); if (!a) return;
+  bpStatus(kp, '<i class="ti ti-loader-2 spin"></i>');
+  try {
+    await apiPost({ tindakan: 'kemaskini_berat', no_kp: kp, berat_kg: b, tinggi_cm: t });
+    a.berat = b || null; a.tinggi = t || null;
+    bpStatus(kp, '<i class="ti ti-check" style="color:var(--ok)"></i>');
+    dataAhliCache = null; clearApiCache('senarai_ahli_bmi');
+  } catch (e) {
+    bpStatus(kp, '<button class="btn-kecil" style="color:var(--bad)" onclick="bpHantar(\'' + jsArg(kp) + '\',' + b + ',' + t + ')"><i class="ti ti-refresh"></i> Gagal — cuba lagi</button>');
   }
 }
 
