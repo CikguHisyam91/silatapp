@@ -3410,8 +3410,8 @@ async function renderProfilPesilat() {
   const main = getMain();
   main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan data pesilat...</span></div>';
   try {
-    if (!dataAhliCache) dataAhliCache = await api('senarai_ahli', {status:'AKTIF'});
-    dataPesilat = dataAhliCache;
+    // senarai_ahli_bmi: berat, tinggi, BMI, kategori usia & kelas berat semasa (terus dari Sheet)
+    dataPesilat = ((await api('senarai_ahli_bmi')) || []).slice().sort((a, b) => String(a.nama).localeCompare(String(b.nama)));
 
     main.innerHTML = `
       <button class="btn btn-pri btn-blok" style="margin-bottom:12px" onclick="renderBeratPukal()"><i class="ti ti-scale"></i> Kemaskini Berat &amp; Tinggi (Semua Pesilat)</button>
@@ -3422,7 +3422,7 @@ async function renderProfilPesilat() {
       <div style="margin-bottom:10px">
         <select class="form-input" id="pilih-pesilat" onchange="pilihDariDropdown(this.value)" style="font-size:13px;padding:9px 12px">
           <option value="">— Pilih nama dari senarai —</option>
-          ${dataAhliCache.map(a=>`<option value="${a.no_kp}">${a.nama}</option>`).join('')}
+          ${dataPesilat.map(a=>`<option value="${escapeAttr(a.no_kp)}">${escapeHtml(a.nama)}</option>`).join('')}
         </select>
       </div>
       <div id="jadual-pesilat"></div>
@@ -3493,7 +3493,10 @@ function paparJadualPesilat(senarai) {
   el.innerHTML = `
     <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${senarai.length} pesilat dijumpai</div>
     ${senarai.map(a => {
-      const usia   = kiraUsiaDariKP(a.tarikh_lahir, a.no_kp);
+      const usia   = a.usia != null && a.usia !== '' ? a.usia : kiraUsiaDariKP(a.tarikh_lahir, a.no_kp);
+      const katU   = String(a.kategori_usia || '').replace(/\s*\(.*\)/, '');
+      const hadU   = (String(a.kategori_usia || '').match(/\((.*)\)/) || [])[1] || '';
+      const kelas  = a.kelas_berat || '';
       const berat  = parseFloat(a.berat) || 0;
       const tinggi = parseFloat(a.tinggi) || 0;
       const bmi    = (berat>0&&tinggi>0) ? Math.round(berat/Math.pow(tinggi/100,2)*10)/10 : null;
@@ -3526,6 +3529,16 @@ function paparJadualPesilat(senarai) {
           </div>
         </div>
 
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+          <div style="background:rgba(var(--violet-rgb),.10);border:1px solid rgba(var(--violet-rgb),.25);border-radius:8px;padding:7px;text-align:center">
+            <div style="font-size:13px;font-weight:800;color:var(--violet)">${katU ? escapeHtml(katU) : '—'}</div>
+            <div style="font-size:10px;color:var(--muted)">KATEGORI USIA${hadU ? ' · ' + escapeHtml(hadU.toLowerCase()) : ''}</div>
+          </div>
+          <div style="background:rgba(var(--accent-rgb),.10);border:1px solid rgba(var(--accent-rgb),.25);border-radius:8px;padding:7px;text-align:center">
+            <div style="font-size:13px;font-weight:800;color:var(--accent)">${berat > 0 ? (kelas ? (kelas === 'BEBAS' ? 'BEBAS' : 'KELAS ' + escapeHtml(kelas)) : '—') : 'Isi berat'}</div>
+            <div style="font-size:10px;color:var(--muted)">KELAS BERAT</div>
+          </div>
+        </div>
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
           ${bmi ? `<span class="badge" style="font-size:10px;background:color-mix(in srgb,${warnaBMI(bmi)} 14%,transparent);color:${warnaBMI(bmi)}">BMI ${bmi} · ${labelBMI(bmi)}${(() => { const t = sasaranBMI(berat, tinggi); return t && t.arah !== 'ok' ? ' · ' + (t.arah === 'tambah' ? '+' : '−') + t.beza + 'kg' : ''; })()}</span>` : ''}
         </div>
