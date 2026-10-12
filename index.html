@@ -1118,11 +1118,11 @@ document.addEventListener('click', e=>{
 // Data TEPAT dari Sheet RUJUKAN — dikemaskini terus dari Google Sheets
 const RUJUKAN_BERAT = [
   // PRA TUNAS (5-6 TAHUN)
-  {kat:'PRA TUNAS',mn:15,mx:18,kelas:'A'},{kat:'PRA TUNAS',mn:18,mx:21,kelas:'B'},{kat:'PRA TUNAS',mn:21,mx:24,kelas:'C'},
+  {kat:'PRA TUNAS',mn:15,mx:18,kelas:'A'},{kat:'PRA TUNAS',mn:18,mx:21,kelas:'B'},{kat:'PRA TUNAS',mn:21,mx:24,kelas:'C'},{kat:'PRA TUNAS',mn:24,mx:999,kelas:'BEBAS'},
   // TUNAS (7-8 TAHUN)
   {kat:'TUNAS',mn:16,mx:19,kelas:'A'},{kat:'TUNAS',mn:19,mx:22,kelas:'B'},{kat:'TUNAS',mn:22,mx:25,kelas:'C'},{kat:'TUNAS',mn:25,mx:28,kelas:'D'},{kat:'TUNAS',mn:28,mx:31,kelas:'E'},{kat:'TUNAS',mn:31,mx:999,kelas:'BEBAS'},
   // PRA DINI (9-10 TAHUN)
-  {kat:'PRA DINI',mn:18,mx:21,kelas:'A'},{kat:'PRA DINI',mn:21,mx:24,kelas:'B'},{kat:'PRA DINI',mn:24,mx:27,kelas:'C'},{kat:'PRA DINI',mn:27,mx:30,kelas:'E'},{kat:'PRA DINI',mn:30,mx:33,kelas:'F'},{kat:'PRA DINI',mn:33,mx:999,kelas:'BEBAS'},
+  {kat:'PRA DINI',mn:18,mx:21,kelas:'A'},{kat:'PRA DINI',mn:21,mx:24,kelas:'B'},{kat:'PRA DINI',mn:24,mx:27,kelas:'C'},{kat:'PRA DINI',mn:27,mx:30,kelas:'D'},{kat:'PRA DINI',mn:30,mx:33,kelas:'E'},{kat:'PRA DINI',mn:33,mx:999,kelas:'BEBAS'},
   // DINI (11-12 TAHUN)
   {kat:'DINI',mn:24,mx:28,kelas:'A'},{kat:'DINI',mn:28,mx:32,kelas:'B'},{kat:'DINI',mn:32,mx:36,kelas:'C'},{kat:'DINI',mn:36,mx:40,kelas:'D'},{kat:'DINI',mn:40,mx:44,kelas:'E'},{kat:'DINI',mn:44,mx:48,kelas:'F'},{kat:'DINI',mn:48,mx:52,kelas:'G'},{kat:'DINI',mn:52,mx:56,kelas:'H'},{kat:'DINI',mn:56,mx:60,kelas:'I'},{kat:'DINI',mn:60,mx:999,kelas:'BEBAS'},
   // PRA REMAJA (13-14 TAHUN)
@@ -1245,8 +1245,9 @@ function janaHtmlFizikal(tarikh, noKp, beratRaw, tinggiRaw) {
   let h = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">';
   h += '<div style="background:rgba(var(--violet-rgb),.12);border:1px solid rgba(var(--violet-rgb),.3);border-radius:12px;padding:12px;text-align:center">';
   h += '<div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px">KATEGORI USIA</div>';
-  h += '<div style="font-size:16px;font-weight:800;color:var(--violet)">' + (katU?.label||'—') + '</div>';
-  h += '<div style="font-size:10px;color:var(--muted);margin-top:2px">' + (usia||'?') + ' tahun (' + (katU?.had||'—') + ')</div></div>';
+  const semuaU = kategoriUsiaSemua(usia, katUsiaLabel);
+  h += '<div style="font-size:16px;font-weight:800;color:var(--violet)">' + (semuaU.length ? semuaU.map(k => k.label).join(' / ') : '—') + '</div>';
+  h += '<div style="font-size:10px;color:var(--muted);margin-top:2px">' + (usia||'?') + ' tahun (' + (semuaU.length > 1 ? 'layak 2 kategori' : (katU?.had||'—')) + ')</div></div>';
   h += '<div style="background:rgba(var(--warn-rgb),.12);border:1px solid rgba(var(--warn-rgb),.3);border-radius:12px;padding:12px;text-align:center">';
   h += '<div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:4px">BERAT &amp; TINGGI</div>';
   h += '<div style="font-size:16px;font-weight:800;color:var(--accent)">' + (berat||'—') + ' kg</div>';
@@ -2707,6 +2708,18 @@ async function loadKelasBeratProfil(tarikh, noKp, berat) {
   if (!katU) { el.innerHTML='<span style="color:var(--muted)">Usia tidak dapat dikira. Semak tarikh lahir.</span>'; return; }
   if (!beratKg) { el.innerHTML='<span style="color:var(--c4)">⚠️ Kemaskini berat dahulu untuk dapatkan kelas pertandingan.</span>'; return; }
 
+  // Umur bertindih (16 / 35): papar kelas bagi KEDUA-DUA kategori
+  const dua = kelasBeratSemua(usia, beratKg, katUsiaLabel, cariKelasBeratHardcode);
+  if (dua.length > 1) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:8px">🏆 KELAS PERTANDINGAN · ' + usia + ' tahun layak 2 kategori</div>' +
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' + dua.map(k =>
+        '<div style="background:rgba(var(--accent-rgb),.08);border:1px solid rgba(var(--accent-rgb),.3);border-radius:10px;padding:10px;text-align:center">' +
+        '<div style="font-size:11px;font-weight:800;color:var(--violet)">' + k.label + '</div>' +
+        '<div style="font-size:24px;font-weight:900;color:var(--accent)">' + (k.kelas ? k.kelas.kelas : '—') + '</div>' +
+        '<div style="font-size:10px;color:var(--muted)">' + (k.kelas ? (k.kelas.catatan ? 'bawah minimum' : k.kelas.min + '–' + (k.kelas.max >= 900 ? 'ke atas' : k.kelas.max) + 'kg') : 'tiada kelas') + '</div></div>').join('') +
+      '</div>';
+    return;
+  }
   // Guna data hardcode dulu (laju & pasti)
   const found = cariKelasBeratHardcode(katU.label, beratKg);
   if (found) {
@@ -3493,10 +3506,11 @@ function paparJadualPesilat(senarai) {
   el.innerHTML = `
     <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${senarai.length} pesilat dijumpai</div>
     ${senarai.map(a => {
-      const usia   = a.usia != null && a.usia !== '' ? a.usia : kiraUsiaDariKP(a.tarikh_lahir, a.no_kp);
-      const katU   = String(a.kategori_usia || '').replace(/\s*\(.*\)/, '');
-      const hadU   = (String(a.kategori_usia || '').match(/\((.*)\)/) || [])[1] || '';
-      const kelas  = a.kelas_berat || '';
+      const usia   = kiraUsiaKompetisi(a.tarikh_lahir || '', (s => s.length === 11 ? '0' + s : s)(String(a.no_kp || '').trim())) ?? a.usia;
+      const semuaK = kelasBeratSemua(usia, parseFloat(a.berat) || 0, katUsiaLabel, cariKelasBeratHardcode);
+      const katU   = semuaK.map(k => k.label).join(' / ');
+      const hadU   = semuaK.length > 1 ? 'layak 2 kategori' : (semuaK[0] ? semuaK[0].had : '');
+      const kelas  = semuaK.length > 1 ? teksKelasSemua(semuaK).replace(/Kelas /g, '') : (semuaK[0] && semuaK[0].kelas ? semuaK[0].kelas.kelas : '');
       const berat  = parseFloat(a.berat) || 0;
       const tinggi = parseFloat(a.tinggi) || 0;
       const bmi    = (berat>0&&tinggi>0) ? Math.round(berat/Math.pow(tinggi/100,2)*10)/10 : null;
@@ -3535,7 +3549,7 @@ function paparJadualPesilat(senarai) {
             <div style="font-size:10px;color:var(--muted)">KATEGORI USIA${hadU ? ' · ' + escapeHtml(hadU.toLowerCase()) : ''}</div>
           </div>
           <div style="background:rgba(var(--accent-rgb),.10);border:1px solid rgba(var(--accent-rgb),.25);border-radius:8px;padding:7px;text-align:center">
-            <div style="font-size:13px;font-weight:800;color:var(--accent)">${berat > 0 ? (kelas ? (kelas === 'BEBAS' ? 'BEBAS' : 'KELAS ' + escapeHtml(kelas)) : '—') : 'Isi berat'}</div>
+            <div style="font-size:13px;font-weight:800;color:var(--accent)">${berat > 0 ? (kelas ? (semuaK.length > 1 ? escapeHtml(kelas) : kelas === 'BEBAS' ? 'BEBAS' : 'KELAS ' + escapeHtml(kelas)) : '—') : 'Isi berat'}</div>
             <div style="font-size:10px;color:var(--muted)">KELAS BERAT</div>
           </div>
         </div>

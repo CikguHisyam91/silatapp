@@ -501,8 +501,11 @@ async function renderProfil() {
   const usiaKomp = kiraUsiaKompetitiParent(a.NO_KP, a.TARIKH_LAHIR) || usia;
   const _kUsFull = usiaKomp ? katUsiaP(usiaKomp) : null;
   const _kelasObj = _kUsFull ? cariKelasP(_kUsFull.label, berat) : null;
-  const _kelasLabel = _kelasObj
-    ? 'Kelas ' + _kelasObj.kelas + ' · ' + _kelasObj.mn + '–' + _kelasObj.mx + 'kg'
+  const _semuaK = usiaKomp ? kelasBeratSemua(usiaKomp, berat, katUsiaP, cariKelasP) : [];
+  const _dua = _semuaK.length > 1;
+  const _kelasLabel = _dua && berat ? teksKelasSemua(_semuaK)
+    : _kelasObj
+    ? 'Kelas ' + _kelasObj.kelas + ' · ' + _kelasObj.mn + '–' + (_kelasObj.mx >= 999 ? 'ke atas' : _kelasObj.mx + 'kg')
     : (berat ? 'Kelas tidak dijumpai' : 'Isi berat dahulu');
   const fotoSrc=a.FOTO_BASE64&&a.FOTO_BASE64.length>10
     ?`<img class="foto-bulat" src="${a.FOTO_BASE64}" alt="Gambar">`
@@ -541,7 +544,17 @@ async function renderProfil() {
     <!-- Kad Info Pertandingan -->
     <div style="background:var(--surface);border-radius:16px;padding:16px;margin-bottom:12px;border:1px solid rgba(var(--accent-rgb),.3)">
       <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px">🏆 Info Pertandingan</div>
-      ${_kUsFull && _kelasObj ? `
+      ${_dua && berat ? `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        ${_semuaK.map(k => `<div style="background:rgba(var(--warn-rgb),.12);border:1px solid rgba(var(--warn-rgb),.35);border-radius:12px;padding:12px;text-align:center">
+          <div style="font-size:13px;font-weight:900;color:var(--violet)">${k.label}</div>
+          <div style="font-size:10px;color:var(--muted)">${k.had}</div>
+          <div style="font-size:26px;font-weight:900;color:var(--accent);margin-top:4px">${k.kelas ? k.kelas.kelas : '—'}</div>
+          <div style="font-size:10px;color:var(--muted)">${k.kelas ? k.kelas.mn + ' – ' + (k.kelas.mx >= 999 ? 'ke atas' : k.kelas.mx + ' kg') : 'tiada kelas'}</div></div>`).join('')}
+      </div>
+      <div style="margin-top:10px;background:rgba(var(--accent-rgb),.08);border-radius:8px;padding:8px 12px;font-size:11px;color:var(--muted);text-align:center">
+        📋 Umur ${usiaKomp} tahun layak 2 kategori: <strong style="color:var(--accent)">${teksKelasSemua(_semuaK)}</strong>
+      </div>` : _kUsFull && _kelasObj ? `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
         <div style="background:rgba(var(--violet-rgb),.2);border:1px solid rgba(var(--violet-rgb),.4);border-radius:12px;padding:12px;text-align:center">
           <div style="font-size:10px;color:rgba(255,255,255,.6);margin-bottom:4px">KATEGORI USIA</div>
@@ -846,7 +859,7 @@ async function renderLaporan() {
           <div style="text-align:center;padding:10px;background:var(--surface-2);border-radius:10px;border-bottom:3px solid ${warnaBMI(bmi)}">
             <div style="font-size:18px;font-weight:800;color:${warnaBMI(bmi)}">${bmi||'—'}</div><div style="font-size:9px;color:var(--muted)">BMI · ${labelBMI(bmi)}</div></div>
           <div style="text-align:center;padding:10px;background:var(--surface-2);border-radius:10px;border-bottom:3px solid var(--line-2)">
-            <div style="font-size:14px;font-weight:800;color:var(--violet)">${_kelasK?_kelasK.kelas:'—'}</div><div style="font-size:9px;color:var(--muted)">Kelas</div></div>
+            <div style="font-size:14px;font-weight:800;color:var(--violet)">${(()=>{const d=kelasBeratSemua(_uK,berat,katUsiaP,cariKelasP);return d.length>1&&berat?d.map(k=>k.label.split(' ').map(w=>w[0]).join('')+':'+(k.kelas?k.kelas.kelas:'—')).join(' '):(_kelasK?_kelasK.kelas:'—');})()}</div><div style="font-size:9px;color:var(--muted)">Kelas</div></div>
         </div>
       </div>
       ${!senarai||!senarai.length?`<div class="kad" style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:32px;margin-bottom:8px">📋</div><div style="font-size:14px;font-weight:600">Tiada laporan lagi</div><div style="font-size:12px;margin-top:4px">Laporan akan diisi oleh jurulatih selepas penilaian</div></div>`
@@ -1185,11 +1198,11 @@ function skrinPenuh() {
 // Data TEPAT dari Sheet RUJUKAN — dikemaskini terus dari Google Sheets
 const RUJUKAN_BERAT_P = [
   // PRA TUNAS (5-6 TAHUN)
-  {kat:'PRA TUNAS',mn:15,mx:18,kelas:'A'},{kat:'PRA TUNAS',mn:18,mx:21,kelas:'B'},{kat:'PRA TUNAS',mn:21,mx:24,kelas:'C'},
+  {kat:'PRA TUNAS',mn:15,mx:18,kelas:'A'},{kat:'PRA TUNAS',mn:18,mx:21,kelas:'B'},{kat:'PRA TUNAS',mn:21,mx:24,kelas:'C'},{kat:'PRA TUNAS',mn:24,mx:999,kelas:'BEBAS'},
   // TUNAS (7-8 TAHUN)
   {kat:'TUNAS',mn:16,mx:19,kelas:'A'},{kat:'TUNAS',mn:19,mx:22,kelas:'B'},{kat:'TUNAS',mn:22,mx:25,kelas:'C'},{kat:'TUNAS',mn:25,mx:28,kelas:'D'},{kat:'TUNAS',mn:28,mx:31,kelas:'E'},{kat:'TUNAS',mn:31,mx:999,kelas:'BEBAS'},
   // PRA DINI (9-10 TAHUN)
-  {kat:'PRA DINI',mn:18,mx:21,kelas:'A'},{kat:'PRA DINI',mn:21,mx:24,kelas:'B'},{kat:'PRA DINI',mn:24,mx:27,kelas:'C'},{kat:'PRA DINI',mn:27,mx:30,kelas:'E'},{kat:'PRA DINI',mn:30,mx:33,kelas:'F'},{kat:'PRA DINI',mn:33,mx:999,kelas:'BEBAS'},
+  {kat:'PRA DINI',mn:18,mx:21,kelas:'A'},{kat:'PRA DINI',mn:21,mx:24,kelas:'B'},{kat:'PRA DINI',mn:24,mx:27,kelas:'C'},{kat:'PRA DINI',mn:27,mx:30,kelas:'D'},{kat:'PRA DINI',mn:30,mx:33,kelas:'E'},{kat:'PRA DINI',mn:33,mx:999,kelas:'BEBAS'},
   // DINI (11-12 TAHUN)
   {kat:'DINI',mn:24,mx:28,kelas:'A'},{kat:'DINI',mn:28,mx:32,kelas:'B'},{kat:'DINI',mn:32,mx:36,kelas:'C'},{kat:'DINI',mn:36,mx:40,kelas:'D'},{kat:'DINI',mn:40,mx:44,kelas:'E'},{kat:'DINI',mn:44,mx:48,kelas:'F'},{kat:'DINI',mn:48,mx:52,kelas:'G'},{kat:'DINI',mn:52,mx:56,kelas:'H'},{kat:'DINI',mn:56,mx:60,kelas:'I'},{kat:'DINI',mn:60,mx:999,kelas:'BEBAS'},
   // PRA REMAJA (13-14 TAHUN)

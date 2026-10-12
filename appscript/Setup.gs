@@ -338,11 +338,11 @@ function buatSheet_Rujukan(ss) {
   sheet.setColumnWidth(4, 110);
 
   const dataRujukan = [
-    ['PRA TUNAS (5-6 TAHUN)','A',15,18],['PRA TUNAS (5-6 TAHUN)','B',18,21],['PRA TUNAS (5-6 TAHUN)','C',21,24],
+    ['PRA TUNAS (5-6 TAHUN)','A',15,18],['PRA TUNAS (5-6 TAHUN)','B',18,21],['PRA TUNAS (5-6 TAHUN)','C',21,24],['PRA TUNAS (5-6 TAHUN)','BEBAS',24,999],
     ['TUNAS (7-8 TAHUN)','A',16,19],['TUNAS (7-8 TAHUN)','B',19,22],['TUNAS (7-8 TAHUN)','C',22,25],
     ['TUNAS (7-8 TAHUN)','D',25,28],['TUNAS (7-8 TAHUN)','E',28,31],['TUNAS (7-8 TAHUN)','BEBAS',31,999],
     ['PRA DINI (9-10 TAHUN)','A',18,21],['PRA DINI (9-10 TAHUN)','B',21,24],['PRA DINI (9-10 TAHUN)','C',24,27],
-    ['PRA DINI (9-10 TAHUN)','E',27,30],['PRA DINI (9-10 TAHUN)','F',30,33],['PRA DINI (9-10 TAHUN)','BEBAS',33,999],
+    ['PRA DINI (9-10 TAHUN)','D',27,30],['PRA DINI (9-10 TAHUN)','E',30,33],['PRA DINI (9-10 TAHUN)','BEBAS',33,999],
     ['DINI (11-12 TAHUN)','A',24,28],['DINI (11-12 TAHUN)','B',28,32],['DINI (11-12 TAHUN)','C',32,36],
     ['DINI (11-12 TAHUN)','D',36,40],['DINI (11-12 TAHUN)','E',40,44],['DINI (11-12 TAHUN)','F',44,48],
     ['DINI (11-12 TAHUN)','G',48,52],['DINI (11-12 TAHUN)','H',52,56],['DINI (11-12 TAHUN)','I',56,60],
@@ -626,4 +626,25 @@ function janIDRawak(prefix) { // nama berbeza — janID() dalam API.gs digunakan
   const timestamp = new Date().getTime().toString(36).toUpperCase();
   const rnd       = Math.random().toString(36).slice(2, 6).toUpperCase();
   return prefix + '-' + timestamp + rnd;
+}
+
+
+// ============================================================
+//  BAIKI JADUAL RUJUKAN (jalankan SEKALI): PRA DINI D/E betul,
+//  PRA TUNAS tambah BEBAS (24kg ke atas). Data lain tidak disentuh.
+// ============================================================
+function baikiRujukanBerat() {
+  const sh = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('RUJUKAN');
+  if (!sh) throw new Error('Sheet RUJUKAN tidak dijumpai');
+  const data = sh.getDataRange().getValues();
+  let ubah = 0, adaBebasPT = false;
+  for (let i = 1; i < data.length; i++) {
+    const kat = String(data[i][0]).toUpperCase(), kelas = String(data[i][1]).toUpperCase(), mn = Number(data[i][2]);
+    if (kat.indexOf('PRA DINI') === 0 && kelas === 'E' && mn === 27) { sh.getRange(i + 1, 2).setValue('D'); ubah++; }
+    if (kat.indexOf('PRA DINI') === 0 && kelas === 'F' && mn === 30) { sh.getRange(i + 1, 2).setValue('E'); ubah++; }
+    if (kat.indexOf('PRA TUNAS') === 0 && kelas === 'BEBAS') adaBebasPT = true;
+  }
+  if (!adaBebasPT) { sh.appendRow(['PRA TUNAS (5-6 TAHUN)', 'BEBAS', 24, 999]); ubah++; }
+  try { CacheService.getScriptCache().remove('rujukan'); } catch (e) {}
+  SpreadsheetApp.getUi().alert('✅ Jadual RUJUKAN dibaiki (' + ubah + ' perubahan).');
 }

@@ -88,3 +88,22 @@ function pkyAktif(senarai, noKp, bulan, tahun) {
   const ym = pkyYM(bulan, tahun), kp = _kpPKY(noKp);
   return (senarai || []).find(p => _kpPKY(p.no_kp) === kp && p.mula <= ym && (!p.tamat || ym <= p.tamat)) || null;
 }
+
+// ═══ Kategori usia bertindih (umur 16: REMAJA & SUKMA, umur 35: TERBUKA & MASTER 2) ═══
+const KAT_USIA_HAD = { 'REMAJA': '15-16 tahun', 'SUKMA': '16-20 tahun', 'TERBUKA': '21-35 tahun', 'MASTER 2': '35-45 tahun' };
+const KAT_USIA_BERTINDIH = { 16: ['REMAJA', 'SUKMA'], 35: ['TERBUKA', 'MASTER 2'] };
+// Semua kategori yang layak bagi usia itu: [{label, had}]
+function kategoriUsiaSemua(usia, katFn) {
+  const k = katFn(usia);
+  if (!k) return [];
+  const dua = KAT_USIA_BERTINDIH[Number(usia)];
+  return dua ? dua.map(l => ({ label: l, had: KAT_USIA_HAD[l] })) : [k];
+}
+// [{label, had, kelas:{kelas,min/mn,max/mx}|null}]
+function kelasBeratSemua(usia, berat, katFn, cariFn) {
+  return kategoriUsiaSemua(usia, katFn).map(k => Object.assign({}, k, { kelas: berat ? cariFn(k.label, berat) : null }));
+}
+// "REMAJA: Kelas C · SUKMA: Kelas B"
+function teksKelasSemua(senarai) {
+  return senarai.map(k => k.label + ': ' + (k.kelas ? (k.kelas.kelas === 'BEBAS' ? 'BEBAS' : 'Kelas ' + k.kelas.kelas) : '—')).join(' · ');
+}
