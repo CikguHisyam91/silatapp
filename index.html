@@ -247,8 +247,11 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.7)}
 .profil-atas .avatar{width:54px;height:54px;font-size:22px;border-radius:14px}
 
 /* ── Ujian Bengkung: butang markah ── */
-.fz-kepala{display:flex;justify-content:space-between;align-items:center;margin:16px 0 6px;padding:7px 12px;border-radius:9px;background:rgba(var(--violet-rgb),.12);color:var(--violet);font-weight:800;font-size:13px;letter-spacing:.4px;position:sticky;top:0;z-index:2;backdrop-filter:blur(6px)}
+.fz-kepala{display:flex;justify-content:space-between;align-items:center;margin:16px 0 6px;padding:7px 12px;border-radius:9px;background:color-mix(in srgb,var(--violet) 14%,var(--bg));color:var(--violet);font-weight:800;font-size:13px;letter-spacing:.4px;position:sticky;top:0;z-index:2}
 .fz-kepala span:last-child{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0}
+.fz-subkepala{display:flex;align-items:center;gap:8px;margin:10px 0 6px 4px;font-size:12px;font-weight:800;color:var(--accent)}
+.fz-subkepala::after{content:"";flex:1;height:1px;background:rgba(var(--accent-rgb),.25)}
+.fz-subkepala b{order:3;font-size:11px;font-weight:700;color:var(--muted)}
 .fz-baris{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 6px 9px 10px;margin-bottom:6px;transition:box-shadow .3s}
 .fz-baris.sorot{box-shadow:0 0 0 2px var(--accent)}
 .fz-no{width:22px;flex-shrink:0;text-align:center;font-size:11px;color:var(--muted);font-weight:700}
@@ -3572,7 +3575,9 @@ function _fzData(a) {
   const kat = semuaK[0] ? semuaK[0].label : '';
   const kelas = !berat ? 'Isi berat' : semuaK.length > 1 ? teksKelasSemua(semuaK) : (semuaK[0] && semuaK[0].kelas ? (semuaK[0].kelas.kelas === 'BEBAS' ? 'BEBAS' : 'Kelas ' + semuaK[0].kelas.kelas) : '—');
   const bmi = berat && tinggi ? Math.round(berat / Math.pow(tinggi / 100, 2) * 10) / 10 : null;
-  return { a, kp, usia, berat, tinggi, kat, kelas, bmi, dua: semuaK.length > 1 };
+  const k0 = semuaK[0] && semuaK[0].kelas ? semuaK[0].kelas.kelas : '';
+  const kelasUtama = !berat ? 'Belum isi berat' : (k0 ? (k0 === 'BEBAS' ? 'BEBAS' : 'Kelas ' + k0) : 'Tiada kelas');
+  return { a, kp, usia, berat, tinggi, kat, kelas, kelasUtama, bmi, dua: semuaK.length > 1 };
 }
 function paparJadualPesilat(senarai) {
   const el = document.getElementById('jadual-pesilat');
@@ -3581,8 +3586,13 @@ function paparJadualPesilat(senarai) {
     el.innerHTML = '<div class="kosong"><i class="ti ti-user-off"></i><p>Tiada pesilat dijumpai</p></div>';
     return;
   }
-  const rows = senarai.map(_fzData).sort((x, y) =>
-    (x.usia ?? 999) - (y.usia ?? 999) || String(x.a.nama).localeCompare(String(y.a.nama)));
+  // susunan kelas: A, B, C … BEBAS, kemudian tiada kelas / belum isi berat
+  const tarafKelas = k => k.indexOf('Kelas ') === 0 ? k.charCodeAt(6) - 64 : k === 'BEBAS' ? 50 : k === 'Tiada kelas' ? 60 : 70;
+  const rows = senarai.map(_fzData).sort((x, y) => {
+    const ix = _URUTAN_KAT_USIA.indexOf(x.kat), iy = _URUTAN_KAT_USIA.indexOf(y.kat);
+    return (ix < 0 ? 99 : ix) - (iy < 0 ? 99 : iy) || tarafKelas(x.kelasUtama) - tarafKelas(y.kelasUtama) ||
+      (x.berat || 0) - (y.berat || 0) || String(x.a.nama).localeCompare(String(y.a.nama));
+  });
   window._fzRows = rows;
   const kump = {};
   rows.forEach(r => { const k = r.kat || 'TIADA MAKLUMAT USIA'; (kump[k] = kump[k] || []).push(r); });
@@ -3598,7 +3608,10 @@ function paparJadualPesilat(senarai) {
     </div>
     ${nama.map(k => `
       <div class="fz-kepala"><span>${escapeHtml(k)}</span><span>${kump[k].length} orang${KAT_USIA_HAD[k] ? '' : (katUsiaLabel(kump[k][0].usia)?.had ? ' · ' + katUsiaLabel(kump[k][0].usia).had : '')}</span></div>
-      ${kump[k].map(r => { no++; const a = r.a; return `
+      ${kump[k].map((r, ix, arr) => { no++; const a = r.a;
+        const subKepala = (ix === 0 || arr[ix - 1].kelasUtama !== r.kelasUtama)
+          ? `<div class="fz-subkepala"><span>${escapeHtml(r.kelasUtama)}</span><b>${arr.filter(x => x.kelasUtama === r.kelasUtama).length} orang</b></div>` : '';
+        return subKepala + `
       <div class="fz-baris" id="fz-${escapeAttr(r.kp)}">
         <div class="fz-no">${no}</div>
         <div class="fz-isi">
