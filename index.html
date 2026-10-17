@@ -247,6 +247,18 @@ input[type=date]::-webkit-calendar-picker-indicator{filter:invert(.7)}
 .profil-atas .avatar{width:54px;height:54px;font-size:22px;border-radius:14px}
 
 /* ── Ujian Bengkung: butang markah ── */
+.fz-kepala{display:flex;justify-content:space-between;align-items:center;margin:16px 0 6px;padding:7px 12px;border-radius:9px;background:rgba(var(--violet-rgb),.12);color:var(--violet);font-weight:800;font-size:13px;letter-spacing:.4px;position:sticky;top:0;z-index:2;backdrop-filter:blur(6px)}
+.fz-kepala span:last-child{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0}
+.fz-baris{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:9px 6px 9px 10px;margin-bottom:6px;transition:box-shadow .3s}
+.fz-baris.sorot{box-shadow:0 0 0 2px var(--accent)}
+.fz-no{width:22px;flex-shrink:0;text-align:center;font-size:11px;color:var(--muted);font-weight:700}
+.fz-isi{flex:1;min-width:0;user-select:text;-webkit-user-select:text}
+.fz-nama{font-weight:700;font-size:13px;line-height:1.3}
+.fz-kp{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--muted);letter-spacing:.5px;margin-top:1px}
+.fz-info{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11px;color:var(--muted);margin-top:3px}
+.fz-kelas{display:inline-block;margin-top:5px;padding:2px 8px;border-radius:6px;background:rgba(var(--accent-rgb),.12);color:var(--accent);font-size:11px;font-weight:800}
+.fz-kelas.kosong{background:var(--surface-2);color:var(--muted)}
+.fz-buka{flex-shrink:0;width:36px;height:44px;border-radius:8px;background:var(--surface-2);color:var(--muted);font-size:18px;display:flex;align-items:center;justify-content:center}
 .bp-baris{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px}
 .bp-nama{font-weight:700;font-size:13px;display:flex;justify-content:space-between;gap:8px;align-items:center}
 .bp-status{flex-shrink:0;font-size:12px;font-weight:600}
@@ -343,7 +355,7 @@ table td{border-color:var(--line)}
     <!-- Page Container (slides in) -->
     <div id="page-container">
       <div id="page-header">
-        <div class="btn-balik" onclick="tutupPage()"><i class="ti ti-arrow-left"></i></div>
+        <div class="btn-balik" onclick="undurPage()"><i class="ti ti-arrow-left"></i></div>
         <div id="page-header-title">—</div>
         <div class="hdr-btn" onclick="muatSemula()" style="margin-left:auto"><i class="ti ti-refresh"></i></div>
       </div>
@@ -777,6 +789,8 @@ function tunjukToast(msg, jenis = 'ok') {
 
 // ── Navigation & Page System ─────────────────────────────────
 function bukaPage(halaman, tajuk) {
+  // satu entri sejarah semasa halaman dibuka dari menu utama — butang Back telefon tidak terus keluar aplikasi
+  try { if (!history.state || !history.state.silat) history.pushState({ silat: 1 }, ''); } catch (e) {}
   halamanSkrg = halaman;
   const pc  = document.getElementById('page-container');
   const pt  = document.getElementById('page-header-title');
@@ -789,6 +803,10 @@ function bukaPage(halaman, tajuk) {
   renderHalamanPage(halaman);
 }
 
+window.addEventListener('popstate', () => {
+  if (halamanSkrg === 'dashboard') return;
+  undurPage(); // ke senarai asal (bukaPage menambah semula satu entri) atau ke menu utama
+});
 function tutupPage() {
   halamanSkrg = 'dashboard';
   const pc = document.getElementById('page-container');
@@ -1486,7 +1504,7 @@ function navigasi(halaman, simpanLepas = false) {
   bukaPage(halaman, tajukPeta[halaman] || halaman);
 }
 
-function kembali() { tutupPage(); }
+function kembali() { undurPage(); }
 
 function muatSemula() {
   dataAhliCache = null;
@@ -2605,17 +2623,56 @@ function muat_turun_csv(rows, namaFail) {
 
 // ── HALAMAN: Profil Ahli ─────────────────────────────────────
 let profilAhliSkrg = null;
-function bukaProfilAhli(no_kp) { profilAhliSkrg = no_kp; bukaPage('profil-ahli','👤 Profil Ahli'); }
+// Ingat halaman asal (Pesilat / Fizikal & BMI) supaya butang kembali pulang ke senarai, bukan menu utama
+let _asalProfil = null;
+const _cacheProfil = {};
+function bukaProfilAhli(no_kp) {
+  if (halamanSkrg !== 'profil-ahli') {
+    const pc = getMain();
+    _asalProfil = { halaman: halamanSkrg, tajuk: document.getElementById('page-header-title')?.textContent || '', scroll: pc ? pc.scrollTop : 0,
+                    cari: document.getElementById('carian-pesilat')?.value || document.getElementById('inp-carian')?.value || '' };
+  }
+  profilAhliSkrg = no_kp;
+  bukaPage('profil-ahli','👤 Profil Ahli');
+}
+// Butang ← di atas halaman (dan butang Back telefon)
+function undurPage() {
+  if (halamanSkrg === 'profil-ahli' && _asalProfil && _asalProfil.halaman && _asalProfil.halaman !== 'dashboard') {
+    const asal = _asalProfil; _asalProfil = null;
+    bukaPage(asal.halaman, asal.tajuk);
+    // pulihkan carian & kedudukan skrol selepas senarai dilukis semula
+    let cubaan = 0;
+    const pulih = () => {
+      const pc = getMain();
+      const siap = pc && !pc.querySelector('.muat');
+      if (!siap && cubaan++ < 40) { setTimeout(pulih, 100); return; }
+      if (asal.cari) {
+        const c = document.getElementById('carian-pesilat') || document.getElementById('inp-carian');
+        if (c) { c.value = asal.cari; c.dispatchEvent(new Event('input')); }
+      }
+      setTimeout(() => { if (pc) pc.scrollTop = asal.scroll; }, asal.cari ? 300 : 0);
+    };
+    pulih();
+    return;
+  }
+  tutupPage();
+}
 
 async function renderProfilAhli() {
   const main = getMain();
   const no_kp = profilAhliSkrg;
   if (!no_kp) { navigasi('ahli'); return; }
   try {
-    const a = await api('profil_ahli', {no_kp});
+    // Mulakan ketiga-tiga permintaan serentak (dulu satu demi satu — 3x lebih lambat)
+    const pStat = api('statistik_kehadiran', {no_kp, tahun: tahunSkrg}).catch(() => null);
+    const pGred = api('sejarah_gred', {no_kp}).catch(() => []);
+    const pProfil = api('profil_ahli', {no_kp}).then(x => { _cacheProfil[no_kp] = x; return x; });
+    if (!_cacheProfil[no_kp]) main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan profil...</span></div>';
+    const a = _cacheProfil[no_kp] || await pProfil;   // lawatan semula: papar terus dari ingatan
+    if (profilAhliSkrg !== no_kp || halamanSkrg !== 'profil-ahli') return;
     window._ahliNama = a.NAMA_PENUH || ''; // safe store for onclick
-    const stat = await api('statistik_kehadiran', {no_kp, tahun: tahunSkrg});
-    const gred = await api('sejarah_gred', {no_kp});
+    const stat = { hadir: '<i class="ti ti-loader-2 spin"></i>', tidak_hadir: '…', peratus: '…' };
+    const gred = null;
     const warna = (k) => k?.includes('RENDAH') ? 'var(--c3)' : k?.includes('MENENGAH') ? 'var(--c2)' : 'var(--c4)';
 
     main.innerHTML = `
@@ -2662,7 +2719,7 @@ async function renderProfilAhli() {
 
       <div class="kad">
         <div class="seksyen-tajuk" style="margin-top:0">Kehadiran ${tahunSkrg}</div>
-        <div class="kad-row" style="margin-bottom:0">
+        <div class="kad-row" style="margin-bottom:0" id="profil-stat">
           <div class="stat-kad g"><div class="stat-num" style="color:var(--pri)">${stat.hadir}</div><div class="stat-lbl">Hadir</div></div>
           <div class="stat-kad r"><div class="stat-num" style="color:var(--red)">${stat.tidak_hadir}</div><div class="stat-lbl">Tidak Hadir</div></div>
           <div class="stat-kad"><div class="stat-num">${stat.peratus}%</div><div class="stat-lbl">Kehadiran</div></div>
@@ -2671,7 +2728,8 @@ async function renderProfilAhli() {
 
       <div class="kad">
         <div class="seksyen-tajuk" style="margin-top:0">Sejarah Gred</div>
-        ${gred.length ? gred.slice().reverse().map((g, i, arr) => `
+        <div id="profil-gred">${gred === null ? '<div class="muat" style="padding:12px"><i class="ti ti-loader-2"></i></div>' : ''}</div>
+        ${gred === null ? '' : gred.length ? gred.slice().reverse().map((g, i, arr) => `
           <div class="gred-item">
             <div class="gred-garis"><div class="gred-dot"></div>${i < arr.length-1 ? '<div class="gred-line"></div>' : ''}</div>
             <div class="gred-content">
@@ -2692,6 +2750,25 @@ async function renderProfilAhli() {
       </div>
     `;
     window._ahliProfil = a;
+    // isi kehadiran & sejarah gred bila sampai
+    pStat.then(st => {
+      const el = document.getElementById('profil-stat'); if (!el || profilAhliSkrg !== no_kp) return;
+      st = st || { hadir: '—', tidak_hadir: '—', peratus: '—' };
+      el.innerHTML = '<div class="stat-kad g"><div class="stat-num" style="color:var(--pri)">' + st.hadir + '</div><div class="stat-lbl">Hadir</div></div>' +
+        '<div class="stat-kad r"><div class="stat-num" style="color:var(--red)">' + st.tidak_hadir + '</div><div class="stat-lbl">Tidak Hadir</div></div>' +
+        '<div class="stat-kad"><div class="stat-num">' + st.peratus + '%</div><div class="stat-lbl">Kehadiran</div></div>';
+    });
+    pGred.then(g => {
+      const el = document.getElementById('profil-gred'); if (!el || profilAhliSkrg !== no_kp) return;
+      g = g || [];
+      el.innerHTML = g.length ? g.slice().reverse().map((x, i, arr) =>
+        '<div class="gred-item"><div class="gred-garis"><div class="gred-dot"></div>' + (i < arr.length - 1 ? '<div class="gred-line"></div>' : '') + '</div>' +
+        '<div class="gred-content"><div class="gred-bengkung">' + chipBengkung(x.BENGKUNG_BARU || x.BENGKUNG_SEMASA) + '</div>' +
+        '<div class="gred-tarikh">' + escapeHtml(x.TARIKH_NAIK_GRED || '—') + (x.CATATAN ? ' · ' + escapeHtml(x.CATATAN) : '') + '</div></div></div>').join('')
+        : '<div style="color:var(--hint);font-size:14px">Tiada sejarah gred direkodkan</div>';
+    });
+    // kemas kini profil di latar jika dipapar dari ingatan
+    if (a !== undefined) pProfil.then(baru => { if (JSON.stringify(baru) !== JSON.stringify(a) && profilAhliSkrg === no_kp && halamanSkrg === 'profil-ahli') renderProfilAhli(); }).catch(() => {});
     // Load kelas berat selepas render
     setTimeout(()=>loadKelasBeratProfil(a.TARIKH_LAHIR, a.NO_KP, a.BERAT_KG), 400);
   } catch (e) {
@@ -3424,7 +3501,10 @@ async function renderProfilPesilat() {
   main.innerHTML = '<div class="muat"><i class="ti ti-loader-2"></i><span>Memuatkan data pesilat...</span></div>';
   try {
     // senarai_ahli_bmi: berat, tinggi, BMI, kategori usia & kelas berat semasa (terus dari Sheet)
-    dataPesilat = ((await api('senarai_ahli_bmi')) || []).slice().sort((a, b) => String(a.nama).localeCompare(String(b.nama)));
+    if (!dataPesilat || !dataPesilat._bmi) {
+      dataPesilat = ((await api('senarai_ahli_bmi')) || []).slice();
+      dataPesilat._bmi = true;
+    }
 
     main.innerHTML = `
       <button class="btn btn-pri btn-blok" style="margin-bottom:12px" onclick="renderBeratPukal()"><i class="ti ti-scale"></i> Kemaskini Berat &amp; Tinggi (Semua Pesilat)</button>
@@ -3434,8 +3514,8 @@ async function renderProfilPesilat() {
       </div>
       <div style="margin-bottom:10px">
         <select class="form-input" id="pilih-pesilat" onchange="pilihDariDropdown(this.value)" style="font-size:13px;padding:9px 12px">
-          <option value="">— Pilih nama dari senarai —</option>
-          ${dataPesilat.map(a=>`<option value="${escapeAttr(a.no_kp)}">${escapeHtml(a.nama)}</option>`).join('')}
+          <option value="">— Lompat ke nama —</option>
+          ${dataPesilat.slice().sort((x,y)=>String(x.nama).localeCompare(String(y.nama))).map(a=>`<option value="${escapeAttr(a.no_kp)}">${escapeHtml(a.nama)}</option>`).join('')}
         </select>
       </div>
       <div id="jadual-pesilat"></div>
@@ -3447,10 +3527,11 @@ async function renderProfilPesilat() {
 }
 
 function pilihDariDropdown(noKp) {
-  if (!noKp) { paparJadualPesilat(dataPesilat); return; }
-  document.getElementById('carian-pesilat').value = '';
-  const hasil = dataPesilat.filter(a => a.no_kp === noKp);
-  paparJadualPesilat(hasil);
+  if (!noKp) return;
+  const c = document.getElementById('carian-pesilat');
+  if (c && c.value) { c.value = ''; paparJadualPesilat(dataPesilat); }
+  const el = document.getElementById('fz-' + _fzKP({ no_kp: noKp }));
+  if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('sorot'); setTimeout(() => el.classList.remove('sorot'), 1800); }
 }
 
 let timerCariPesilat;
@@ -3461,7 +3542,7 @@ function tapisPesilat(q) {
   timerCariPesilat = setTimeout(() => {
     if (!dataPesilat) return;
     const hasil = q ? dataPesilat.filter(a =>
-      String(a.nama||'').toLowerCase().includes(q.toLowerCase()) || a.no_kp.includes(q)
+      String(a.nama||'').toLowerCase().includes(q.toLowerCase()) || String(a.no_kp||'').includes(q)
     ) : dataPesilat;
     paparJadualPesilat(hasil);
   }, 250);
@@ -3480,6 +3561,19 @@ function kiraUsiaDariKP(tarikhLahir, noKp) {
   return u;
 }
 
+// Senarai Fizikal & BMI: dikumpul ikut kategori usia (termuda dahulu), ringkas & mudah disalin
+const _URUTAN_KAT_USIA = ['PRA TUNAS','TUNAS','PRA DINI','DINI','PRA REMAJA','REMAJA','SUKMA','TERBUKA','MASTER 2','MASTER 1'];
+function _fzKP(a) { const k = String(a.no_kp || '').trim(); return k.length === 11 ? '0' + k : k; }
+function _fzData(a) {
+  const kp = _fzKP(a);
+  const usia = kiraUsiaKompetisi(a.tarikh_lahir || '', kp) ?? a.usia;
+  const berat = parseFloat(a.berat) || 0, tinggi = parseFloat(a.tinggi) || 0;
+  const semuaK = kelasBeratSemua(usia, berat, katUsiaLabel, cariKelasBeratHardcode);
+  const kat = semuaK[0] ? semuaK[0].label : '';
+  const kelas = !berat ? 'Isi berat' : semuaK.length > 1 ? teksKelasSemua(semuaK) : (semuaK[0] && semuaK[0].kelas ? (semuaK[0].kelas.kelas === 'BEBAS' ? 'BEBAS' : 'Kelas ' + semuaK[0].kelas.kelas) : '—');
+  const bmi = berat && tinggi ? Math.round(berat / Math.pow(tinggi / 100, 2) * 10) / 10 : null;
+  return { a, kp, usia, berat, tinggi, kat, kelas, bmi, dua: semuaK.length > 1 };
+}
 function paparJadualPesilat(senarai) {
   const el = document.getElementById('jadual-pesilat');
   if (!el) return;
@@ -3487,78 +3581,53 @@ function paparJadualPesilat(senarai) {
     el.innerHTML = '<div class="kosong"><i class="ti ti-user-off"></i><p>Tiada pesilat dijumpai</p></div>';
     return;
   }
-
-  const warnaBMI = bmi => {
-    if (!bmi) return '#ccc';
-    if (bmi < 18.5) return '#3B8BD4';
-    if (bmi < 23)   return 'var(--ok)';
-    if (bmi < 27.5) return '#BA7517';
-    return '#A32D2D';
-  };
-  const labelBMI = bmi => {
-    if (!bmi) return '—';
-    if (bmi < 18.5) return 'Kurus';
-    if (bmi < 23)   return 'Normal';
-    if (bmi < 27.5) return 'Lebih';
-    return 'Obes';
-  };
-
+  const rows = senarai.map(_fzData).sort((x, y) =>
+    (x.usia ?? 999) - (y.usia ?? 999) || String(x.a.nama).localeCompare(String(y.a.nama)));
+  window._fzRows = rows;
+  const kump = {};
+  rows.forEach(r => { const k = r.kat || 'TIADA MAKLUMAT USIA'; (kump[k] = kump[k] || []).push(r); });
+  const nama = Object.keys(kump).sort((a, b) => {
+    const ia = _URUTAN_KAT_USIA.indexOf(a), ib = _URUTAN_KAT_USIA.indexOf(b);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  });
+  let no = 0;
   el.innerHTML = `
-    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${senarai.length} pesilat dijumpai</div>
-    ${senarai.map(a => {
-      const usia   = kiraUsiaKompetisi(a.tarikh_lahir || '', (s => s.length === 11 ? '0' + s : s)(String(a.no_kp || '').trim())) ?? a.usia;
-      const semuaK = kelasBeratSemua(usia, parseFloat(a.berat) || 0, katUsiaLabel, cariKelasBeratHardcode);
-      const katU   = semuaK.map(k => k.label).join(' / ');
-      const hadU   = semuaK.length > 1 ? 'layak 2 kategori' : (semuaK[0] ? semuaK[0].had : '');
-      const kelas  = semuaK.length > 1 ? teksKelasSemua(semuaK).replace(/Kelas /g, '') : (semuaK[0] && semuaK[0].kelas ? semuaK[0].kelas.kelas : '');
-      const berat  = parseFloat(a.berat) || 0;
-      const tinggi = parseFloat(a.tinggi) || 0;
-      const bmi    = (berat>0&&tinggi>0) ? Math.round(berat/Math.pow(tinggi/100,2)*10)/10 : null;
-      const warna  = a.kategori?.includes('RENDAH')?'var(--ok)':a.kategori?.includes('MENENGAH')?'var(--violet)':'var(--accent)';
-
-      return `
-      <div class="kad" style="margin-bottom:10px;padding:14px;cursor:pointer" onclick="bukaProfilAhli('${a.no_kp}')">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-          <div class="avatar" style="background:color-mix(in srgb,${warna} 16%,transparent);color:${warna};flex-shrink:0;border:none">${(a.nama||'?')[0]}</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:700;font-size:14px;word-break:break-word;line-height:1.3">${a.nama}</div>
-            <div style="font-size:11px;color:var(--muted)">${a.id_ahli||'—'} · ${a.no_kp}</div>
-            <div style="margin-top:6px">${chipBengkung(a.bengkung)}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:12px;color:var(--muted)">${rows.length} pesilat · susunan usia termuda</span>
+      <button class="btn-kecil" onclick="salinSenaraiFizikal()"><i class="ti ti-copy"></i> Salin senarai</button>
+    </div>
+    ${nama.map(k => `
+      <div class="fz-kepala"><span>${escapeHtml(k)}</span><span>${kump[k].length} orang${KAT_USIA_HAD[k] ? '' : (katUsiaLabel(kump[k][0].usia)?.had ? ' · ' + katUsiaLabel(kump[k][0].usia).had : '')}</span></div>
+      ${kump[k].map(r => { no++; const a = r.a; return `
+      <div class="fz-baris" id="fz-${escapeAttr(r.kp)}">
+        <div class="fz-no">${no}</div>
+        <div class="fz-isi">
+          <div class="fz-nama">${escapeHtml(a.nama || '—')}</div>
+          <div class="fz-kp">${escapeHtml(r.kp)}</div>
+          <div class="fz-info">
+            <span>${r.usia ?? '—'} thn</span>
+            <span>${r.berat ? r.berat + 'kg' : '— kg'}</span>
+            <span>${r.tinggi ? r.tinggi + 'cm' : '— cm'}</span>
+            ${r.bmi ? `<span style="color:${warnaBMIAdmin(r.bmi)}">BMI ${r.bmi}</span>` : ''}
           </div>
-          <i class="ti ti-chevron-right" style="color:var(--hint);flex-shrink:0"></i>
+          <div class="fz-kelas${r.berat ? '' : ' kosong'}">${escapeHtml(r.kelas)}</div>
         </div>
-
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-          <div style="background:var(--surface-2);border-radius:8px;padding:8px;text-align:center">
-            <div style="font-size:16px;font-weight:700;color:${warna}">${usia !== null ? usia : '—'}</div>
-            <div style="font-size:10px;color:var(--muted)">USIA</div>
-          </div>
-          <div style="background:var(--surface-2);border-radius:8px;padding:8px;text-align:center">
-            <div style="font-size:16px;font-weight:700">${berat > 0 ? berat+'kg' : '—'}</div>
-            <div style="font-size:10px;color:var(--muted)">BERAT</div>
-          </div>
-          <div style="background:var(--surface-2);border-radius:8px;padding:8px;text-align:center">
-            <div style="font-size:16px;font-weight:700">${tinggi > 0 ? tinggi+'cm' : '—'}</div>
-            <div style="font-size:10px;color:var(--muted)">TINGGI</div>
-          </div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-          <div style="background:rgba(var(--violet-rgb),.10);border:1px solid rgba(var(--violet-rgb),.25);border-radius:8px;padding:7px;text-align:center">
-            <div style="font-size:13px;font-weight:800;color:var(--violet)">${katU ? escapeHtml(katU) : '—'}</div>
-            <div style="font-size:10px;color:var(--muted)">KATEGORI USIA${hadU ? ' · ' + escapeHtml(hadU.toLowerCase()) : ''}</div>
-          </div>
-          <div style="background:rgba(var(--accent-rgb),.10);border:1px solid rgba(var(--accent-rgb),.25);border-radius:8px;padding:7px;text-align:center">
-            <div style="font-size:13px;font-weight:800;color:var(--accent)">${berat > 0 ? (kelas ? (semuaK.length > 1 ? escapeHtml(kelas) : kelas === 'BEBAS' ? 'BEBAS' : 'KELAS ' + escapeHtml(kelas)) : '—') : 'Isi berat'}</div>
-            <div style="font-size:10px;color:var(--muted)">KELAS BERAT</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-          ${bmi ? `<span class="badge" style="font-size:10px;background:color-mix(in srgb,${warnaBMI(bmi)} 14%,transparent);color:${warnaBMI(bmi)}">BMI ${bmi} · ${labelBMI(bmi)}${(() => { const t = sasaranBMI(berat, tinggi); return t && t.arah !== 'ok' ? ' · ' + (t.arah === 'tambah' ? '+' : '−') + t.beza + 'kg' : ''; })()}</span>` : ''}
-        </div>
-      </div>`;
-    }).join('')}
-  `;
+        <button class="fz-buka" onclick="bukaProfilAhli('${jsArg(a.no_kp)}')" title="Buka profil"><i class="ti ti-chevron-right"></i></button>
+      </div>`; }).join('')}`).join('')}`;
+}
+function salinSenaraiFizikal() {
+  const rows = window._fzRows || [];
+  const teks = ['BIL\tKATEGORI USIA\tNAMA PENUH\tNO. KP\tUSIA\tBERAT (KG)\tTINGGI (CM)\tKELAS']
+    .concat(rows.map((r, i) => [i + 1, r.kat || '—', r.a.nama || '', r.kp, r.usia ?? '', r.berat || '', r.tinggi || '', r.kelas].join('\t'))).join('\n');
+  const ok = () => tunjukToast('📋 ' + rows.length + ' pesilat disalin — tampal di Excel / WhatsApp');
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(teks).then(ok).catch(() => salinGanti(teks, ok));
+  else salinGanti(teks, ok);
+}
+function salinGanti(teks, ok) {
+  const t = document.createElement('textarea'); t.value = teks; t.style.position = 'fixed'; t.style.opacity = '0';
+  document.body.appendChild(t); t.select();
+  try { document.execCommand('copy'); ok(); } catch (e) { tunjukToast('Gagal salin', 'ralat'); }
+  t.remove();
 }
 
 
@@ -5614,7 +5683,7 @@ async function hantarBeratTinggi(e) {
     await apiPost(data);
     tunjukToast('✅ Berat & tinggi berjaya dikemaskini!', 'ok');
     tutupModal('modal-berat');
-    dataAhliCache = null;
+    dataAhliCache = null; dataPesilat = null; delete _cacheProfil[data.no_kp];
     if (halamanSkrg === 'profil-ahli') renderProfilAhli();
   } catch (err) {
     tunjukToast('Gagal: ' + err.message, 'ralat');
@@ -5697,7 +5766,7 @@ async function bpHantar(kp, b, t) {
     await apiPost({ tindakan: 'kemaskini_berat', no_kp: kp, berat_kg: b, tinggi_cm: t });
     a.berat = b || null; a.tinggi = t || null;
     bpStatus(kp, '<i class="ti ti-check" style="color:var(--ok)"></i>');
-    dataAhliCache = null; clearApiCache('senarai_ahli_bmi');
+    dataAhliCache = null; dataPesilat = null; clearApiCache('senarai_ahli_bmi');
   } catch (e) {
     bpStatus(kp, '<button class="btn-kecil" style="color:var(--bad)" onclick="bpHantar(\'' + jsArg(kp) + '\',' + b + ',' + t + ')"><i class="ti ti-refresh"></i> Gagal — cuba lagi</button>');
   }
