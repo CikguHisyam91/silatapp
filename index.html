@@ -2262,9 +2262,100 @@ function ubKeputusan(mod) {
       <button class="btn ${tab === 'lulus' ? 'btn-pri' : 'btn-outline'}" style="flex:1" onclick="ubKeputusan('lulus')"><i class="ti ti-circle-check"></i> Keputusan</button>
       <button class="btn ${tab === 'kedudukan' ? 'btn-pri' : 'btn-outline'}" style="flex:1" onclick="ubKeputusan('kedudukan')"><i class="ti ti-trophy"></i> Kedudukan</button>
     </div>
+    <button class="btn btn-outline btn-blok" style="margin-bottom:6px;border-color:var(--ok);color:var(--ok)" onclick="ubBukaCsvSijil()"><i class="ti ti-file-spreadsheet"></i> Muat Turun CSV Sijil</button>
     ${isi}`;
 }
 function ubTukarJantina(j) { UB.jan = j; ubKeputusan('kedudukan'); }
+
+// ── Eksport CSV Sijil (untuk Canva Bulk Create) ─────────────
+const UB_BULAN_PENUH = ['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'];
+function ubTarikhPenuh(t) {
+  const m = String(t || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? Number(m[3]) + ' ' + UB_BULAN_PENUH[Number(m[2]) - 1] + ' ' + m[1] : String(t || '');
+}
+// "BENGKUNG HIJAU CULA KUNING" -> "Bengkung Hijau Cula Kuning" (kurungan dibuang)
+function ubTajukBengkung(b) {
+  return String(b || '').replace(/\s*\(.*?\)\s*/g, ' ').trim().toLowerCase().replace(/(^|\s)([a-z])/g, (x, p, c) => p + c.toUpperCase());
+}
+// Bengkung seterusnya selepas lulus ujian
+function ubBengkungBaharu(semasa) {
+  const t = String(semasa || '').toUpperCase().trim();
+  const i = UB_URUTAN_BENGKUNG.indexOf(t);
+  return i >= 0 && i < UB_URUTAN_BENGKUNG.length - 1 ? UB_URUTAN_BENGKUNG[i + 1] : t;
+}
+function ubTarafKedudukan(no) { return no === 1 ? 'Johan' : no === 2 ? 'Naib Johan' : no === 3 ? 'Ketiga' : 'Ke-' + no; }
+
+function ubBukaCsvSijil() {
+  tutupModal('modal-csv-sijil');
+  const m = document.createElement('div');
+  m.className = 'modal-bg buka'; m.id = 'modal-csv-sijil';
+  m.onclick = () => tutupModal('modal-csv-sijil');
+  m.innerHTML = '<div class="modal" onclick="event.stopPropagation()">' +
+    '<div class="modal-header"><div class="modal-tajuk">📄 CSV Sijil · Canva Bulk Create</div><button class="modal-tutup" onclick="tutupModal(\'modal-csv-sijil\')"><i class="ti ti-x"></i></button></div>' +
+    '<div class="form-kump"><label class="form-label">Sesi ujian</label><select class="form-input" id="csv-sesi">' +
+      UB.senarai.map(u => '<option value="' + escapeAttr(u.id) + '"' + (UB.semasa && u.id === UB.semasa.id ? ' selected' : '') + '>' + escapeHtml(ubFmtTarikh(u.tarikh) + ' · ' + u.tajuk) + '</option>').join('') + '</select></div>' +
+    '<div class="form-kump"><label class="form-label">Jenis sijil</label><div style="display:flex;gap:8px">' +
+      ['Pencapaian', 'Pentauliahan'].map((j, i) => '<label style="flex:1;display:flex;align-items:center;gap:6px;padding:11px;border:1px solid var(--line-2);border-radius:10px;background:var(--surface-2);font-weight:700;font-size:13px"><input type="radio" name="csv-jenis" value="' + j + '"' + (i === 0 ? ' checked' : '') + '> ' + j + '</label>').join('') +
+    '</div></div>' +
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.5"><i class="ti ti-filter"></i> Hanya pesilat berstatus <b style="color:var(--ok)">LULUS</b>. Disusun ikut nama A–Z.<br>' +
+      'Lajur: NAMA, NO_AHLI, BENGKUNG, TARIKH, NO_SIJIL, JENIS_SIJIL, KEDUDUKAN, KUMPULAN</div>' +
+    '<div id="csv-pratonton" style="font-size:12px;margin-bottom:12px"></div>' +
+    '<button class="btn btn-pri btn-blok" onclick="ubMuatTurunCsvSijil()"><i class="ti ti-download"></i> Muat Turun CSV</button></div>';
+  document.body.appendChild(m);
+  const kemas = () => { const r = ubJanaBarisSijil(); document.getElementById('csv-pratonton').innerHTML = r ? '<b>' + r.baris.length + '</b> pesilat lulus akan dimasukkan.' : ''; };
+  m.querySelector('#csv-sesi').onchange = kemas;
+  kemas();
+}
+
+function ubJanaBarisSijil() {
+  const id = document.getElementById('csv-sesi')?.value;
+  const u = UB.senarai.find(x => x.id === id) || UB.semasa;
+  if (!u) return null;
+  const jenis = (document.querySelector('input[name="csv-jenis"]:checked') || {}).value || 'Pencapaian';
+  const data = u.peserta.map(p => Object.assign({}, p, ubKira(u, p.no_kp)));
+  // kedudukan ikut kumpulan Bengkung × Jantina × Usia (sama seperti tab Kedudukan)
+  const kd = {};
+  ubKumpKedudukan(u, data).forEach(g => g.ahli.forEach(d => {
+    kd[d.no_kp] = { no: d.no, kumpulan: (g.jantina === 'LELAKI' ? 'Lelaki' : g.jantina === 'PEREMPUAN' ? 'Perempuan' : '—') + ' · ' + (g.usia != null ? g.usia + ' tahun' : 'Usia ?') + ' · ' + ubTajukBengkung(g.bengkung || '—') };
+  }));
+  const tahun = ubTahunUjian(u);
+  const ahliIndeks = {};
+  (dataAhliCache || []).forEach(a => { ahliIndeks[String(a.no_kp)] = a; });
+  const baris = data.filter(d => d.lulus)
+    .map(d => ({ d, nama: String(d.nama || '').toUpperCase().replace(/\s+/g, ' ').trim() }))
+    .sort((a, b) => a.nama.localeCompare(b.nama))
+    .map((x, i) => {
+      const d = x.d, k = kd[d.no_kp] || {};
+      return {
+        NAMA: x.nama,
+        NO_AHLI: d.id_ahli || (ahliIndeks[String(d.no_kp)] || {}).id_ahli || '',
+        BENGKUNG: ubTajukBengkung(ubBengkungBaharu(d.bengkung)),
+        TARIKH: ubTarikhPenuh(u.tarikh),
+        NO_SIJIL: 'GSM/' + tahun + '/' + String(i + 1).padStart(3, '0'),
+        JENIS_SIJIL: jenis,
+        KEDUDUKAN: k.no ? ubTarafKedudukan(k.no) : '',
+        KUMPULAN: k.kumpulan || ''
+      };
+    });
+  return { u, jenis, baris };
+}
+
+function ubMuatTurunCsvSijil() {
+  const r = ubJanaBarisSijil();
+  if (!r) return;
+  if (!r.baris.length) { tunjukToast('Tiada pesilat LULUS dalam sesi ini', 'ralat'); return; }
+  const lajur = ['NAMA', 'NO_AHLI', 'BENGKUNG', 'TARIKH', 'NO_SIJIL', 'JENIS_SIJIL', 'KEDUDUKAN', 'KUMPULAN'];
+  const petik = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+  const csv = '﻿' + [lajur.map(petik).join(',')].concat(r.baris.map(b => lajur.map(k => petik(b[k])).join(','))).join('\r\n') + '\r\n';
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Sijil_' + r.jenis + '_' + String(r.u.tarikh || '').slice(0, 10) + '.csv';
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  tunjukToast('✅ ' + r.baris.length + ' sijil · ' + a.download);
+  tutupModal('modal-csv-sijil');
+}
 
 // ── Kedudukan: kumpulan Bengkung × Jantina × Usia ────────────
 const UB_URUTAN_BENGKUNG = ['BENGKUNG HITAM KOSONG (AHLI BAHARU)','BENGKUNG HITAM CULA 1','BENGKUNG HITAM CULA 2','BENGKUNG HITAM CULA 3','BENGKUNG PUTIH','BENGKUNG PUTIH CULA BIRU','BENGKUNG BIRU','BENGKUNG BIRU CULA HIJAU','BENGKUNG HIJAU','BENGKUNG HIJAU CULA KUNING','BENGKUNG KUNING','BENGKUNG KUNING CULA HITAM (GURULATIH)','BENGKUNG MERAH','BENGKUNG MERAH CULA KUNING (JURULATIH)'];
