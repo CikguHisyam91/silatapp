@@ -1,4 +1,4 @@
-const CACHE = 'silatapp-v3';
+const CACHE = 'silatapp-v4';
 const ASET  = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
