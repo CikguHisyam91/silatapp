@@ -1,0 +1,69 @@
+/* ═══════════════════════════════════════════════════════════════
+   TEMA SILATAPP — Dark Neumorphism · Urbanist · Emas + Biru Langit
+   Dimuat SELEPAS gaya asal setiap halaman; hanya mengubah rupa.
+   ═══════════════════════════════════════════════════════════════ */
+:root{
+  --nm-bg:#1E2128; --nm-hi:#272B33; --nm-lo:#14161B;
+  --nm-out:6px 6px 14px var(--nm-lo),-5px -5px 12px var(--nm-hi);
+  --nm-out-s:4px 4px 9px var(--nm-lo),-3px -3px 8px var(--nm-hi);
+  --nm-in:inset 4px 4px 9px var(--nm-lo),inset -3px -3px 8px var(--nm-hi);
+  --emas:#F2B84B; --emas-rgb:242,184,75; --biru:#4FC3F7; --biru-rgb:79,195,247;
+
+  /* token asal dipetakan semula */
+  --bg:var(--nm-bg); --surface:var(--nm-bg); --surface-2:#22252D; --surface-3:#2A2E37;
+  --card:var(--nm-bg); --card2:#22252D; --card3:#2A2E37;
+  --line:rgba(255,255,255,.035); --line-2:rgba(255,255,255,.06);
+  --txt:#E8EAF0; --muted:#8A90A0;
+  --accent:var(--emas); --accent-rgb:var(--emas-rgb); --on-accent:#1A1406;
+  --gold:var(--emas); --c2:var(--emas); --pri:var(--emas);
+  --info:var(--biru); --info-rgb:var(--biru-rgb);
+  --font-b:'Urbanist',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif; --font-h:var(--font-b);
+}
+html,body{background:var(--nm-bg)!important;font-family:var(--font-b)!important;letter-spacing:.1px}
+input,select,textarea,button{font-family:var(--font-b)!important}
+b,strong,h1,h2,h3,.item-nama,.profil-nama,.stat-num,.stat-nilai{letter-spacing:-.2px}
+
+/* ── Permukaan TIMBUL ── */
+.kad,.stat-kad,.senarai-item,.game-btn,.item-kehadiran,.baris-yuran,.bp-baris,.fz-baris,.profil-header,
+.profil-hero,.uj-kad,.item-kad,.laporan-kad,.bulan-kad,.hadir-hero,.vid-baris,.silibus-item,.rekod-yuran,
+.login-kad,#login-box,.modal,.info-box,.item-nilai,.ybk,.kat-btn,.kat-pill,.bakat-btn,.status-btn{
+  background:var(--nm-bg)!important;border-color:transparent!important;box-shadow:var(--nm-out)!important}
+.kad,.stat-kad,.profil-header,.profil-hero,.uj-kad,.modal,#login-box,.login-kad{border-radius:20px!important}
+.senarai-item,.item-kehadiran,.baris-yuran,.bp-baris,.fz-baris,.game-btn,.vid-baris,.item-kad{border-radius:16px!important}
+
+/* ── Butang ── */
+.btn,.btn-kecil,.hdr-btn,.btn-balik,.btn-filter-yuran,.btn-status-ahli,.modal-tutup,.fz-buka,.btn-ikon,
+.btn-keluar,.btn-lihat,.btn-kamera,.ptab,.ub-mk{border-color:transparent!important;box-shadow:var(--nm-out-s)!important}
+.btn,.btn-kecil,.btn-filter-yuran,.btn-status-ahli,.btn-keluar,.btn-lihat{border-radius:14px!important}
+.btn-outline,.btn-kecil:not(.pri),.hdr-btn,.btn-balik,.modal-tutup,.fz-buka,.btn-ikon{background:var(--nm-bg)!important}
+.btn-pri,.btn-kecil.pri,.login-btn,.btn-hantar{background:var(--emas)!important;color:#1A1406!important;
+  box-shadow:4px 4px 10px var(--nm-lo),-3px -3px 8px var(--nm-hi),inset 0 1px 0 rgba(255,255,255,.25)!important}
+.btn:active,.btn-kecil:active,.game-btn:active,.senarai-item:active,.hdr-btn:active,.btn-balik:active,.ub-mk:active{box-shadow:var(--nm-in)!important}
+/* butang terpilih / aktif → tenggelam */
+.btn-filter-yuran.aktif,.btn-status-ahli.on,.ub-mk.on,.ptab.aktif,.kat-btn.aktif,.kat-pill.aktif,.bakat-btn.aktif,.status-btn.aktif{
+  box-shadow:var(--nm-in)!important;background:var(--nm-bg)!important;color:var(--emas)!important}
+
+/* ── Permukaan TENGGELAM (input, carian, bar) ── */
+.form-input,.form-inp,.login-inp,.login-input,.kotak-carian,.input-rm,.pilih-input,.bp-input label,
+.bar-kemajuan,.bmi-bar,.skor-bar,.uj-bar,.progress-bar,.tarikh-bar,.toggle-hadir,.avatar,.catatan-box,.senarai-carian{
+  background:var(--nm-bg)!important;border-color:transparent!important;box-shadow:var(--nm-in)!important}
+.form-input,.form-inp,.login-inp,.login-input,.kotak-carian,.pilih-input{border-radius:14px!important}
+.form-input:focus,.form-inp:focus,.login-inp:focus,.login-input:focus,.kotak-carian:focus-within,.bp-input label:focus-within{
+  box-shadow:var(--nm-in),0 0 0 2px rgba(var(--emas-rgb),.45)!important}
+.toggle-hadir.on{background:var(--biru)!important;box-shadow:inset 2px 2px 5px rgba(0,0,0,.25)!important}
+
+/* ── Dua warna: emas (utama) + biru langit (sokongan) ── */
+.badge.hijau,.uj-lencana{color:var(--biru)!important;background:rgba(var(--biru-rgb),.14)!important}
+.stat-kad.p .stat-num,.stat-kad.biru .stat-nilai{color:var(--biru)!important}
+.seksyen-tajuk,.kad-tajuk{color:var(--muted)!important;letter-spacing:.8px}
+.fz-kepala{background:var(--nm-bg)!important;box-shadow:var(--nm-out-s)!important;color:var(--biru)!important}
+.fz-subkepala,.fz-kelas{color:var(--emas)!important}
+
+/* ── Header & bar bawah ── */
+#page-header,.portal-header,.app-header,header{border-color:rgba(255,255,255,.04)!important}
+.modal-bg{background:rgba(10,11,14,.72)!important;backdrop-filter:blur(3px)}
+
+/* ikon menu & bar kemajuan ikut dua warna */
+.game-btn:nth-child(odd) .game-ikon{color:var(--emas)!important}
+.game-btn:nth-child(even) .game-ikon{color:var(--biru)!important}
+.stat-pct-bar,.bar-kemajuan>div{background:linear-gradient(90deg,var(--emas),var(--biru))!important}
